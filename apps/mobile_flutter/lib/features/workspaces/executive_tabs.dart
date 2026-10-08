@@ -24,6 +24,8 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_official_
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_profile_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_requests_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
+import 'package:ahla_shabab_management_os/features/association_projects/association_projects_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/monthly_attendance_statement_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/people_hub_page.dart';
 import 'package:ahla_shabab_management_os/shared/access_context.dart';
 import 'package:flutter/material.dart';
@@ -984,8 +986,14 @@ class ExecutiveMoreTab extends ConsumerWidget {
           ],
         ),
         _MoreSection(
-          title: 'الموظفون والطلبات',
+          title: 'الموظفون والمشاريع والطلبات',
           entries: [
+            _MoreEntry(
+              icon: Icons.folder_special_outlined,
+              title: 'مشاريع الجمعية',
+              subtitle: 'متابعة مشاريع الإدارات وخطوات العمل والمهام.',
+              onTap: () => push(const AssociationProjectsPage()),
+            ),
             _MoreEntry(
               icon: Icons.account_tree_outlined,
               title: 'الموظفون والهيكل التنظيمي',
@@ -1012,6 +1020,12 @@ class ExecutiveMoreTab extends ConsumerWidget {
               title: 'حسابي وملفي',
               subtitle: 'بياناتك وكلمة المرور والإعدادات.',
               onTap: () => push(const MobileProfilePage()),
+            ),
+            _MoreEntry(
+              icon: Icons.calendar_month_outlined,
+              title: 'بيان الحضور الشهري',
+              subtitle: 'سجل الحضور والانصراف وساعات الدوام للشهر.',
+              onTap: () => push(const MonthlyAttendanceStatementPage()),
             ),
             _MoreEntry(
               icon: Icons.logout_rounded,

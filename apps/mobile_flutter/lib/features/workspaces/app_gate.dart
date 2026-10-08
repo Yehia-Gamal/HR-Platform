@@ -249,6 +249,14 @@ class _AuthenticatedGateState extends ConsumerState<_AuthenticatedGate>
   }
 
   WorkspaceId? _mobileWorkspace(AccessContext context) {
+    // 1) المدير التنفيذي — الأولوية الأولى دائمًا لمساحته التنفيذية
+    // (حتى وإن كان حسابه يمتلك صلاحيات إدارة عليا أو دور admin).
+    if (context.workspaces.contains(WorkspaceId.executive) ||
+        context.roles.contains('executive') ||
+        context.roles.contains('executive-director')) {
+      return WorkspaceId.executive;
+    }
+
     // حسابات الأدمين "الويب فقط" تُمنع من الموبايل. يحيى له دورين (admin +
     // executive-secretary) فيُسمح له كسكرتير. من لديه admin فقط يُحال إلى
     // صفحة "ويب فقط". (دفاع عميق بجانب المنع في identifier-sign-in.)
@@ -257,9 +265,7 @@ class _AuthenticatedGateState extends ConsumerState<_AuthenticatedGate>
         !context.roles.contains('executive-secretary')) {
       return null;
     }
-    if (context.workspaces.contains(WorkspaceId.executive)) {
-      return WorkspaceId.executive;
-    }
+
     // السكرتير التنفيذي / الأدمن — يرى مساحة المدير (ليس التنفيذية).
     // يشوف البصمة + الطلبات + KPI حسب صلاحياته، بدون لوحة القيادة التنفيذية.
     if (context.workspaces.contains(WorkspaceId.mainAdmin)) {
@@ -286,19 +292,16 @@ class _AuthenticatedGateState extends ConsumerState<_AuthenticatedGate>
     VoidCallback onSignOut,
     VoidCallback onRetry,
   ) {
-    const adminOrExecutiveSlugs = {
+    const adminSlugs = {
       'admin',
       'super-admin',
       'super_admin',
       'system-admin',
-      'executive',
-      'executive-director',
     };
-    final isAdminOrExecutive = context.roles.any(adminOrExecutiveSlugs.contains) ||
-        context.workspaces.contains(WorkspaceId.mainAdmin) ||
-        context.workspaces.contains(WorkspaceId.executive);
+    final isAdmin = context.roles.any(adminSlugs.contains) ||
+        context.workspaces.contains(WorkspaceId.mainAdmin);
 
-    if (isAdminOrExecutive) {
+    if (isAdmin) {
       return _WebOnlyPage(
         access: context,
         onSignOut: onSignOut,

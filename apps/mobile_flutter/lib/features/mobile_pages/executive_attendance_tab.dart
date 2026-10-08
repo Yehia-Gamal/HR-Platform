@@ -144,7 +144,7 @@ class _ExecutiveAttendanceTabState
             }
 
             // نسبة الحضور من المطلوب حضورهم فقط — كاللوحات والتقرير التنفيذي:
-            // من في مأمورية أو إجازة أو راحة ليس مطلوبًا في المقر اليوم.
+            // من في مأمورية أو إجازة أو راحة ليس مطلوبًا في الجمعية اليوم.
             final presentCount = counts[_FilterCategory.present] ?? 0;
             final lateCount = counts[_FilterCategory.late] ?? 0;
             final expectedCount = employees.length -
