@@ -25,6 +25,9 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_profile_p
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_requests_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/association_projects/association_projects_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/honor_board_sheet.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_attendance_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_self_service_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/monthly_attendance_statement_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/people_hub_page.dart';
 import 'package:ahla_shabab_management_os/shared/access_context.dart';
@@ -995,6 +998,17 @@ class ExecutiveMoreTab extends ConsumerWidget {
               onTap: () => push(const AssociationProjectsPage()),
             ),
             _MoreEntry(
+              icon: Icons.military_tech_outlined,
+              title: 'لوحة الشرف والتكريم',
+              subtitle: 'الموظفون المتميزون في الانضباط والحضور لهذا الشهر.',
+              onTap: () => showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                useSafeArea: true,
+                builder: (_) => const HonorBoardSheet(),
+              ),
+            ),
+            _MoreEntry(
               icon: Icons.account_tree_outlined,
               title: 'الموظفون والهيكل التنظيمي',
               subtitle: 'الملفات والأقسام والتسلسل الإداري.',
@@ -1013,13 +1027,25 @@ class ExecutiveMoreTab extends ConsumerWidget {
           ],
         ),
         _MoreSection(
-          title: 'الحساب',
+          title: 'الحساب والخدمات الشخصية',
           entries: [
             _MoreEntry(
               icon: Icons.account_circle_outlined,
               title: 'حسابي وملفي',
               subtitle: 'بياناتك وكلمة المرور والإعدادات.',
               onTap: () => push(const MobileProfilePage()),
+            ),
+            _MoreEntry(
+              icon: Icons.fingerprint_rounded,
+              title: 'تسجيل البصمة الذكية',
+              subtitle: 'إثبات الحضور والانصراف عبر الموقع والشبكة.',
+              onTap: () => push(const MobileAttendancePage()),
+            ),
+            _MoreEntry(
+              icon: Icons.edit_calendar_outlined,
+              title: 'الخدمة الذاتية وتقديم طلب',
+              subtitle: 'طلب إجازة أو إذن أو مأمورية ومتابعة الأرصدة.',
+              onTap: () => push(const MobileSelfServicePage()),
             ),
             _MoreEntry(
               icon: Icons.calendar_month_outlined,
