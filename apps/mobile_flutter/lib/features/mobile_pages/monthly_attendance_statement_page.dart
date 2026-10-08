@@ -623,7 +623,7 @@ class _AttendancePercentageCard extends StatelessWidget {
                           label: 'مستبعد من النسبة',
                           value: '${arDays(excludedLeave)} إجازة',
                         ),
-                      _PctDetailRow(label: 'حضور بالمقر', value: arDays(presentInOffice)),
+                      _PctDetailRow(label: 'حضور بالجمعية', value: arDays(presentInOffice)),
                       if (convoysCount > 0)
                         _PctDetailRow(
                           label: 'قوافل خارجية',
@@ -671,7 +671,7 @@ class _AttendancePercentageCard extends StatelessWidget {
                   icon: Icons.event_available_outlined,
                 ),
                 _StatBadge(
-                  label: 'حضور المقر فقط',
+                  label: 'حضور الجمعية فقط',
                   value: rateAvailable ? '${purePresenceRate.toStringAsFixed(0)}%' : '—',
                   icon: Icons.business_outlined,
                 ),

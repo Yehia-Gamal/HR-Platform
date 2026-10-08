@@ -360,7 +360,7 @@ class _BroadcastAlertCard extends ConsumerWidget {
               minLines: 2,
               decoration: const InputDecoration(
                 labelText: 'نص التنبيه (3 أحرف على الأقل)',
-                hintText: 'مثال: اجتماع طارئ فورًا في المقر الرئيسي',
+                hintText: 'مثال: اجتماع طارئ فورًا في مقر الجمعية الرئيسي',
                 border: OutlineInputBorder(),
               ),
             ),

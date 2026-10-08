@@ -62,7 +62,7 @@ bool isOffsiteStatus(String? status) =>
 enum TodayStatusGroup {
   present('حاضرون', AppColors.statusSuccess, Icons.check_circle_rounded),
   absent('غائبون', AppColors.statusDanger, Icons.cancel_rounded),
-  offsite('خارج المقر', Color(0xFF2563EB), Icons.business_center_rounded),
+  offsite('خارج الجمعية', Color(0xFF2563EB), Icons.business_center_rounded),
   leave('إجازات', Color(0xFF0284C7), Icons.beach_access_rounded),
   other('لم يسجّلوا', Color(0xFF6B7280), Icons.hourglass_empty_rounded);
 

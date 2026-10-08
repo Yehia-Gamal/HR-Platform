@@ -1118,8 +1118,8 @@ class _MissionStartCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   startTime == null
-                      ? 'ابدأ مباشرة من نقطة المهمة — لا حاجة للمرور بالمقر.'
-                      : 'الوقت المتوقع للبداية: $startTime — لا حاجة للمرور بالمقر.',
+                      ? 'ابدأ مباشرة من نقطة المهمة — لا حاجة للمرور بمقر الجمعية.'
+                      : 'الوقت المتوقع للبداية: $startTime — لا حاجة للمرور بمقر الجمعية.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: scheme.onPrimary.withValues(alpha: 0.85),
@@ -1304,8 +1304,8 @@ class _MissionInProgressCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   startedLabel == null
-                      ? 'بانتظار الانتهاء — عند العودة إلى المقر أنهِ المهمة.'
-                      : 'بدأت الساعة $startedLabel — بانتظار الانتهاء عند العودة للمقر.',
+                      ? 'بانتظار الانتهاء — عند العودة إلى مقر الجمعية أنهِ المهمة.'
+                      : 'بدأت الساعة $startedLabel — بانتظار الانتهاء عند العودة لمقر الجمعية.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: scheme.onTertiaryContainer.withValues(alpha: 0.85),

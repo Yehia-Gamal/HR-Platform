@@ -508,7 +508,7 @@ class _DigitalIdCardWidgetState extends ConsumerState<_DigitalIdCardWidget> {
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              '${item.department ?? "الإدارة العامة"} • ${item.branch ?? "المقر الرئيسي"}',
+                              '${item.department ?? "الإدارة العامة"} • ${item.branch ?? "مقر الجمعية الرئيسي"}',
                               style: const TextStyle(color: Colors.white70, fontSize: 10.5),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -583,7 +583,7 @@ class _DigitalIdCardWidgetState extends ConsumerState<_DigitalIdCardWidget> {
                           child: Text(
                             item.workSite != null && item.workSite!.isNotEmpty
                                 ? item.workSite!
-                                : (item.branch ?? 'المقر الرئيسي'),
+                                : (item.branch ?? 'مقر الجمعية الرئيسي'),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(color: Colors.white70, fontSize: 10.5),

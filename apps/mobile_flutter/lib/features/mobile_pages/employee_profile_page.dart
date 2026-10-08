@@ -918,7 +918,7 @@ class _MonthlyAttendanceCardState
                       value: '${s.attendanceRatePresentDays}',
                       label: 'حضور',
                     ),
-                    _StatTile(value: '$offsiteDays', label: 'خارج المقر'),
+                    _StatTile(value: '$offsiteDays', label: 'خارج الجمعية'),
                     _StatTile(
                       value: '$lateDays',
                       label: 'تأخير',

@@ -1205,8 +1205,8 @@ class _DecisionContextCard extends StatelessWidget {
           title: away.isEmpty
               ? (ins.teamSize == 0
                     ? 'لا زملاء آخرين في إدارته'
-                    : 'لا أحد من زملاء إدارته خارج المقر في الفترة نفسها')
-              : '${arEmployees(away.length)} من إدارته خارج المقر في الفترة نفسها',
+                    : 'لا أحد من زملاء إدارته خارج الجمعية في الفترة نفسها')
+              : '${arEmployees(away.length)} من إدارته خارج الجمعية في الفترة نفسها',
           subtitle: away.isEmpty || ins.teamSize == 0
               ? null
               : 'من أصل ${arEmployees(ins.teamSize)} في الإدارة',

@@ -1202,7 +1202,7 @@ class _BroadcastDialogState extends State<_BroadcastDialog> {
               minLines: 2,
               decoration: const InputDecoration(
                 labelText: 'نص التنبيه',
-                hintText: 'مثال: اجتماع طارئ فورًا في المقر الرئيسي',
+                hintText: 'مثال: اجتماع طارئ فورًا في مقر الجمعية الرئيسي',
                 border: OutlineInputBorder(),
               ),
             ),
