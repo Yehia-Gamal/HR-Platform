@@ -1,6 +1,7 @@
 
 # developer scratch / backups (audit REL-04)
 scratch/
+scratch_*.py
 scripts/test_*.py
 # أي ملف أسرار مُولّد أو محلي (تعميم — لا يُتتبَّع أبداً)
 .vercel_token

@@ -319,3 +319,4 @@
 | 0600 | `0600_arabic_leave_balance_error.sql` | تعريب رسائل أخطاء رصيد الإجازات وتعيين كود الخطأ 22023 عند عدم وجود رصيد كافٍ. |
 | 0601 | `0601_attendance_state_pending_missions.sql` | دعم عرض بطاقة مأمورية العمل المعلقة أثناء انتظار موافقة المدير المباشر في لوحة الحضور. |
 | 0602 | `0602_fix_mobile_action_targets_and_defaults.sql` | إصلاح شامل لتحليل مسارات الإجراءات والإشعارات في الموبايل ودعم المعرف الافتراضي default لمسارات الغرامات والمالية والحضور والإشعارات والمشاريع. |
+| 0637 | `0637_revoke_anon_from_unguarded_secdef_functions.sql` | سحب anon من دوال SECURITY DEFINER بلا حارس جلسة: خمس دوال تُرجع بيانات أي موظف (القسم، الإعفاءات، الطلبات، المهام، حالة اليوم، دقائق الدفع) بأي معرّف دون فحص الجلسة، ودالة get_mobile_employees ودالة trigger handle_new_user — سحب من anon وPUBLIC مع إعادة grant صريحة لـ authenticated/service_role/postgres، ثم reload لمخطط PostgREST. |
