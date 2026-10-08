@@ -120,6 +120,7 @@ const map: Record<string, { label: string; tone: Tone; icon: typeof CircleCheck 
   paid: { label: 'مدفوعة', tone: 'success', icon: CircleCheck },
   doubled: { label: 'مضاعفة', tone: 'danger', icon: AlertTriangle },
   initial: { label: 'أولية', tone: 'info', icon: Clock3 },
+  pending_direct_manager: { label: 'بانتظار المدير المباشر', tone: 'warning', icon: Clock3 },
 };
 
 export function StatusBadge({ status, value, label }: { status?: string; value?: string; label?: string }) {

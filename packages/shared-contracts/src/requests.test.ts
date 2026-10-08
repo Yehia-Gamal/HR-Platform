@@ -7,6 +7,8 @@ import {
   createRequestInputSchema,
   missionExecutionSchema,
   MISSION_EXECUTION_STATUS_LABELS,
+  getRequestStatusDisplay,
+  REQUEST_STATUS_DISPLAY_MAP,
 } from './requests.js';
 
 describe('request type contracts — V17 §8 + 0325 + 0632', () => {
@@ -134,5 +136,35 @@ describe('mission execution contract — 0318', () => {
   it('maps execution statuses to Arabic labels', () => {
     expect(MISSION_EXECUTION_STATUS_LABELS.in_progress).toBe('قيد التنفيذ');
     expect(MISSION_EXECUTION_STATUS_LABELS.completed).toBe('منجزة');
+  });
+});
+
+describe('request status display contracts — Phase 2 Item 8', () => {
+  it('maps all standard request statuses to Arabic labels and tones', () => {
+    const statuses = [
+      'approved',
+      'rejected',
+      'pending',
+      'pending_direct_manager',
+      'escalated',
+      'returned',
+      'cancelled',
+      'withdrawn',
+      'expired',
+      'closed',
+      'draft',
+    ];
+    for (const status of statuses) {
+      const display = getRequestStatusDisplay(status);
+      expect(display.label).toBeTruthy();
+      expect(display.color).toMatch(/^#[0-9a-fA-F]{6}$/);
+      expect(['neutral', 'info', 'success', 'warning', 'danger', 'violet']).toContain(display.tone);
+    }
+  });
+
+  it('provides safe fallback for unknown statuses', () => {
+    const unknown = getRequestStatusDisplay('some_custom_status');
+    expect(unknown.label).toBe('some_custom_status');
+    expect(unknown.tone).toBe('neutral');
   });
 });

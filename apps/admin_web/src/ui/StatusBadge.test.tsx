@@ -48,6 +48,8 @@ describe('StatusBadge', () => {
     ['present', 'حاضر', 'success'],
     ['absent', 'غائب', 'danger'],
     ['on_leave', 'في إجازة', 'info'],
+    ['pending_direct_manager', 'بانتظار المدير المباشر', 'warning'],
+    ['closed', 'مغلق', 'neutral'],
   ] as const;
 
   criticalStatuses.forEach(([status, label, tone]) => {

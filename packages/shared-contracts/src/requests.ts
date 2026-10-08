@@ -72,6 +72,106 @@ export const REQUEST_STATUS_LABELS: Record<RequestStatus, string> = {
   closed: 'مغلق',
 };
 
+export interface RequestStatusDisplay {
+  label: string;
+  color: string;
+  bgLight: string;
+  tone: 'neutral' | 'info' | 'success' | 'warning' | 'danger' | 'violet';
+  badgeClass: string;
+}
+
+export const REQUEST_STATUS_DISPLAY_MAP: Record<string, RequestStatusDisplay> = {
+  approved: {
+    label: 'معتمد',
+    color: '#0F9F6E',
+    bgLight: '#ecfdf5',
+    tone: 'success',
+    badgeClass: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20',
+  },
+  rejected: {
+    label: 'مرفوض',
+    color: '#DC3D4B',
+    bgLight: '#fef2f2',
+    tone: 'danger',
+    badgeClass: 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20',
+  },
+  pending: {
+    label: 'قيد المراجعة',
+    color: '#008CB3',
+    bgLight: '#eff6ff',
+    tone: 'info',
+    badgeClass: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20',
+  },
+  pending_direct_manager: {
+    label: 'بانتظار المدير المباشر',
+    color: '#008CB3',
+    bgLight: '#eff6ff',
+    tone: 'info',
+    badgeClass: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20',
+  },
+  escalated: {
+    label: 'مصعّد',
+    color: '#D98508',
+    bgLight: '#fffbeb',
+    tone: 'warning',
+    badgeClass: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20',
+  },
+  returned: {
+    label: 'معاد للتعديل',
+    color: '#C2410C',
+    bgLight: '#fff7ed',
+    tone: 'warning',
+    badgeClass: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20',
+  },
+  cancelled: {
+    label: 'ملغى',
+    color: '#64748B',
+    bgLight: '#f8fafc',
+    tone: 'neutral',
+    badgeClass: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20',
+  },
+  withdrawn: {
+    label: 'مسحوب',
+    color: '#64748B',
+    bgLight: '#f8fafc',
+    tone: 'neutral',
+    badgeClass: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20',
+  },
+  expired: {
+    label: 'منتهي',
+    color: '#64748B',
+    bgLight: '#f8fafc',
+    tone: 'neutral',
+    badgeClass: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20',
+  },
+  closed: {
+    label: 'مغلق',
+    color: '#475569',
+    bgLight: '#f1f5f9',
+    tone: 'neutral',
+    badgeClass: 'bg-slate-500/10 text-slate-700 dark:text-slate-300 border border-slate-500/20',
+  },
+  draft: {
+    label: 'مسودة',
+    color: '#94A3B8',
+    bgLight: '#f8fafc',
+    tone: 'neutral',
+    badgeClass: 'bg-slate-500/10 text-slate-500 dark:text-slate-400 border border-slate-500/20',
+  },
+};
+
+export function getRequestStatusDisplay(status: string): RequestStatusDisplay {
+  return (
+    REQUEST_STATUS_DISPLAY_MAP[status] ?? {
+      label: status,
+      color: '#64748B',
+      bgLight: '#f8fafc',
+      tone: 'neutral',
+      badgeClass: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20',
+    }
+  );
+}
+
 // ─── مدخلات إنشاء طلب ────────────────────────────────────────────────────────
 
 export const createRequestInputSchema = z.object({
