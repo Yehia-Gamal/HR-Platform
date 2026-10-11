@@ -43,12 +43,15 @@ class MyTeamPage extends StatelessWidget {
           ],
         ),
       ),
-      body: const TabBarView(
-        children: [
-          _TeamMembersView(mode: TeamPageMode.overview, embedded: true),
-          _TeamMembersView(mode: TeamPageMode.files, embedded: true),
-          _TeamMembersView(mode: TeamPageMode.attendance, embedded: true),
-        ],
+      body: SafeArea(
+        top: false,
+        child: const TabBarView(
+          children: [
+            _TeamMembersView(mode: TeamPageMode.overview, embedded: true),
+            _TeamMembersView(mode: TeamPageMode.files, embedded: true),
+            _TeamMembersView(mode: TeamPageMode.attendance, embedded: true),
+          ],
+        ),
       ),
     ),
   );
@@ -222,7 +225,7 @@ class _TeamMembersViewState extends ConsumerState<_TeamMembersView>
               );
             }
             return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 48),
               children: [
                 MobileSectionHeader(title: _title, subtitle: _subtitle),
                 const SizedBox(height: 8),
@@ -296,7 +299,7 @@ class _TeamMembersViewState extends ConsumerState<_TeamMembersView>
     if (widget.embedded) return body;
     return Scaffold(
       appBar: AppBar(title: Text(_title)),
-      body: body,
+      body: SafeArea(top: false, child: body),
     );
   }
 

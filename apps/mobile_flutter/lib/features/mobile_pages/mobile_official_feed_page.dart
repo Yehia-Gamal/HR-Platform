@@ -61,8 +61,10 @@ class MobileOfficialFeedPage extends ConsumerWidget {
               label: const Text('نشر جديد'),
             )
           : null,
-      body: RefreshIndicator(
-        onRefresh: () async => ref.invalidate(mobileFeedProvider),
+      body: SafeArea(
+        top: false,
+        child: RefreshIndicator(
+          onRefresh: () async => ref.invalidate(mobileFeedProvider),
         child: feed.when(
           loading: () => ListView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -147,8 +149,9 @@ class MobileOfficialFeedPage extends ConsumerWidget {
                 ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   void _showCreateOptions(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;

@@ -46,8 +46,10 @@ class MobileProfilePage extends ConsumerWidget {
                 ),
               ],
             ),
-      body: RefreshIndicator(
-        onRefresh: () async {
+      body: SafeArea(
+        top: false,
+        child: RefreshIndicator(
+          onRefresh: () async {
           ref.invalidate(mobileProfileProvider);
           ref.invalidate(attendanceStateProvider);
           ref.invalidate(mobileTeamProvider);
@@ -129,13 +131,14 @@ class MobileProfilePage extends ConsumerWidget {
               _ShareLocationCard(),
               const SizedBox(height: 14),
               const _AppVersionCard(),
-              const SizedBox(height: 32),
+              const SizedBox(height: 56),
             ],
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _ThemePreferenceCard extends ConsumerWidget {

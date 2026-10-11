@@ -49,7 +49,10 @@ class MyInstantPenaltiesPage extends ConsumerWidget {
             ],
           ),
         ),
-        body: TabBarView(children: [for (final t in tabs) t.$3]),
+        body: SafeArea(
+          top: false,
+          child: TabBarView(children: [for (final t in tabs) t.$3]),
+        ),
       ),
     );
   }

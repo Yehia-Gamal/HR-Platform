@@ -130,7 +130,7 @@ class _HistoryList extends StatelessWidget {
 
     return ListView.builder(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 48),
       itemCount: days.length + 1,
       itemBuilder: (context, index) {
         if (index == 0) {

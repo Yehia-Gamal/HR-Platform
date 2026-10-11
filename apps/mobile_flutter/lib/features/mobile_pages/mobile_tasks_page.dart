@@ -18,7 +18,10 @@ class MobileTasksPage extends ConsumerWidget {
     appBar: HostAppBarScope.isActive(context)
         ? null
         : AppBar(title: const Text('مهامي')),
-    body: _content(context, ref),
+    body: SafeArea(
+      top: false,
+      child: _content(context, ref),
+    ),
   );
 
   Widget _content(BuildContext context, WidgetRef ref) {

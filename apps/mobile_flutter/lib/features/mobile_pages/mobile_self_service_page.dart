@@ -50,7 +50,9 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
       appBar: HostAppBarScope.isActive(context)
           ? null
           : AppBar(title: const Text('طلباتي')),
-      body: RefreshIndicator(
+      body: SafeArea(
+        top: false,
+        child: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(myLeaveBalancesProvider);
           ref.invalidate(mobileRequestsProvider);
@@ -434,8 +436,9 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Future<void> _submitRequest(
     BuildContext context,

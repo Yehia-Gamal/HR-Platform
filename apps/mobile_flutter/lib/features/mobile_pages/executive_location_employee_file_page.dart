@@ -180,7 +180,7 @@ class _ExecutiveLocationEmployeeFilePageState
     final last = dossier.lastPoint;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 48),
       children: [
         _HeaderCard(
           name: emp.name,

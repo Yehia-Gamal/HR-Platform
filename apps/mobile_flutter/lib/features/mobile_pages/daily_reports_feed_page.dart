@@ -92,7 +92,9 @@ class _DailyReportsFeedPageState extends ConsumerState<DailyReportsFeedPage> {
         label: const Text('تقرير اليوم'),
         onPressed: () => _composeReport(context),
       ),
-      body: Column(
+      body: SafeArea(
+        top: false,
+        child: Column(
         children: [
           // ── شريط البحث ──
           Padding(
@@ -276,8 +278,9 @@ class _DailyReportsFeedPageState extends ConsumerState<DailyReportsFeedPage> {
     ),
   ],
 ),
+),
 );
-  }
+}
 
   void _onLike(String reportId) async {
     final commands = ref.read(mobileCommandsProvider);

@@ -170,7 +170,7 @@ class WorkspaceScaffold extends ConsumerWidget {
           ),
           body: SafeArea(
             top: false,
-            bottom: false,
+            bottom: destinations.isEmpty || useNavigationRail,
             child: useNavigationRail && destinations.isNotEmpty
                 ? Row(
                     children: [

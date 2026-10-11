@@ -237,8 +237,10 @@ class _ConvoyRadarPageState extends State<ConvoyRadarPage> {
           ),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      body: SafeArea(
+        top: false,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
         children: [
           // Convoy Hero Card
           Card(
@@ -459,8 +461,9 @@ class _ConvoyRadarPageState extends State<ConvoyRadarPage> {
           const SizedBox(height: 40),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _MetaChip extends StatelessWidget {

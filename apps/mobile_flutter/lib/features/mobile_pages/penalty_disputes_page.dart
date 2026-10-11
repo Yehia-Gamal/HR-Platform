@@ -22,7 +22,9 @@ class PenaltyDisputesPage extends ConsumerWidget {
         icon: const Icon(Icons.add_circle_outline),
         label: const Text('تقديم طعن جديد'),
       ),
-      body: RefreshIndicator(
+      body: SafeArea(
+        top: false,
+        child: RefreshIndicator(
         onRefresh: () async => ref.invalidate(penaltyDisputesProvider),
         child: disputes.when(
           loading: () => ListView(
@@ -97,8 +99,9 @@ class PenaltyDisputesPage extends ConsumerWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 /// بطاقة طعن فردية.

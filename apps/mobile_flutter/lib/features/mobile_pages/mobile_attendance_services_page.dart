@@ -20,7 +20,9 @@ class MobileAttendanceServicesPage extends ConsumerWidget {
         icon: const Icon(Icons.edit_calendar_outlined),
         label: const Text('طلب تصحيح'),
       ),
-      body: RefreshIndicator(
+      body: SafeArea(
+        top: false,
+        child: RefreshIndicator(
         onRefresh: () async => ref.invalidate(myAttendanceServicesProvider),
         child: data.when(
           loading: () => ListView(
@@ -111,8 +113,9 @@ class MobileAttendanceServicesPage extends ConsumerWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   String _dayStatus(String value) => switch (value) {
     'scheduled' => 'عمل',

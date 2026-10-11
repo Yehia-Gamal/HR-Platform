@@ -590,16 +590,18 @@ class _MonthlyAchievementDigestSheetState
                   }
                 }
 
-                return Container(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkSurface : Colors.white,
-                    border: Border(
-                      top: BorderSide(
-                        color: isDark ? Colors.white12 : Colors.black12,
+                return SafeArea(
+                  top: false,
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.darkSurface : Colors.white,
+                      border: Border(
+                        top: BorderSide(
+                          color: isDark ? Colors.white12 : Colors.black12,
+                        ),
                       ),
                     ),
-                  ),
                   child: Row(
                     children: [
                       // زر المشاركة عبر واتساب
@@ -689,8 +691,9 @@ class _MonthlyAchievementDigestSheetState
                       ),
                     ],
                   ),
-                );
-              },
+                ),
+              );
+            },
             ),
           ],
         ),

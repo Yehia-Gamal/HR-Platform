@@ -32,9 +32,11 @@ class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
     final brief = ref.watch(mobileExecutiveBriefProvider(_period));
     return Scaffold(
       appBar: AppBar(title: const Text('الملخص التنفيذي اليومي')),
-      body: RefreshIndicator(
-        onRefresh: () async =>
-            ref.invalidate(mobileExecutiveBriefProvider(_period)),
+      body: SafeArea(
+        top: false,
+        child: RefreshIndicator(
+          onRefresh: () async =>
+              ref.invalidate(mobileExecutiveBriefProvider(_period)),
         child: brief.when(
           loading: () => LayoutBuilder(
             builder: (context, constraints) => ListView(
@@ -74,8 +76,9 @@ class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
           data: _content,
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _content(MobileExecutiveBrief item) {
     final scheme = Theme.of(context).colorScheme;
@@ -96,7 +99,7 @@ class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
         ? null
         : () => _openPage(LocationRequestsPage(access: access));
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 48),
       children: [
         Container(
           padding: const EdgeInsets.all(22),

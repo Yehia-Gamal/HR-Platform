@@ -268,7 +268,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
       },
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 48),
         children: [
         // ── بطاقة المأمورية (إضافية — لا تحجب زر البصمة) ──
         if (missionCard != null) ...[

@@ -26,7 +26,9 @@ class LocationRequestsPage extends ConsumerWidget {
     final requests = ref.watch(myLocationRequestsProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('طلبات الموقع والتحقق')),
-      body: Column(
+      body: SafeArea(
+        top: false,
+        child: Column(
         children: [
           const GpsPreflightBanner(),
           Expanded(
@@ -149,8 +151,9 @@ class LocationRequestsPage extends ConsumerWidget {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 /// طلب ما زال قابلًا للرد: معلّق ولم تنقضِ مدته (نفس شرط البطاقة).

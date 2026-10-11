@@ -29,42 +29,45 @@ class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
     );
     return Scaffold(
       appBar: AppBar(title: Text(employeeName)),
-      body: RefreshIndicator(
-        onRefresh: () async =>
-            ref.invalidate(mobileExecutiveEmployeeSummaryProvider(employeeId)),
-        child: summary.when(
-          loading: () => ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            children: const [
-              SizedBox(height: 230),
-              Center(child: CircularProgressIndicator()),
-            ],
-          ),
-          error: (error, _) => ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(24),
-            children: [
-              const SizedBox(height: 90),
-              Icon(
-                Icons.person_off_outlined,
-                size: 52,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(height: 12),
-              Text(humanizeError(error), textAlign: TextAlign.center),
-              const SizedBox(height: 16),
-              Center(
-                child: FilledButton.tonalIcon(
-                  onPressed: () => ref.invalidate(
-                    mobileExecutiveEmployeeSummaryProvider(employeeId),
-                  ),
-                  icon: const Icon(Icons.refresh_rounded),
-                  label: const Text('إعادة المحاولة'),
+      body: SafeArea(
+        top: false,
+        child: RefreshIndicator(
+          onRefresh: () async =>
+              ref.invalidate(mobileExecutiveEmployeeSummaryProvider(employeeId)),
+          child: summary.when(
+            loading: () => ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: const [
+                SizedBox(height: 230),
+                Center(child: CircularProgressIndicator()),
+              ],
+            ),
+            error: (error, _) => ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(24),
+              children: [
+                const SizedBox(height: 90),
+                Icon(
+                  Icons.person_off_outlined,
+                  size: 52,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
-              ),
-            ],
+                const SizedBox(height: 12),
+                Text(humanizeError(error), textAlign: TextAlign.center),
+                const SizedBox(height: 16),
+                Center(
+                  child: FilledButton.tonalIcon(
+                    onPressed: () => ref.invalidate(
+                      mobileExecutiveEmployeeSummaryProvider(employeeId),
+                    ),
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: const Text('إعادة المحاولة'),
+                  ),
+                ),
+              ],
+            ),
+            data: (item) => _content(context, ref, item),
           ),
-          data: (item) => _content(context, ref, item),
         ),
       ),
     );

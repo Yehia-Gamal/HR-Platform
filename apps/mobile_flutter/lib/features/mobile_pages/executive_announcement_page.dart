@@ -92,9 +92,11 @@ class _ExecutiveAnnouncementPageState
       permission: 'comms.announcement.manage',
       child: Scaffold(
         appBar: AppBar(title: const Text('نشر قرار أو تعميم رسمي')),
-        body: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
+        body: SafeArea(
+          top: false,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+            children: [
             Card(
               color: scheme.primaryContainer.withValues(alpha: 0.3),
               child: Padding(
@@ -281,8 +283,9 @@ class _ExecutiveAnnouncementPageState
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();

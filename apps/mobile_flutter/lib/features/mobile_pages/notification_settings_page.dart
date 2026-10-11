@@ -71,8 +71,10 @@ class _NotificationSettingsPageState
 
     return Scaffold(
       appBar: AppBar(title: const Text('تفضيلات الإشعارات')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      body: SafeArea(
+        top: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 48),
         children: [
           Card(
             child: SwitchListTile(
@@ -184,6 +186,7 @@ class _NotificationSettingsPageState
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

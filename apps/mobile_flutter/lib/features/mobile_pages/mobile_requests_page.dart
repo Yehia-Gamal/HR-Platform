@@ -63,7 +63,10 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
         icon: const Icon(Icons.add),
         label: const Text('طلب جديد'),
       ),
-      body: _buildRequestsTab(context, requests, balances),
+      body: SafeArea(
+        top: false,
+        child: _buildRequestsTab(context, requests, balances),
+      ),
     );
   }
 

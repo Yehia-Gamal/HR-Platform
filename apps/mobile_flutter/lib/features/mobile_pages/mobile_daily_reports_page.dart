@@ -42,7 +42,9 @@ class MobileDailyReportsPage extends ConsumerWidget {
               label: const Text('تقرير اليوم'),
             )
           : null,
-      body: RefreshIndicator(
+      body: SafeArea(
+        top: false,
+        child: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(mobileDailyReportsProvider(employeeId));
         },
@@ -124,8 +126,9 @@ class MobileDailyReportsPage extends ConsumerWidget {
                 ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Future<void> _editReport(
     BuildContext context,
