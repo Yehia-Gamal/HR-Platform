@@ -444,7 +444,7 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
       <section className="card p-5 print:border print:p-3" aria-label="بيانات الموظف">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <InfoField label="الاسم" value={emp.fullNameAr} />
-          <InfoField label="الكود" value={emp.employeeCode ?? '—'} />
+          <InfoField label="الكود" value={emp.employeeCode ?? '—'} dir="ltr" />
           <InfoField label="الإدارة" value={emp.department} />
           <InfoField label="المسمى الوظيفي" value={emp.jobTitle} />
           <InfoField label="الفرع" value={emp.branch} />
@@ -605,7 +605,7 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
               </button>
             ))}
           </div>
-          <select className="input min-w-[140px]" value={daySort} onChange={(e) => setDaySort(e.target.value as DaySort)} aria-label="ترتيب الأيام">
+          <select className="input !w-auto min-w-[140px] shrink-0" value={daySort} onChange={(e) => setDaySort(e.target.value as DaySort)} aria-label="ترتيب الأيام">
             {DAY_SORTS.map((so) => (
               <option key={so.key} value={so.key}>
                 {so.label}

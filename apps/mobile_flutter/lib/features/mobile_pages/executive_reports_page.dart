@@ -69,9 +69,10 @@ class _ExecutiveReportsPageState extends ConsumerState<ExecutiveReportsPage> {
         .where((item) => const {'queued', 'running'}.contains(item.status))
         .length;
     final failed = data.reports.where((item) => item.status == 'failed').length;
-    final filtered = filter == 'all'
-        ? data.reports
-        : data.reports.where((item) => item.status == filter).toList();
+    final filtered = (filter == 'all'
+        ? data.reports.toList()
+        : data.reports.where((item) => item.status == filter).toList())
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),

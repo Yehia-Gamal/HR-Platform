@@ -1574,7 +1574,7 @@ class _TodayStatusCard extends StatelessWidget {
                                 } else {
                                   return Text(
                                     currentShift!.hasTodayPermit && currentShift!.todayPermit?.isLateArrival == true
-                                        ? 'المقرر: ${currentShift!.formattedActiveStartTime} (إذن +${currentShift!.todayPermit!.permitMinutes} د)'
+                                        ? 'المقرر: ${currentShift!.formattedActiveStartTime} (إذن \u200E+${currentShift!.todayPermit!.permitMinutes} د)'
                                         : 'المقرر: ${currentShift!.formattedStartTime}',
                                     style: TextStyle(
                                       fontSize: 10.5,
@@ -1677,8 +1677,8 @@ class _TodayStatusCard extends StatelessWidget {
                         ),
                         child: Text(
                           currentShift!.todayPermit!.isLateArrival
-                              ? 'إذن +${currentShift!.todayPermit!.durationLabel}'
-                              : 'إذن -${currentShift!.todayPermit!.durationLabel}',
+                              ? 'إذن \u200E+${currentShift!.todayPermit!.durationLabel}'
+                              : 'إذن \u200E-${currentShift!.todayPermit!.durationLabel}',
                           style: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
@@ -2362,7 +2362,7 @@ class _WorkShiftSection extends ConsumerWidget {
                                             Expanded(
                                               child: Text(
                                                 current.todayPermit!.isLateArrival
-                                                    ? 'إذن حضور معتمد (+${current.todayPermit!.durationLabel})'
+                                                    ? 'إذن حضور معتمد (\u200E+${current.todayPermit!.durationLabel})'
                                                     : 'إذن انصراف مبكر معتمد (${current.todayPermit!.durationLabel})',
                                                 style: const TextStyle(
                                                   fontSize: 12.5,
@@ -3049,7 +3049,7 @@ _ShiftDisciplineMetric _computeShiftDisciplineMetric({
             ? 'إذن حضور سارٍ · يبدأ الحضور بعد $timeStr'
             : 'الدوام لم يبدأ بعد · يبدأ بعد $timeStr',
         statusSubtitle: hasPermit
-            ? 'لديك إذن حضور معتمد (+${permitMinutes ?? 120} د) · موعدك المصرح حتى $startTime (سماح $graceInMinutes د)'
+            ? 'لديك إذن حضور معتمد (\u200E+${permitMinutes ?? 120} د) · موعدك المصرح حتى $startTime (سماح $graceInMinutes د)'
             : 'سجل حضورك في الموعد المعتمد للاستفادة من فترة السماح وضمان انضباط تام دون خصومات',
         badgeLabel: hasPermit ? 'إذن سارٍ' : 'بانتظار البدء',
         color: hasPermit ? const Color(0xFFD97706) : const Color(0xFF0284C7),
@@ -3176,7 +3176,7 @@ class _ShiftTimelineBar extends StatelessWidget {
                 ),
                 Expanded(
                   child: _TimelinePoint(
-                    time: '+${permitMinutes ?? 120} د',
+                    time: '\u200E+${permitMinutes ?? 120} د',
                     label: 'إذن معتمد',
                     sublabel: 'إزاحة رسمية',
                     color: const Color(0xFFD97706),
@@ -3215,7 +3215,7 @@ class _ShiftTimelineBar extends StatelessWidget {
                 ),
                 Expanded(
                   child: _TimelinePoint(
-                    time: '+$graceInMinutes د',
+                    time: '\u200E+$graceInMinutes د',
                     label: 'نهاية السماح',
                     sublabel: '0 خصم',
                     color: const Color(0xFFD97706),

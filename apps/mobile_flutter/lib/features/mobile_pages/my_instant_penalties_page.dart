@@ -1832,7 +1832,7 @@ class _FundTxTile extends StatelessWidget {
     final sub = [
       if (tx.employeeName != null) tx.employeeName!,
       if (tx.reason != null && tx.reason != tx.category) tx.reason!,
-      '${DateFormat('d MMMM y', 'ar').format(tx.createdAt)} · ${DateFormat('h:mm a', 'ar').format(tx.createdAt)}',
+      '${DateFormat('d MMMM y', 'ar').format(tx.createdAt.toLocal())} · ${DateFormat('h:mm a', 'ar').format(tx.createdAt.toLocal())}',
     ];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),

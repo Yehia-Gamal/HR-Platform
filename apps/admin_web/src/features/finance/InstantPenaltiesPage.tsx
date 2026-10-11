@@ -1452,7 +1452,7 @@ export function InstantPenaltiesPage() {
                             <tr key={e.employeeId} className="hover:bg-[var(--surface-hover)] transition-colors">
                               <td className="p-3">
                                 <p className="font-bold text-[var(--text-primary)]">{e.employeeName ?? '—'}</p>
-                                <p className="text-[10px] text-[var(--text-muted)] font-mono">{isPhoneLikeCode(e.employeeCode) ? '—' : e.employeeCode}</p>
+                                <p className="text-[10px] text-[var(--text-muted)] font-mono">{isPhoneLikeCode(e.employeeCode) ? '—' : <bdi dir="ltr">{e.employeeCode}</bdi>}</p>
                               </td>
                               <td className="p-3 text-[var(--text-secondary)]">{e.departmentName ?? '—'}</td>
                               <td className="p-3 text-center font-bold font-mono text-amber-600">{e.pendingCount}</td>
@@ -1594,7 +1594,7 @@ export function InstantPenaltiesPage() {
                               <tr key={e.employeeId} className="hover:bg-[var(--surface-hover)] transition-colors">
                                 <td className="p-3">
                                   <p className="font-bold text-red-700 dark:text-red-400">{e.employeeName ?? '—'}</p>
-                                  <p className="text-[10px] text-[var(--text-muted)] font-mono">{isPhoneLikeCode(e.employeeCode) ? '—' : e.employeeCode}</p>
+                                  <p className="text-[10px] text-[var(--text-muted)] font-mono">{isPhoneLikeCode(e.employeeCode) ? '—' : <bdi dir="ltr">{e.employeeCode}</bdi>}</p>
                                 </td>
                                 <td className="p-3 text-[var(--text-secondary)]">{e.departmentName ?? '—'}</td>
                                 <td className="p-3 text-center font-bold font-mono text-red-600">{e.pendingCount}</td>
