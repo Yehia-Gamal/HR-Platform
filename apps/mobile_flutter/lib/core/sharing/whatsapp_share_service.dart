@@ -113,4 +113,68 @@ class WhatsAppShareService {
     buffer.writeln('https://ahla-shabab-management-os.vercel.app');
     return shareText(buffer.toString());
   }
+
+  /// صياغة ومشاركة تقرير الإنجاز الشهري المجمع للموظف.
+  static Future<bool> shareMonthlyAchievementReport({
+    required String employeeName,
+    required String monthName,
+    required int year,
+    required int reportedDays,
+    required int achievementsCount,
+    required List<String> topAchievements,
+    String? department,
+    String? phone,
+  }) {
+    final buffer = StringBuffer();
+    buffer.writeln('📋 *تقرير إنجازات شهر ($monthName $year)* 📋');
+    buffer.writeln();
+    buffer.writeln('👤 *الموظف:* $employeeName');
+    if (department != null && department.isNotEmpty) {
+      buffer.writeln('🏢 *القسم:* $department');
+    }
+    buffer.writeln();
+    buffer.writeln('📊 *إحصائيات الإنجاز والتوثيق:*');
+    buffer.writeln('• أيام العمل الموثقة: *$reportedDays يوماً*');
+    buffer.writeln('• إجمالي المهام والمنجزات: *$achievementsCount إنجازاً*');
+    buffer.writeln();
+    if (topAchievements.isNotEmpty) {
+      buffer.writeln('🌟 *أبرز الإنجازات الميدانية والمكتبية:*');
+      for (var i = 0; i < topAchievements.length && i < 8; i++) {
+        buffer.writeln('${i + 1}) ${topAchievements[i]}');
+      }
+      if (topAchievements.length > 8) {
+        buffer.writeln('... بالإضافة إلى (${topAchievements.length - 8}) مهام إضافية مسجلة.');
+      }
+      buffer.writeln();
+    }
+    buffer.writeln('— *صادر من منظومة إدارة جمعية أحلى شباب لإدارة الموارد البشرية* 🌿');
+    return shareText(buffer.toString(), phone: phone);
+  }
+
+  /// صياغة ومشاركة إشعار خطاب أو تكليف رسمي موثق برقم مرجعي وكود QR.
+  static Future<bool> shareOfficialLetter({
+    required String employeeName,
+    required String docTitle,
+    required String serialNo,
+    String? recipient,
+    String? details,
+    String? phone,
+  }) {
+    final buffer = StringBuffer();
+    buffer.writeln('📜 *إشعار إصدار وثيقة رسمية — جمعية أحلى شباب* 🌿');
+    buffer.writeln();
+    buffer.writeln('تم إصدار وتوثيق مستند رسمي: *«$docTitle»*');
+    buffer.writeln('👤 *الموظف المعني:* $employeeName');
+    buffer.writeln('🔢 *الرقم المرجعي الموثق:* $serialNo');
+    if (recipient != null && recipient.trim().isNotEmpty) {
+      buffer.writeln('🏛️ *الجهة الموجه إليها:* ${recipient.trim()}');
+    }
+    if (details != null && details.trim().isNotEmpty) {
+      buffer.writeln('📌 *البيان والتفاصيل:* ${details.trim()}');
+    }
+    buffer.writeln();
+    buffer.writeln('المستند مختوم وموقع رقمياً ومزود برمز QR للتحقق الفوري من صحته وتفويض حامله.');
+    buffer.writeln('— *إدارة الموارد البشرية والعمليات المركزية* 🌿');
+    return shareText(buffer.toString(), phone: phone);
+  }
 }

@@ -15,6 +15,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_notificat
 import 'package:ahla_shabab_management_os/features/mobile_pages/month_glance_card.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/monthly_attendance_statement_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/honor_board_sheet.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/official_letters_sheet.dart';
 import 'package:ahla_shabab_management_os/core/network/offline_sync_queue.dart';
 import 'package:ahla_shabab_management_os/shared/access_context.dart';
 import 'package:flutter/material.dart';
@@ -173,6 +174,13 @@ class EmployeeHomePage extends ConsumerWidget {
                 builder: (_) => const MonthlyAttendanceStatementPage(),
               ),
             ),
+          ),
+          const SizedBox(height: 8),
+          _QuickAction(
+            icon: Icons.verified_user_rounded,
+            title: 'الخطابات والتكليفات الرسمية',
+            subtitle: 'تكليف بمأمورية، إثبات انتساب، وكود التحقق الذكي QR',
+            onTap: () => showOfficialLettersSheet(context),
           ),
           if (!access.isClinicStaff) ...[
             const SizedBox(height: 20),

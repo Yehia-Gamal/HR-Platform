@@ -2,6 +2,7 @@ import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/monthly_achievement_digest_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -72,6 +73,11 @@ class _DailyReportsFeedPageState extends ConsumerState<DailyReportsFeedPage> {
       appBar: AppBar(
         title: const Text('التقارير اليومية'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.auto_awesome_rounded),
+            tooltip: 'تجميع إنجازاتي الشهرية (Digest)',
+            onPressed: () => showMonthlyAchievementDigestSheet(context),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             tooltip: 'تحديث',

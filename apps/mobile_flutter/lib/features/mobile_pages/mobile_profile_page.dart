@@ -14,6 +14,7 @@ import 'package:ahla_shabab_management_os/features/mobile_data/location_service.
 import 'package:ahla_shabab_management_os/features/mobile_pages/passkey_devices_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/my_team_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/employee_profile_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/official_letters_sheet.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
@@ -101,6 +102,15 @@ class MobileProfilePage extends ConsumerWidget {
               const _DeviceSecuritySection(),
               const SizedBox(height: 14),
               const _ThemePreferenceCard(),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.verified_user_rounded, color: AppColors.brandPrimary),
+                  title: const Text('الخطابات والتكليفات الرسمية (QR)'),
+                  subtitle: const Text('خطاب تكليف بمأمورية، إثبات انتساب، وكود التحقق'),
+                  trailing: const Icon(Icons.chevron_left_rounded),
+                  onTap: () => showOfficialLettersSheet(context, profile: item),
+                ),
+              ),
               const SizedBox(height: 14),
               Card(
                 child: ListTile(

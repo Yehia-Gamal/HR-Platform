@@ -110,7 +110,88 @@ export function shareRequestDetails({
   lines.push('🔗 للبت في الطلب أو مراجعته مباشرة:');
   lines.push('https://ahla-shabab-management-os.vercel.app/admin/requests');
   lines.push('');
-  lines.push('— *منظومة إدارة جمعية أحلى شباب*');
+  openWhatsApp(lines.join('\n'), phone);
+}
+
+/**
+ * مشاركة تقرير الإنجاز الشهري المجمع للموظف عبر الواتساب
+ */
+export function shareMonthlyAchievementReport({
+  employeeName,
+  department,
+  monthName,
+  year,
+  reportedDaysCount,
+  achievementsCount,
+  topAchievements,
+  phone,
+}: {
+  employeeName: string;
+  department?: string | null;
+  monthName: string;
+  year: number;
+  reportedDaysCount: number;
+  achievementsCount: number;
+  topAchievements: string[];
+  phone?: string | null;
+}): void {
+  const lines: string[] = [
+    `📋 *تقرير إنجازات شهر (${monthName} ${year})*`,
+    '',
+    `👤 *الموظف:* ${employeeName}`,
+  ];
+  if (department) {
+    lines.push(`🏢 *القسم:* ${department}`);
+  }
+  lines.push('');
+  lines.push('📊 *إحصائيات الإنجاز والتوثيق:*');
+  lines.push(`• أيام العمل الموثقة: *${reportedDaysCount} يوماً*`);
+  lines.push(`• إجمالي المهام والمنجزات: *${achievementsCount} إنجازاً*`);
+  lines.push('');
+  if (topAchievements.length > 0) {
+    lines.push('🌟 *أبرز الإنجازات الميدانية والمكتبية:*');
+    topAchievements.slice(0, 7).forEach((ach, i) => {
+      lines.push(`${i + 1}) ${ach}`);
+    });
+    if (topAchievements.length > 7) {
+      lines.push(`... بالإضافة إلى (${topAchievements.length - 7}) مهام إضافية موثقة بالمنظومة.`);
+    }
+    lines.push('');
+  }
+  lines.push('— *صادر من منظومة إدارة جمعية أحلى شباب لإدارة الموارد البشرية* 🌿');
+
+  openWhatsApp(lines.join('\n'), phone);
+}
+
+/**
+ * مشاركة إشعار إصدار وثيقة / خطاب رسمي عبر الواتساب
+ */
+export function shareOfficialDocumentNotice({
+  employeeName,
+  docTitle,
+  serialNo,
+  recipient,
+  phone,
+}: {
+  employeeName: string;
+  docTitle: string;
+  serialNo: string;
+  recipient?: string | null;
+  phone?: string | null;
+}): void {
+  const lines: string[] = [
+    `📜 *إشعار إصدار مستند رسمي — جمعية أحلى شباب*`,
+    '',
+    `تم إصدار وتوثيق مستند رسمي: *«${docTitle}»*`,
+    `👤 *الموظف المعني:* ${employeeName}`,
+    `🔢 *الرقم المرجعي الموثق:* ${serialNo}`,
+  ];
+  if (recipient) {
+    lines.push(`🏛️ *الجهة الموجه إليها:* ${recipient}`);
+  }
+  lines.push('');
+  lines.push('المستند مختوم وموقع رقمياً ومزود برمز QR للتحقق الفوري من صحته.');
+  lines.push('— *إدارة الموارد البشرية والعمليات المركزية* 🌿');
 
   openWhatsApp(lines.join('\n'), phone);
 }

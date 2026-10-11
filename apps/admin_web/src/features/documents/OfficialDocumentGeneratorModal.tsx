@@ -1,9 +1,15 @@
-import { useState, useRef } from 'react';
-import { Printer, FileText, CheckCircle, Building2, ShieldCheck } from 'lucide-react';
+import { useState, useRef, useMemo } from 'react';
+import { Printer, FileText, CheckCircle, Building2, ShieldCheck, Compass, Award, Share2 } from 'lucide-react';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { SignaturePad } from '../../ui/SignaturePad';
+import { shareOfficialDocumentNotice } from '../../core/whatsappShare';
 
-export type OfficialDocType = 'salary_certificate' | 'employment_contract' | 'clearance_settlement';
+export type OfficialDocType =
+  | 'salary_certificate'
+  | 'employment_contract'
+  | 'clearance_settlement'
+  | 'mission_assignment'
+  | 'association_affiliation';
 
 export interface OfficialDocEmployee {
   id: string;
@@ -33,6 +39,11 @@ export function OfficialDocumentGeneratorModal({ isOpen, onClose, employee, init
   const [purpose, setPurpose] = useState('بناءً على طلب الموظف لتقديمه للجهات الرسمية المعنية');
   const [contractPeriodYears, setContractPeriodYears] = useState('1');
   const [probationMonths, setProbationMonths] = useState('3');
+  const [missionTitle, setMissionTitle] = useState('قافلة ستر ودفا وإغاثة القرى الأكثر احتياجاً');
+  const [missionDestination, setMissionDestination] = useState('محافظة الجيزة — قرى مركز أطفيح');
+  const [missionStartDate, setMissionStartDate] = useState('2026-10-15');
+  const [missionEndDate, setMissionEndDate] = useState('2026-10-18');
+  const [affiliationPurpose, setAffiliationPurpose] = useState('تسهيل مهمة العمل الميداني والتعامل مع الجهات المعنية نيابة عن الجمعية');
   const [showSignaturePad, setShowSignaturePad] = useState(false);
   const [employeeSignature, setEmployeeSignature] = useState<string | null>(null);
 
@@ -114,6 +125,42 @@ export function OfficialDocumentGeneratorModal({ isOpen, onClose, employee, init
                 <CheckCircle className="size-4 shrink-0" />
                 إخلاء طرف ومخالصة مالية (Clearance)
               </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setDocType('mission_assignment');
+                  if (recipient === 'إلى من يهمه الأمر') {
+                    setRecipient('السادة / الأجهزة التنفيذية ولجان التنسيق الميداني');
+                  }
+                }}
+                className={`w-full text-end p-3 rounded-xl border text-xs font-bold transition-all flex items-center gap-2.5 ${
+                  docType === 'mission_assignment'
+                    ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]/10 text-[var(--brand-primary)]'
+                    : 'border-[var(--border)] hover:bg-[var(--surface-muted)] text-[var(--text)]'
+                }`}
+              >
+                <Compass className="size-4 shrink-0" />
+                خطاب تكليف بمأمورية وقافلة ميدانية (Mission)
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setDocType('association_affiliation');
+                  if (recipient === 'السادة / الأجهزة التنفيذية ولجان التنسيق الميداني') {
+                    setRecipient('إلى من يهمه الأمر');
+                  }
+                }}
+                className={`w-full text-end p-3 rounded-xl border text-xs font-bold transition-all flex items-center gap-2.5 ${
+                  docType === 'association_affiliation'
+                    ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]/10 text-[var(--brand-primary)]'
+                    : 'border-[var(--border)] hover:bg-[var(--surface-muted)] text-[var(--text)]'
+                }`}
+              >
+                <Award className="size-4 shrink-0" />
+                إثبات انتساب وتصريح حركة ميداني (Permit)
+              </button>
             </div>
           </div>
 
@@ -171,6 +218,85 @@ export function OfficialDocumentGeneratorModal({ isOpen, onClose, employee, init
             </div>
           )}
 
+          {docType === 'mission_assignment' && (
+            <div className="space-y-3 pt-2">
+              <div>
+                <label className="block text-xs font-bold text-[var(--text)] mb-1">الجهة الموجه إليها الخطاب</label>
+                <input
+                  type="text"
+                  value={recipient}
+                  onChange={(e) => setRecipient(e.target.value)}
+                  placeholder="السادة / الأجهزة التنفيذية ولجان التنسيق الميداني"
+                  className="w-full text-xs p-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-[var(--text)] mb-1">مسمى المأمورية / القافلة</label>
+                <input
+                  type="text"
+                  value={missionTitle}
+                  onChange={(e) => setMissionTitle(e.target.value)}
+                  placeholder="مثال: قافلة ستر ودفا وإغاثة القرى الأكثر احتياجاً"
+                  className="w-full text-xs p-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-[var(--text)] mb-1">نطاق الوجهة والمحافظة</label>
+                <input
+                  type="text"
+                  value={missionDestination}
+                  onChange={(e) => setMissionDestination(e.target.value)}
+                  placeholder="مثال: محافظة الجيزة — قرى مركز أطفيح"
+                  className="w-full text-xs p-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-bold text-[var(--text)] mb-1">من تاريخ</label>
+                  <input
+                    type="date"
+                    value={missionStartDate}
+                    onChange={(e) => setMissionStartDate(e.target.value)}
+                    className="w-full text-xs p-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[var(--text)] mb-1">إلى تاريخ</label>
+                  <input
+                    type="date"
+                    value={missionEndDate}
+                    onChange={(e) => setMissionEndDate(e.target.value)}
+                    className="w-full text-xs p-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {docType === 'association_affiliation' && (
+            <div className="space-y-3 pt-2">
+              <div>
+                <label className="block text-xs font-bold text-[var(--text)] mb-1">الجهة الموجه إليها</label>
+                <input
+                  type="text"
+                  value={recipient}
+                  onChange={(e) => setRecipient(e.target.value)}
+                  placeholder="إلى من يهمه الأمر"
+                  className="w-full text-xs p-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-[var(--text)] mb-1">غرض التصريح والتكليف الميداني</label>
+                <textarea
+                  rows={3}
+                  value={affiliationPurpose}
+                  onChange={(e) => setAffiliationPurpose(e.target.value)}
+                  className="w-full text-xs p-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]"
+                />
+              </div>
+            </div>
+          )}
+
           {/* التوقيع الحي */}
           <div className="pt-3 border-t border-[var(--border)] space-y-2">
             <label className="block text-xs font-bold text-[var(--text)]">التوقيع الرقمي للمستند</label>
@@ -192,11 +318,33 @@ export function OfficialDocumentGeneratorModal({ isOpen, onClose, employee, init
             )}
           </div>
 
-          {/* زر التصدير والطباعة المباشرة */}
-          <div className="pt-4 border-t border-[var(--border)] space-y-2">
+          {/* زر التصدير والطباعة والمشاركة */}
+          <div className="pt-4 border-t border-[var(--border)] space-y-2.5">
             <button type="button" onClick={handlePrint} className="btn-primary w-full py-3 text-xs font-bold flex items-center justify-center gap-2 shadow-lg">
               <Printer className="size-4" />
               طباعة / حفظ كـ PDF رسمي
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const titlesMap: Record<OfficialDocType, string> = {
+                  salary_certificate: 'شهادة تعريف بالراتب (HR Letter)',
+                  employment_contract: 'عقد عمل موحد',
+                  clearance_settlement: 'إخلاء طرف ومخالصة نهائية',
+                  mission_assignment: `خطاب تكليف بمأمورية: ${missionTitle}`,
+                  association_affiliation: 'إثبات انتساب وتصريح حركة ميداني',
+                };
+                shareOfficialDocumentNotice({
+                  employeeName: emp.fullNameAr,
+                  docTitle: titlesMap[docType],
+                  serialNo,
+                  recipient,
+                });
+              }}
+              className="w-full py-2.5 px-3 rounded-xl border border-emerald-600/30 text-emerald-600 hover:bg-emerald-500/10 font-bold text-xs flex items-center justify-center gap-2 transition-all"
+            >
+              <Share2 className="size-4" />
+              مشاركة إشعار الوثيقة (WhatsApp)
             </button>
             <p className="text-[11px] text-[var(--text-muted)] text-center">يتم التصدير بأعلى دقة متوافقة مع الطباعة A4 بدون أي تكلفة خارجية.</p>
           </div>
@@ -233,6 +381,8 @@ export function OfficialDocumentGeneratorModal({ isOpen, onClose, employee, init
                   {docType === 'salary_certificate' && 'شـــهـــادة تــعــريــف بــالـــراتـــب'}
                   {docType === 'employment_contract' && 'عــقــد عــمــل مــوحّـــد'}
                   {docType === 'clearance_settlement' && 'نــمــوذج إخـــلاء طـــرف ومــخـالـصـة نـهـائـيـة'}
+                  {docType === 'mission_assignment' && 'خــطــاب تــكــلــيـف بـمـأمـوريـة وقـافـلـة مـيـدانـيـة'}
+                  {docType === 'association_affiliation' && 'إثــبـات عـمـل وانـتـسـاب وتـصـريـح حـركـة مـيـدانـي'}
                 </h1>
               </div>
 
@@ -367,6 +517,131 @@ export function OfficialDocumentGeneratorModal({ isOpen, onClose, employee, init
                   </p>
                 </div>
               )}
+
+              {/* محتوى: خطاب تكليف بمأمورية وقافلة ميدانية */}
+              {docType === 'mission_assignment' && (
+                <div className="space-y-4 text-xs leading-relaxed text-justify">
+                  <p className="font-bold">
+                    السادة / {recipient} <span className="font-normal">المحترمين،</span>
+                  </p>
+                  <p className="text-slate-500 text-xs">تحية طيبة وبعد،،،</p>
+
+                  <p>
+                    تفيد إدارة الموارد البشرية والعمليات المركزية بجمعية «أحلى شباب» للتنمية بأن السيد/ <strong>{emp.fullNameAr}</strong> (الرقم القومي:{' '}
+                    <span className="font-mono font-bold">{emp.nationalId || '—'}</span>، الكود الوظيفي:{' '}
+                    <span className="font-mono font-bold">{emp.employeeCode}</span>)، والذي يشغل وظيفة <strong>{emp.jobTitle}</strong> بـ{' '}
+                    <strong>{emp.departmentName}</strong>، قد تم تكليفه رسمياً من قبل إدارة الجمعية بتنفيذ والإشراف على المأمورية والقافلة الميدانية الموضحة أدناه:
+                  </p>
+
+                  <div className="my-3 border border-slate-300 rounded-lg overflow-hidden bg-slate-50 p-3 space-y-2">
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <span className="text-slate-500 block text-[10px]">مسمى المأمورية / القافلة:</span>
+                        <strong className="text-slate-900">{missionTitle}</strong>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[10px]">النطاق الجغرافي والوجهة:</span>
+                        <strong className="text-slate-900">{missionDestination}</strong>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[10px]">تاريخ بدء المأمورية:</span>
+                        <span className="font-mono font-bold text-slate-800">{missionStartDate}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[10px]">تاريخ انتهاء المأمورية:</span>
+                        <span className="font-mono font-bold text-slate-800">{missionEndDate}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-slate-700 leading-relaxed">
+                    نرجو من سيادتكم ومن كافة الأجهزة المعنية والأجهزة التنفيذية والأمنية ونقاط التفتيش ولجان التنسيق الميداني التفضل بتقديم كافة التسهيلات اللوجستية وتيسير مهام حركة القافلة وفريق العمل الإنساني، وذلك دعماً لجهود الإغاثة والعمل الأهلي والتطوعي بالقرى والمناطق المستهدفة.
+                  </p>
+
+                  <p className="text-[11px] text-slate-500">
+                    صدر هذا التكليف بتفويض من الإدارة التنفيذية وإدارة العمليات، ويسري طوال مدة القافلة الموضحة أعلاه.
+                  </p>
+                </div>
+              )}
+
+              {/* محتوى: إثبات انتساب وتصريح حركة ميداني */}
+              {docType === 'association_affiliation' && (
+                <div className="space-y-4 text-xs leading-relaxed text-justify">
+                  <p className="font-bold">
+                    السادة / {recipient} <span className="font-normal">المحترمين،</span>
+                  </p>
+                  <p className="text-slate-500 text-xs">تحية طيبة وبعد،،،</p>
+
+                  <p>
+                    تشهد جمعية «أحلى شباب» للتنمية بأن السيد/ <strong>{emp.fullNameAr}</strong> (الرقم القومي / الهوية:{' '}
+                    <span className="font-mono font-bold">{emp.nationalId || '—'}</span>، الكود الوظيفي:{' '}
+                    <span className="font-mono font-bold">{emp.employeeCode}</span>)، هو أحد منسوبي الجمعية المعتمدين، ويعمل لدينا بصفة منتظمة بوظيفة{' '}
+                    <strong>{emp.jobTitle}</strong> بـ <strong>{emp.departmentName}</strong>، منذ تاريخ{' '}
+                    <span className="font-bold font-mono">{emp.hireDate || '—'}</span> وحتى تاريخه.
+                  </p>
+
+                  <div className="my-3 border border-slate-300 rounded-lg p-3 bg-slate-50 space-y-1">
+                    <div className="font-bold text-slate-800 text-xs">بيان التصريح والتمثيل الميداني:</div>
+                    <p className="text-xs text-slate-700">
+                      المذكور مصرح له بتمثيل الجمعية في المهام الميدانية والمجتمعية، واستلام وتسليم المساعدات العينية والإشراف على فرق المتطوعين وفقاً لتوجيهات الإدارة:
+                    </p>
+                    <div className="p-2 bg-white rounded border border-slate-200 text-xs font-semibold text-slate-900 mt-1">
+                      «{affiliationPurpose}»
+                    </div>
+                  </div>
+
+                  <p className="text-slate-700 leading-relaxed text-xs">
+                    أُعطيت له هذه الإفادة لتيسير مهمته الرسمية وإثبات انتسابه القانوني والتنظيمي لجمعية أحلى شباب الخاضعة لأحكام قانون تنظيم العمل الأهلي، دون أدنى مسؤولية مالية على الجمعية تجاه التزاماته الشخصية.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* بطاقة التحقق الذكية برمز QR */}
+            <div className="my-4 p-2.5 rounded-lg border border-slate-300 bg-slate-50/70 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="size-14 bg-white p-1 rounded border border-slate-300 shrink-0 flex items-center justify-center shadow-xs">
+                  <svg viewBox="0 0 40 40" className="size-full fill-slate-900" aria-label="QR Code">
+                    <rect x="2" y="2" width="10" height="10" rx="1" fill="#0f172a" />
+                    <rect x="4" y="4" width="6" height="6" fill="#ffffff" />
+                    <rect x="5.5" y="5.5" width="3" height="3" fill="#0f172a" />
+                    <rect x="28" y="2" width="10" height="10" rx="1" fill="#0f172a" />
+                    <rect x="30" y="4" width="6" height="6" fill="#ffffff" />
+                    <rect x="31.5" y="5.5" width="3" height="3" fill="#0f172a" />
+                    <rect x="2" y="28" width="10" height="10" rx="1" fill="#0f172a" />
+                    <rect x="4" y="30" width="6" height="6" fill="#ffffff" />
+                    <rect x="5.5" y="31.5" width="3" height="3" fill="#0f172a" />
+                    <rect x="15" y="4" width="3" height="3" />
+                    <rect x="21" y="4" width="4" height="2" />
+                    <rect x="15" y="10" width="2" height="4" />
+                    <rect x="20" y="10" width="5" height="2" />
+                    <rect x="15" y="17" width="10" height="6" fill="#0f172a" rx="0.5" />
+                    <rect x="28" y="15" width="3" height="4" />
+                    <rect x="33" y="18" width="4" height="3" />
+                    <rect x="4" y="15" width="4" height="3" />
+                    <rect x="10" y="19" width="3" height="4" />
+                    <rect x="15" y="26" width="3" height="5" />
+                    <rect x="21" y="28" width="4" height="3" />
+                    <rect x="28" y="26" width="4" height="4" />
+                    <rect x="34" y="29" width="3" height="5" />
+                  </svg>
+                </div>
+                <div className="text-start">
+                  <div className="text-[10px] font-bold text-slate-800 flex items-center gap-1">
+                    <ShieldCheck className="size-3 text-emerald-600 inline" />
+                    رمز التحقق الذكي المعتمد (Smart QR Verification)
+                  </div>
+                  <div className="text-[9px] text-slate-500 font-sans mt-0.5">
+                    يمكن للجهات المعنية والأجهزة الرقابية مسح الكود للتحقق الفوري من صحة الوثيقة والتفويض الميداني
+                  </div>
+                  <div className="text-[9px] font-mono text-slate-700 font-bold mt-0.5">
+                    Ref: {serialNo} | Ahla Shabab NGO Official Verification
+                  </div>
+                </div>
+              </div>
+              <div className="text-end text-[9px] text-slate-400 font-mono hidden sm:block">
+                SECURED DOCUMENT
+              </div>
             </div>
 
             {/* التذييل والتوقيعات الرسمية والأختام */}

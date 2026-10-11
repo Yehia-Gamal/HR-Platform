@@ -2,6 +2,7 @@ import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dar
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/monthly_achievement_digest_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -22,6 +23,17 @@ class MobileDailyReportsPage extends ConsumerWidget {
         title: Text(
           isSelf ? 'تقاريري اليومية' : 'تقارير ${employeeName ?? 'الموظف'}',
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.auto_awesome_rounded),
+            tooltip: 'تجميع إنجازات الشهر (Digest)',
+            onPressed: () => showMonthlyAchievementDigestSheet(
+              context,
+              employeeId: employeeId,
+              employeeName: employeeName,
+            ),
+          ),
+        ],
       ),
       floatingActionButton: isSelf
           ? FloatingActionButton.extended(

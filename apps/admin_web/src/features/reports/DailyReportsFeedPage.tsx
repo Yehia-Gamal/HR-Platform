@@ -1,5 +1,5 @@
 import { cairoTodayIso } from '../../core/cairoTime';
-import { Heart, MessageCircle, Send, Trash2, ChevronDown, ChevronUp, Plus, X } from 'lucide-react';
+import { Heart, MessageCircle, Send, Trash2, ChevronDown, ChevronUp, Plus, X, Sparkles } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useEntityFocus } from '../../core/useEntityFocus';
@@ -19,6 +19,7 @@ import {
 } from './useDailyReportsFeed';
 
 import { DailyReportsSummarizerCard } from './DailyReportsSummarizerCard';
+import { MonthlyAchievementDigestModal } from './MonthlyAchievementDigestModal';
 
 export function DailyReportsFeedPage() {
   const { toast } = useToast();
@@ -31,6 +32,7 @@ export function DailyReportsFeedPage() {
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [showComposer, setShowComposer] = useState(false);
+  const [showMonthlyDigest, setShowMonthlyDigest] = useState(false);
   const [draft, setDraft] = useState({ achievements: '', blockers: '', tomorrowPlan: '' });
 
   const items = useMemo(() => query.data ?? [], [query.data]);
@@ -72,8 +74,17 @@ export function DailyReportsFeedPage() {
       {/* بطاقة الملخص التنفيذي الذكي */}
       <DailyReportsSummarizerCard reports={items} />
 
-      {/* زر تقرير جديد + النموذج */}
-      <div className="flex justify-end">
+      {/* أزرار الإجراءات: تجميع الإنجاز الشهري + تقرير جديد */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5">
+        <button
+          type="button"
+          className="inline-flex items-center gap-2 rounded-xl border border-brand/30 bg-brand/10 hover:bg-brand/20 px-3.5 py-2 text-xs font-black text-brand transition shadow-sm"
+          onClick={() => setShowMonthlyDigest(true)}
+        >
+          <Sparkles className="size-4" aria-hidden="true" />
+          <span>تجميع ومُولّد إنجازات الشهر (Digest)</span>
+        </button>
+
         <button className="btn-primary inline-flex items-center gap-2" onClick={() => setShowComposer(true)}>
           <Plus className="size-4" aria-hidden="true" /> تقرير جديد
         </button>
@@ -350,6 +361,13 @@ export function DailyReportsFeedPage() {
           }
         }
       `}</style>
+
+      {showMonthlyDigest && (
+        <MonthlyAchievementDigestModal
+          isOpen={showMonthlyDigest}
+          onClose={() => setShowMonthlyDigest(false)}
+        />
+      )}
     </div>
   );
 }
