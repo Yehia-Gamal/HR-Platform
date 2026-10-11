@@ -9,6 +9,7 @@ import {
   Clock,
   Clock3,
   Coins,
+  Copy,
   Download,
   FileSpreadsheet,
   Flame,
@@ -26,6 +27,7 @@ import {
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useEntityFocus } from '../../core/useEntityFocus';
 import { downloadCsv, downloadReportHtml, printReport, toCsv, type ExportColumn } from '../../core/exportUtils';
+import { openWhatsApp } from '../../core/whatsappShare';
 import { DataTable, type DataTableColumn } from '../../ui/DataTable';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { EmptyState } from '../../ui/EmptyState';
@@ -182,6 +184,14 @@ export function InstantPenaltiesPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkCancelOpen, setBulkCancelOpen] = useState(false);
   const [bulkCancelReason, setBulkCancelReason] = useState('');
+  const [bulkWhatsAppOpen, setBulkWhatsAppOpen] = useState(false);
+  const [sentWhatsAppIds, setSentWhatsAppIds] = useState<Set<string>>(new Set());
+
+  const selectedPenalties = useMemo(() => {
+    if (selectedIds.size === 0) return [];
+    const items = penalties.data ?? [];
+    return items.filter((p) => selectedIds.has(p.id));
+  }, [selectedIds, penalties.data]);
 
   const [earlyWarningModalOpen, setEarlyWarningModalOpen] = useState(false);
 
@@ -215,31 +225,77 @@ export function InstantPenaltiesPage() {
       .sort((a, b) => b.count - a.count);
   }, [penalties.data, employees]);
 
+  function generateEmployeePenaltyWhatsAppText(p: InstantPenalty, empName: string): string {
+    const name = empName.trim() || 'الزميل العزيز';
+    const dayDate = fmtDateWithDay(p.workDate);
+    const lateFormatted = fmtLateDisplay(p.lateMinutes);
+    const isUnpunched = Boolean(p.notes && p.notes.includes('لم يسجل بصمة'));
+
+    if (p.status === 'suspended') {
+      return [
+        `*إشعار هام وعاجل من إدارة الموارد البشرية (جمعية أحلى شباب)* ⚠️`,
+        ``,
+        `السلام عليكم ورحمة الله، أستاذ/ة *${name}* 🌸`,
+        ``,
+        `نود إحاطتكم بأنه قد تم *تعليق حسابكم مؤقتاً على السيستم* لتجاوز مهلة سداد غرامة الحضور المضاعفة (500 ج.م) ليوم *${dayDate}*.`,
+        ``,
+        `📌 *بيانات الغرامة:*`,
+        `• التاريخ: ${dayDate}`,
+        `• سبب الغرامة: ${lateFormatted} تأخير ${isUnpunched ? '(عدم تسجيل بصمة)' : ''}`,
+        `• المبلغ المطلوب لسداد الغرامة ورفع الإيقاف: *500 ج.م*`,
+        ``,
+        `🤝 *تنويه هام:* جميع الغرامات المحصلة تُودع بالكامل في *صندوق الزمالة والتكافل* لدعم الزملاء والمساعدات الاجتماعية.`,
+        ``,
+        `يرجى التكرم بمراجعة إدارة الموارد البشرية لإنهاء السداد ورفع التعليق واستئناف العمل فوراً.`,
+        ``,
+        `مع خالص التقدير والاحترام 🌺`,
+      ].join('\n');
+    }
+
+    if (p.status === 'doubled') {
+      return [
+        `*تنبيه عاجل: غرامة حضور مضاعفة (500 ج.م)* ⚠️`,
+        ``,
+        `السلام عليكم ورحمة الله، أستاذ/ة *${name}* 🌸`,
+        ``,
+        `نود تذكيركم بأنه نظراً لانقضاء مهلة الـ 24 ساعة، تضاعفت غرامة الحضور ليوم *${dayDate}* لتصبح *500 ج.م*.`,
+        ``,
+        `📌 *تفاصيل الغرامة:*`,
+        `• التاريخ: ${dayDate}`,
+        `• مدة التأخير: ${lateFormatted}`,
+        `• المبلغ المطلوب: *500 ج.م* (الغرامة الأصلية: ${formatCurrency(p.originalAmount)})`,
+        ``,
+        `⏰ يرجى سرعة السداد نقداً بالإدارة أو عبر إنستاباي لتفادي تعليق الحساب على المنظومة.`,
+        ``,
+        `🤝 *نحيطكم علماً بأن 100% من حصيلة الغرامات تذهب لصالح صندوق الزمالة والتكافل لدعم الزملاء.*`,
+        ``,
+        `مع تمنياتنا لكم بالتوفيق 🌺`,
+      ].join('\n');
+    }
+
+    return [
+      `*إشعار تسجيل غرامة حضور وتأخير — جمعية أحلى شباب* ⏰`,
+      ``,
+      `السلام عليكم ورحمة الله، أستاذ/ة *${name}* 🌸`,
+      ``,
+      `نحيطكم علماً بأنه تم تسجيل غرامة حضور وتأخير ليوم *${dayDate}*:`,
+      `• مدة التأخير: *${lateFormatted}* ${isUnpunched ? '(لم يُسجل بصمة)' : ''}`,
+      `• المبلغ المطلوب سداده: *${formatCurrency(p.currentAmount)}*`,
+      ``,
+      `⏳ *المهلة النظامية:* متبقي على مهلة الـ 24 ساعة قبل مضاعفة الغرامة إلى 500 ج.م.`,
+      `💳 *طرق السداد المتاحة:* يمكنكم السداد نقداً لدى الإدارة المالية أو عبر إنستاباي، أو تقديم عذر رسمي عبر تطبيق المنظومة في حال وجود ظرف طارئ.`,
+      ``,
+      `🤝 *تنويه:* جميع المبالغ المحصلة تذهب لصالح صندوق الزمالة والتكافل ولا تمثل أي ربح للإدارة.`,
+      ``,
+      `شكراً لتعاونكم وحرصكم الدائم على الانضباط 🌺`,
+    ].join('\n');
+  }
+
   function sendEmployeeWhatsAppAlert(p: InstantPenalty) {
     const emp = employees?.find((e) => e.id === p.employeeId);
-    const rawPhone = emp?.phoneE164 ?? '';
-    let cleanPhone = rawPhone.replace(/[^0-9]/g, '');
-    if (cleanPhone.startsWith('01')) {
-      cleanPhone = '20' + cleanPhone.substring(1);
-    } else if (!cleanPhone.startsWith('20') && cleanPhone.length === 10) {
-      cleanPhone = '20' + cleanPhone;
-    }
-
     const name = p.employeeName ?? emp?.fullNameAr ?? 'الزميل العزيز';
-    let text: string;
-    if (p.status === 'suspended') {
-      text = `*إشعار هام من إدارة الموارد البشرية (جمعية أحلى شباب)* ⚠️\n\nالسلام عليكم ورحمة الله، أستاذ/ة ${name} 🌸\n\nنود إحاطتكم بأنه قد تم تعليق حسابكم مؤقتاً على السيستم بسبب تجاوز مهلة سداد غرامة الحضور المضاعفة (500 ج.م) ليوم ${p.workDate}.\n\n🤝 *تنويه هام:* جميع الغرامات المحصلة تُودع بالكامل في *صندوق الزمالة والتكافل* لدعم الزملاء والمساعدات الاجتماعية.\n\nيرجى مراجعة إدارة الموارد البشرية لإنهاء السداد ورفع التعليق فوراً.\n\nمع خالص التقدير والاحترام 🌺`;
-    } else if (p.status === 'doubled') {
-      text = `*تنبيه عاجل: غرامة حضور مضاعفة (500 ج.م)* ⚠️\n\nالسلام عليكم ورحمة الله، أستاذ/ة ${name} 🌸\n\nنود تذكيركم بأنه نظراً لانقضاء مهلة الـ 24 ساعة، تضاعفت غرامة الحضور ليوم ${p.workDate} لتصبح *500 ج.م*.\n\n⏰ يرجى سرعة السداد نقداً أو عبر إنستاباي لتفادي تعليق الحساب على السيستم.\n\n🤝 *نحيطكم علماً بأن 100% من حصيلة الغرامات تذهب لصندوق الزمالة والتكافل لدعم الزملاء.*\n\nمع تمنياتنا لكم بالتوفيق 🌺`;
-    } else {
-      text = `*إشعار تسجيل غرامة حضور فورية* ⏰\n\nالسلام عليكم ورحمة الله، أستاذ/ة ${name} 🌸\n\nتم تسجيل غرامة حضور وتأخير ليوم ${fmtDateWithDay(p.workDate)} بمبلغ *${p.currentAmount} ج.م* (${fmtLateDisplay(p.lateMinutes)} تأخير).\n\n⏳ *المهلة النظامية:* متبقي على مهلة الـ 24 ساعة قبل مضاعفة الغرامة إلى 500 ج.م.\n\n💳 يمكنكم السداد نقداً أو عبر إنستاباي، أو تقديم عذر رسمي عبر تطبيق المنظومة في حال وجود ظرف طارئ.\n\n🤝 *جميع المبالغ المحصلة تذهب لصالح صندوق الزمالة والتكافل ولا تمثل أي ربح للإدارة.*\n\nشكراً لتعاونكم وحرصكم على الانضباط 🌺`;
-    }
-
-    if (cleanPhone) {
-      window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
-    } else {
-      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
-    }
+    const text = generateEmployeePenaltyWhatsAppText(p, name);
+    openWhatsApp(text, emp?.phoneE164);
   }
 
   function sendEmployeeRadarWhatsApp(emp: { employeeName: string; phone: string | null; count: number; totalAmount: number; dates: string[] }) {
@@ -1314,11 +1370,21 @@ export function InstantPenaltiesPage() {
               <div className="flex-1" />
               <button
                 type="button"
+                onClick={() => setBulkWhatsAppOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-300 dark:border-emerald-700 rounded-lg shadow-xs transition-all active:scale-95 cursor-pointer"
+                title="إرسال تنبيهات واتساب مخصصة لكل موظف محدد باسمه وتفاصيل غرامته"
+              >
+                <MessageCircle className="size-3.5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                <span>إرسال واتساب جماعي ({selectedIds.size})</span>
+              </button>
+              <button
+                type="button"
                 onClick={async () => {
                   const ids = [...selectedIds];
                   const count = await bulkConfirm.mutateAsync({ penaltyIds: ids });
                   toast({ message: `تم تأكيد ${count} غرامة`, tone: 'success' });
                   setSelectedIds(new Set());
+                  setSentWhatsAppIds(new Set());
                 }}
                 disabled={bulkConfirm.isPending}
                 className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 rounded-lg shadow-xs transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
@@ -1334,7 +1400,10 @@ export function InstantPenaltiesPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setSelectedIds(new Set())}
+                onClick={() => {
+                  setSelectedIds(new Set());
+                  setSentWhatsAppIds(new Set());
+                }}
                 className="px-2.5 py-1.5 text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
               >
                 إلغاء التحديد
@@ -2307,6 +2376,187 @@ export function InstantPenaltiesPage() {
                   </>
                 )}
               </button>
+            </div>
+          </div>
+        </DialogOverlay>
+      )}
+
+      {/* ─── نافذة إرسال رسائل وتنبيهات واتساب المخصصة للموظفين المحددين ── */}
+      {bulkWhatsAppOpen && selectedPenalties.length > 0 && (
+        <DialogOverlay
+          title={`إرسال تنبيهات واتساب المخصصة (${selectedPenalties.length} ${selectedPenalties.length <= 10 ? 'غرامات' : 'غرامة'})`}
+          onClose={() => setBulkWhatsAppOpen(false)}
+          maxWidth="max-w-3xl"
+        >
+          <div className="space-y-4 max-h-[75vh] overflow-y-auto px-1">
+            {/* بطاقة التوجيه والإحصائيات العلوية */}
+            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 space-y-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <MessageCircle className="size-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span className="text-xs sm:text-sm font-bold text-emerald-950 dark:text-emerald-200">
+                    تم إنشاء رسالة مخصصة لكل موظف باسمه وتاريخ وسبب غرامته
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const summaryLines = [
+                        `📊 *كشف غرامات الحضور المحددة — جمعية أحلى شباب*`,
+                        `📅 التاريخ: ${cairoTodayIso()}`,
+                        `👥 إجمالي الموظفين: ${selectedPenalties.length}`,
+                        `💰 إجمالي المبالغ: ${formatCurrency(selectedPenalties.reduce((s, p) => s + p.currentAmount, 0))}`,
+                        ``,
+                        ...selectedPenalties.map((p, i) => {
+                          const emp = employees?.find((e) => e.id === p.employeeId);
+                          const name = p.employeeName ?? emp?.fullNameAr ?? 'موظف';
+                          return `${i + 1}) *${name}* (${p.departmentName ?? '—'}) — ${formatCurrency(p.currentAmount)} (${fmtLateDisplay(p.lateMinutes)} تأخير)`;
+                        }),
+                        ``,
+                        `🤝 تودع جميع المبالغ بصندوق الزمالة والتكافل لدعم الزملاء.`,
+                      ];
+                      navigator.clipboard.writeText(summaryLines.join('\n'));
+                      toast({ message: 'تم نسخ الكشف المجمع بنجاح', tone: 'success' });
+                    }}
+                    className="btn-secondary text-xs !py-1 !px-2.5 flex items-center gap-1 font-bold cursor-pointer"
+                    title="نسخ كشف ملخص بكافة الموظفين المحددين لمشاركته في جروب الإدارة"
+                  >
+                    <Copy className="size-3.5" />
+                    <span>نسخ كشف مجمع</span>
+                  </button>
+                  {(() => {
+                    const nextUnsent = selectedPenalties.find((p) => !sentWhatsAppIds.has(p.id));
+                    if (!nextUnsent) return null;
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const emp = employees?.find((e) => e.id === nextUnsent.employeeId);
+                          const empName = nextUnsent.employeeName ?? emp?.fullNameAr ?? 'الزميل العزيز';
+                          const msg = generateEmployeePenaltyWhatsAppText(nextUnsent, empName);
+                          openWhatsApp(msg, emp?.phoneE164);
+                          setSentWhatsAppIds((prev) => new Set(prev).add(nextUnsent.id));
+                        }}
+                        className="btn-primary text-xs !py-1 !px-3 flex items-center gap-1.5 font-bold cursor-pointer"
+                      >
+                        <MessageCircle className="size-3.5" />
+                        <span>إرسال التالي: {nextUnsent.employeeName?.split(' ')[0] ?? 'الموظف'} 💬</span>
+                      </button>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* شريط الإنجاز لعدد الرسائل المفتوحة */}
+              <div className="flex items-center justify-between text-xs font-semibold text-emerald-800 dark:text-emerald-300 pt-1 border-t border-emerald-500/20">
+                <span>
+                  حالة الإرسال: {sentWhatsAppIds.size} من {selectedPenalties.length} تم فتح محادثاتهم
+                </span>
+                {sentWhatsAppIds.size === selectedPenalties.length && (
+                  <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1">
+                    <CheckCircle2 className="size-3.5" /> تم إرسال كافة التنبيهات بنجاح
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* قائمة كروت الموظفين المحددين */}
+            <div className="space-y-3">
+              {selectedPenalties.map((p) => {
+                const emp = employees?.find((e) => e.id === p.employeeId);
+                const empName = p.employeeName ?? emp?.fullNameAr ?? 'الزميل العزيز';
+                const phone = emp?.phoneE164 ?? null;
+                const msgText = generateEmployeePenaltyWhatsAppText(p, empName);
+                const isSent = sentWhatsAppIds.has(p.id);
+
+                const initials = empName
+                  .trim()
+                  .split(/\s+/)
+                  .slice(0, 2)
+                  .map((s) => s[0])
+                  .join('') || 'م';
+
+                return (
+                  <div
+                    key={p.id}
+                    className={`rounded-xl border p-3.5 space-y-2.5 transition-all ${
+                      isSent
+                        ? 'border-emerald-500/40 bg-emerald-500/5 dark:bg-emerald-950/20 shadow-xs'
+                        : 'border-[var(--border)] bg-[var(--surface)] hover:border-[var(--border-strong)]'
+                    }`}
+                  >
+                    {/* الرأس: اسم الموظف والتفاصيل */}
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="size-8 rounded-full bg-primary/10 border border-primary/20 text-primary flex items-center justify-center font-bold text-xs shrink-0 select-none">
+                          {initials}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-sm text-[var(--text-primary)] truncate">{empName}</span>
+                            {isSent && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                                <CheckCircle2 className="size-3" /> تم الإرسال
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 text-[11px] text-[var(--text-muted)] mt-0.5">
+                            <span>{p.departmentName ?? emp?.department ?? '—'}</span>
+                            {phone ? (
+                              <span className="font-mono text-[var(--text-secondary)]">
+                                <bdi dir="ltr">{phone}</bdi>
+                              </span>
+                            ) : (
+                              <span className="text-amber-600 dark:text-amber-400 font-semibold">(لا يوجد رقم مسجل)</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-xs bg-[var(--surface-muted)] px-2 py-1 rounded-md border border-[var(--border-subtle)]">
+                          {formatCurrency(p.currentAmount)}
+                        </span>
+                        <span className="text-xs text-[var(--text-secondary)] font-medium">
+                          {fmtLateDisplay(p.lateMinutes)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* صندوق معاينة الرسالة المخصصة */}
+                    <div className="rounded-lg bg-[var(--surface-muted)]/70 border border-[var(--border-subtle)] p-2.5 text-xs text-[var(--text-secondary)] font-sans leading-relaxed whitespace-pre-wrap select-all max-h-32 overflow-y-auto">
+                      {msgText}
+                    </div>
+
+                    {/* أزرار الإجراء الخاصة بهذا الموظف */}
+                    <div className="flex items-center justify-end gap-2 pt-1 border-t border-[var(--border-subtle)]">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(msgText);
+                          toast({ message: `تم نسخ رسالة ${empName}`, tone: 'success' });
+                        }}
+                        className="btn-secondary text-xs !py-1 !px-2.5 flex items-center gap-1 font-medium cursor-pointer"
+                      >
+                        <Copy className="size-3" />
+                        <span>نسخ النص</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          openWhatsApp(msgText, phone);
+                          setSentWhatsAppIds((prev) => new Set(prev).add(p.id));
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-xs transition-all active:scale-95 cursor-pointer"
+                      >
+                        <MessageCircle className="size-3.5" />
+                        <span>{isSent ? 'إعادة الإرسال واتساب 💬' : 'إرسال واتساب 💬'}</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </DialogOverlay>

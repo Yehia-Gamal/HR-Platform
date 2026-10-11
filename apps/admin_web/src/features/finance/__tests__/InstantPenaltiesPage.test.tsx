@@ -615,4 +615,28 @@ describe('InstantPenaltiesPage', () => {
     expect(screen.queryByText(/9 ساعة/)).toBeNull();
     expect(screen.queryByText(/590 دقيقة/)).toBeNull();
   });
+
+  it('يتيح تحديد الغرامات وفتح نافذة إرسال رسائل واتساب المخصصة لكل موظف باسمه', () => {
+    penaltiesData = samplePenalties;
+    pendingData = emptyPending;
+    employeesData = emptyEmployees;
+    renderPage();
+
+    // تحديد الصف الأول
+    const selectAllCheckbox = screen.getByLabelText('تحديد الكل');
+    fireEvent.click(selectAllCheckbox);
+
+    // التحقق من ظهور زر الإرسال الجماعي
+    const bulkWhatsAppBtn = screen.getByText(/إرسال واتساب جماعي/);
+    expect(bulkWhatsAppBtn).toBeDefined();
+
+    // النقر على زر إرسال واتساب جماعي
+    fireEvent.click(bulkWhatsAppBtn);
+
+    // التحقق من فتح النافذة المخصصة
+    expect(screen.getByText(/إرسال تنبيهات واتساب المخصصة/)).toBeDefined();
+    expect(screen.getByText('نسخ كشف مجمع')).toBeDefined();
+    expect(screen.getByText('نسخ النص')).toBeDefined();
+    expect(screen.getByText(/أستاذ\/ة \*أحمد محمد\*/)).toBeDefined();
+  });
 });
