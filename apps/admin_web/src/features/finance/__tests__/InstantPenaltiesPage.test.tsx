@@ -637,6 +637,8 @@ describe('InstantPenaltiesPage', () => {
     expect(screen.getByText(/إرسال تنبيهات واتساب المخصصة/)).toBeDefined();
     expect(screen.getByText('نسخ كشف مجمع')).toBeDefined();
     expect(screen.getByText('نسخ النص')).toBeDefined();
-    expect(screen.getByText(/أستاذ\/ة \*أحمد محمد\*/)).toBeDefined();
+    expect(screen.getByText(/أستاذ \*أحمد محمد\*/)).toBeDefined();
+    expect(screen.getByText(/إبراهيم سلامة/)).toBeDefined();
+    expect(screen.getByText(/باشمهندس يحيى/)).toBeDefined();
   });
 });
