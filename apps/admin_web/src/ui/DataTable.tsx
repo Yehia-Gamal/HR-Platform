@@ -1,5 +1,5 @@
 import { ArrowDownUp, ArrowDownAZ, ArrowUpAZ } from 'lucide-react';
-import { type ReactNode, useCallback, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { EmptyState } from './EmptyState';
 
 /** وصف عمود واحد في الجدول. */
@@ -29,6 +29,8 @@ interface DataTableProps<T> {
   focusedKey?: string | null;
   /** كلاس CSS إضافي لكل صف — Useful لتعتيم صفوف مكتملة مثلاً. */
   rowClassName?: (row: T) => string | undefined;
+  /** تثبيت العمود الأول وخانة التحديد أفقياً عند التمرير (مثل: اسم الموظف) */
+  pinFirstColumn?: boolean;
 }
 
 type SortDir = 'ascending' | 'descending';
@@ -49,9 +51,17 @@ export function DataTable<T>({
   ariaLabel = 'جدول بيانات',
   focusedKey = null,
   rowClassName,
+  pinFirstColumn = false,
 }: DataTableProps<T>) {
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('ascending');
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft = 0;
+    }
+  }, [data]);
 
   const handleSort = useCallback(
     (key: string) => {
@@ -150,12 +160,16 @@ export function DataTable<T>({
 
   return (
     <section className="card overflow-hidden">
-      <div className="overflow-x-auto" style={maxHeight ? { maxHeight, overflowY: 'auto' } : undefined}>
+      <div ref={scrollRef} className="overflow-x-auto" style={maxHeight ? { maxHeight, overflowY: 'auto' } : undefined}>
         <table className="data-table w-full text-start text-sm border-separate border-spacing-0" style={{ minWidth }} aria-label={ariaLabel}>
           <thead className="sticky top-0 z-10 bg-[var(--surface-muted)] backdrop-blur-md shadow-xs text-xs font-bold text-[var(--text-secondary)] border-b border-[var(--border)]">
             <tr>
               {selectable ? (
-                <th scope="col" className="w-12 px-3.5 py-2.5">
+                <th
+                  scope="col"
+                  className={`w-12 px-3.5 py-2.5 ${pinFirstColumn ? 'sticky z-30 bg-[var(--surface-muted)] backdrop-blur-md' : ''}`}
+                  style={pinFirstColumn ? { position: 'sticky', insetInlineStart: 0, zIndex: 30 } : undefined}
+                >
                   <input
                     type="checkbox"
                     checked={allSelected}
@@ -168,10 +182,21 @@ export function DataTable<T>({
                   />
                 </th>
               ) : null}
-              {columns.map((col) => {
+              {columns.map((col, colIdx) => {
                 const ariaSortValue = col.sortable && sortKey === col.key ? sortDir : undefined;
+                const isPinned = pinFirstColumn && colIdx === 0;
                 return (
-                  <th key={col.key} scope="col" className="px-3.5 py-2.5 whitespace-nowrap" aria-sort={ariaSortValue}>
+                  <th
+                    key={col.key}
+                    scope="col"
+                    className={`px-3.5 py-2.5 whitespace-nowrap ${
+                      isPinned
+                        ? 'sticky z-30 bg-[var(--surface-muted)] backdrop-blur-md shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.12)]'
+                        : ''
+                    }`}
+                    style={isPinned ? { position: 'sticky', insetInlineStart: selectable ? '3rem' : 0, zIndex: 30 } : undefined}
+                    aria-sort={ariaSortValue}
+                  >
                     {col.sortable ? (
                       <button
                         type="button"
@@ -210,7 +235,20 @@ export function DataTable<T>({
                   aria-selected={selectable ? isSelected : undefined}
                 >
                   {selectable ? (
-                    <td className="px-3.5 py-2.5">
+                    <td
+                      className={`px-3.5 py-2.5 ${
+                        pinFirstColumn
+                          ? `sticky z-20 ${
+                              isSelected
+                                ? 'bg-blue-50 dark:bg-blue-950/80'
+                                : focusedKey === key
+                                  ? 'bg-[color-mix(in_srgb,var(--brand-primary)_15%,var(--surface))]'
+                                  : 'bg-[var(--surface)]'
+                            }`
+                          : ''
+                      }`}
+                      style={pinFirstColumn ? { position: 'sticky', insetInlineStart: 0, zIndex: 20 } : undefined}
+                    >
                       <input
                         type="checkbox"
                         checked={isSelected}
@@ -220,11 +258,28 @@ export function DataTable<T>({
                       />
                     </td>
                   ) : null}
-                  {columns.map((col) => (
-                    <td key={col.key} className="px-3.5 py-2.5">
-                      {col.render ? col.render(row, rowIndex) : String((row as Record<string, unknown>)[col.key] ?? '—')}
-                    </td>
-                  ))}
+                  {columns.map((col, colIdx) => {
+                    const isPinned = pinFirstColumn && colIdx === 0;
+                    return (
+                      <td
+                        key={col.key}
+                        className={`px-3.5 py-2.5 ${
+                          isPinned
+                            ? `sticky z-20 ${
+                                isSelected
+                                  ? 'bg-blue-50 dark:bg-blue-950/80'
+                                  : focusedKey === key
+                                    ? 'bg-[color-mix(in_srgb,var(--brand-primary)_15%,var(--surface))]'
+                                    : 'bg-[var(--surface)]'
+                              } shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)]`
+                            : ''
+                        }`}
+                        style={isPinned ? { position: 'sticky', insetInlineStart: selectable ? '3rem' : 0, zIndex: 20 } : undefined}
+                      >
+                        {col.render ? col.render(row, rowIndex) : String((row as Record<string, unknown>)[col.key] ?? '—')}
+                      </td>
+                    );
+                  })}
                 </tr>
               );
             })}

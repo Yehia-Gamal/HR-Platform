@@ -51,4 +51,14 @@ describe('DataTable', () => {
     render(<DataTable columns={cols} data={data.slice(0, 1)} rowKey={(r) => r.id} />);
     expect(screen.getByText('أحمد'.toUpperCase())).toBeInTheDocument();
   });
+
+  it('supports pinFirstColumn and applies sticky styles', () => {
+    const { container } = render(
+      <DataTable columns={columns} data={data} rowKey={(r) => r.id} pinFirstColumn selectable />
+    );
+    const pinnedTh = container.querySelector('th.sticky');
+    expect(pinnedTh).toBeTruthy();
+    const pinnedTd = container.querySelector('td.sticky');
+    expect(pinnedTd).toBeTruthy();
+  });
 });

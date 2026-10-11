@@ -29,10 +29,17 @@ export function FilterBar({
   return (
     <section className="filter-bar" aria-label="البحث والتصفية">
       <div className="filter-bar-heading">
-        <span className="filter-bar-title">
-          <SlidersHorizontal className="size-4" aria-hidden="true" />
-          البحث والتصفية
-        </span>
+        <div className="flex items-center gap-2.5">
+          <span className="filter-bar-title">
+            <SlidersHorizontal className="size-4" aria-hidden="true" />
+            البحث والتصفية
+          </span>
+          {resultText ? (
+            <span className="filter-result inline-block !m-0 !text-[11px] font-bold text-[var(--text-muted)] bg-[var(--surface-muted)] px-2.5 py-0.5 rounded-full border border-[var(--border-subtle)]" aria-live="polite">
+              {resultText}
+            </span>
+          ) : null}
+        </div>
         {isDirty && onClear ? (
           <button type="button" className="filter-clear" onClick={onClear}>
             <X className="size-3.5" aria-hidden="true" />
@@ -57,11 +64,6 @@ export function FilterBar({
         </label>
         {children}
       </div>
-      {resultText ? (
-        <p className="filter-result" aria-live="polite">
-          {resultText}
-        </p>
-      ) : null}
     </section>
   );
 }

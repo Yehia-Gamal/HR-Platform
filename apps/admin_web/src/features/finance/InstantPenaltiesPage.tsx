@@ -452,36 +452,34 @@ export function InstantPenaltiesPage() {
       },
     },
     {
-      key: 'originalAmount',
-      header: 'الغرامة الأصلية',
-      render: (p) => (
-        <span className="text-xs font-mono text-[var(--text-muted)] whitespace-nowrap bg-[var(--surface-muted)] px-2 py-1 rounded-md border border-[var(--border-subtle)]">
-          {formatCurrency(p.originalAmount)}
-        </span>
-      ),
-    },
-    {
       key: 'currentAmount',
-      header: 'المطلوب سداده',
+      header: 'المبلغ المطلوب',
       sortable: true,
       render: (p) => {
         const isDoubled = p.currentAmount > p.originalAmount;
         return (
-          <div className="flex flex-col gap-0.5 whitespace-nowrap">
-            <span
-              className={`font-black font-mono text-base ${
-                p.status === 'paid'
-                  ? 'text-emerald-600 dark:text-emerald-400'
-                  : isDoubled
-                    ? 'text-red-600 dark:text-red-400'
-                    : 'text-amber-600 dark:text-amber-400'
-              }`}
-            >
-              {formatCurrency(p.currentAmount)}
-            </span>
+          <div className="flex flex-col gap-0.5 whitespace-nowrap min-w-[95px]">
+            <div className="flex items-center gap-1.5">
+              <span
+                className={`font-black font-mono text-sm sm:text-base ${
+                  p.status === 'paid'
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : isDoubled
+                      ? 'text-red-600 dark:text-red-400'
+                      : 'text-amber-600 dark:text-amber-400'
+                }`}
+              >
+                {formatCurrency(p.currentAmount)}
+              </span>
+              {isDoubled && (
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-red-600 dark:text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded border border-red-500/20">
+                  <Flame className="size-2.5" aria-hidden="true" /> مضاعف
+                </span>
+              )}
+            </div>
             {isDoubled && (
-              <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-red-600 dark:text-red-400">
-                <Flame className="size-3" aria-hidden="true" /> مضاعف (يوم 2)
+              <span className="text-[10px] text-[var(--text-muted)] font-mono">
+                الأصلية: {formatCurrency(p.originalAmount)}
               </span>
             )}
           </div>
@@ -546,10 +544,10 @@ export function InstantPenaltiesPage() {
           );
         }
         return (
-          <div className="flex items-center gap-2 whitespace-nowrap">
+          <div className="flex items-center gap-1.5 whitespace-nowrap">
             <button
               type="button"
-              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-all active:scale-95 disabled:opacity-50 whitespace-nowrap cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-xs transition-all active:scale-95 disabled:opacity-50 whitespace-nowrap cursor-pointer"
               disabled={confirmPayment.isPending}
               onClick={() => {
                 const confirmMsg =
@@ -568,7 +566,7 @@ export function InstantPenaltiesPage() {
             {p.status === 'suspended' && (
               <button
                 type="button"
-                className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 transition-all whitespace-nowrap cursor-pointer"
+                className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 transition-all whitespace-nowrap cursor-pointer"
                 disabled={liftSuspension.isPending}
                 onClick={() => {
                   setLiftTarget({ id: p.id, name: p.employeeName ?? '' });
@@ -582,7 +580,7 @@ export function InstantPenaltiesPage() {
             {(p.status === 'pending_payment' || p.status === 'doubled') && (
               <button
                 type="button"
-                className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[var(--danger)] hover:bg-[var(--danger)]/10 border border-transparent hover:border-[var(--danger)]/20 transition-all whitespace-nowrap cursor-pointer"
+                className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-[var(--danger)] hover:bg-[var(--danger)]/10 border border-transparent hover:border-[var(--danger)]/20 transition-all whitespace-nowrap cursor-pointer"
                 disabled={cancelPenalty.isPending}
                 onClick={() => {
                   setCancelTarget({ id: p.id, name: p.employeeName ?? '' });
@@ -598,7 +596,7 @@ export function InstantPenaltiesPage() {
             {(p.status === 'pending_payment' || p.status === 'doubled' || p.status === 'suspended') && (
               <button
                 type="button"
-                className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 transition-all whitespace-nowrap cursor-pointer"
+                className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 transition-all whitespace-nowrap cursor-pointer"
                 onClick={() => sendEmployeeWhatsAppAlert(p)}
                 title="إرسال تنبيه واتساب فوري للزميل (مجاناً 100%)"
               >
@@ -1309,8 +1307,10 @@ export function InstantPenaltiesPage() {
       ) : (
         <>
           {selectedIds.size > 0 && (
-            <div className="flex items-center gap-3 rounded-xl border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950/20 p-3">
-              <span className="text-xs font-bold text-blue-700 dark:text-blue-400">تم تحديد {selectedIds.size} غرامة</span>
+            <div className="flex flex-wrap items-center gap-3 rounded-xl border border-blue-300/80 dark:border-blue-700/60 bg-blue-50/70 dark:bg-blue-950/30 p-2.5 backdrop-blur-xs shadow-xs">
+              <span className="text-xs font-bold text-blue-800 dark:text-blue-300 px-1">
+                تم تحديد {selectedIds.size === 1 ? 'غرامة واحدة' : selectedIds.size === 2 ? 'غرامتان' : selectedIds.size <= 10 ? `${selectedIds.size} غرامات` : `${selectedIds.size} غرامة`}
+              </span>
               <div className="flex-1" />
               <button
                 type="button"
@@ -1321,21 +1321,21 @@ export function InstantPenaltiesPage() {
                   setSelectedIds(new Set());
                 }}
                 disabled={bulkConfirm.isPending}
-                className="btn-primary text-xs !py-1.5 !px-3"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 rounded-lg shadow-xs transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
               >
                 {bulkConfirm.isPending ? 'جارٍ…' : `تأكيد دفع (${selectedIds.size})`}
               </button>
               <button
                 type="button"
                 onClick={() => setBulkCancelOpen(true)}
-                className="px-3 py-1.5 text-xs font-bold text-red-600 dark:text-red-400 border border-red-300 dark:border-red-700 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 dark:text-red-400 border border-red-300 dark:border-red-800/60 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
               >
                 إلغاء جماعي ({selectedIds.size})
               </button>
               <button
                 type="button"
                 onClick={() => setSelectedIds(new Set())}
-                className="px-2 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                className="px-2.5 py-1.5 text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
               >
                 إلغاء التحديد
               </button>
@@ -1347,12 +1347,13 @@ export function InstantPenaltiesPage() {
             rowKey={(p) => p.id}
             focusedKey={focusedId}
             data={rows}
-            minWidth="920px"
+            minWidth="760px"
             maxHeight="min(60vh, 520px)"
             columns={columns}
             selectable
             selectedKeys={selectedIds}
             onSelectionChange={setSelectedIds}
+            pinFirstColumn
             emptyTitle="لا توجد نتائج"
             emptyDescription="جرّب تعديل البحث أو الحالة."
             rowClassName={(p) => {
