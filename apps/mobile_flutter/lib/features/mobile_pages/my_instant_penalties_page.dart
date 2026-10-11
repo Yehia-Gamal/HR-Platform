@@ -473,13 +473,13 @@ class _PayReminderCard extends StatelessWidget {
               icon: Icons.payments_outlined,
               color: AppColors.statusWarning,
               text:
-                  'عليك ${_money(total)} — السداد نقدًا لدى مسؤول صندوق الزمالة خلال 24 ساعة من تسجيل الغرامة، وتظهر «مسددة» بعد تأكيد الإدارة.',
+                  'عليك ${_money(total)} — يتم السداد نقدًا إلى أ/ إبراهيم سلامة وإبلاغ باشمهندس يحيى بالدفع خلال 24 ساعة، وتظهر «مسددة» بعد تأكيد الإدارة.',
             ),
             const SizedBox(height: 10),
             OutlinedButton.icon(
               onPressed: () async {
-                const text =
-                    'السلام عليكم، أود الاستفسار بخصوص سداد غرامة الحضور لصندوق الزمالة.';
+                final text =
+                    'السلام عليكم، أود إبلاغكم بسداد غرامة الحضور بمبلغ ${_money(total)} إلى أ/ إبراهيم سلامة لصالح صندوق الزمالة والتكافل.';
                 final uri = Uri.parse(
                   'https://wa.me/?text=${Uri.encodeComponent(text)}',
                 );
@@ -488,7 +488,7 @@ class _PayReminderCard extends StatelessWidget {
                 }
               },
               icon: const Icon(Icons.chat_outlined, size: 18),
-              label: const Text('استفسار عبر واتساب'),
+              label: const Text('إبلاغ بالدفع عبر واتساب'),
             ),
           ],
         ),
@@ -729,6 +729,66 @@ class _PenaltyCard extends ConsumerWidget {
                       onPressed: () => _confirmPayment(context, ref, item),
                       icon: const Icon(Icons.payments_outlined, size: 18),
                       label: const Text('تأكيد السداد'),
+                    ),
+                  if (active)
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        final name = item.employeeName?.trim().isNotEmpty ?? false
+                            ? item.employeeName!.trim()
+                            : 'الزميل العزيز';
+                        final work = DateTime.tryParse(item.workDate);
+                        final dayDate = work != null
+                            ? DateFormat('EEEE d MMMM y', 'ar').format(work)
+                            : item.workDate;
+                        final lateFormatted = item.lateMinutes >= 240
+                            ? 'عدم تسجيل بصمة'
+                            : '${item.lateMinutes} دقيقة';
+                        final String text;
+                        if (item.status == 'suspended') {
+                          text = '*إشعار هام وعاجل من إدارة الموارد البشرية (جمعية أحلى شباب)* ⚠️\n\n'
+                              'السلام عليكم ورحمة الله، أستاذ *$name* 🌸\n\n'
+                              'نود إحاطتكم بأنه قد تم *تعليق حسابكم مؤقتاً على السيستم* لتجاوز مهلة سداد غرامة الحضور المضاعفة (500 ج.م) ليوم *$dayDate*.\n\n'
+                              '📌 *بيانات الغرامة:*\n'
+                              '• التاريخ: $dayDate\n'
+                              '• سبب الغرامة: $lateFormatted تأخير\n'
+                              '• المبلغ المطلوب لسداد الغرامة ورفع الإيقاف: *500 ج.م*\n\n'
+                              '🤝 *تنويه هام:* جميع الغرامات المحصلة تُودع بالكامل في *صندوق الزمالة والتكافل* لدعم الزملاء والمساعدات الاجتماعية.\n\n'
+                              'يرجى التكرم بالسداد إلى أ/ إبراهيم سلامة وإبلاغ باشمهندس يحيى بالدفع لرفع التعليق واستئناف العمل فوراً.\n\n'
+                              'مع خالص التقدير والاحترام 🌺';
+                        } else if (item.status == 'doubled') {
+                          text = '*تنبيه عاجل: غرامة حضور مضاعفة (500 ج.م)* ⚠️\n\n'
+                              'السلام عليكم ورحمة الله، أستاذ *$name* 🌸\n\n'
+                              'نود تذكيركم بأنه نظراً لانقضاء مهلة الـ 24 ساعة، تضاعفت غرامة الحضور ليوم *$dayDate* لتصبح *500 ج.م*.\n\n'
+                              '📌 *تفاصيل الغرامة:*\n'
+                              '• التاريخ: $dayDate\n'
+                              '• مدة التأخير: $lateFormatted\n'
+                              '• المبلغ المطلوب: *500 ج.م*\n\n'
+                              '⏰ يرجى سرعة السداد إلى أ/ إبراهيم سلامة وإبلاغ باشمهندس يحيى بالدفع لتفادي تعليق الحساب على المنظومة.\n\n'
+                              '🤝 *نحيطكم علماً بأن 100% من حصيلة الغرامات تذهب لصالح صندوق الزمالة والتكافل لدعم الزملاء.*\n\n'
+                              'مع تمنياتنا لكم بالتوفيق 🌺';
+                        } else {
+                          text = '*إشعار تسجيل غرامة حضور وتأخير — جمعية أحلى شباب* ⏰\n\n'
+                              'السلام عليكم ورحمة الله، أستاذ *$name* 🌸\n\n'
+                              'نحيطكم علماً بأنه تم تسجيل غرامة حضور وتأخير ليوم *$dayDate*:\n'
+                              '• مدة التأخير: *$lateFormatted*\n'
+                              '• المبلغ المطلوب سداده: *${_money(item.currentAmount)}*\n\n'
+                              '⏳ *المهلة النظامية:* متبقي على مهلة الـ 24 ساعة قبل مضاعفة الغرامة إلى 500 ج.م.\n'
+                              '💳 *طرق السداد المتاحة:* السداد إلى أ/ إبراهيم سلامة وإبلاغ باشمهندس يحيى بالدفع، أو تقديم عذر رسمي عبر تطبيق المنظومة في حال وجود ظرف طارئ.\n\n'
+                              '🤝 *تنويه:* جميع المبالغ المحصلة تذهب لصالح صندوق الزمالة والتكافل ولا تمثل أي ربح للإدارة.\n\n'
+                              'شكراً لتعاونكم وحرصكم الدائم على الانضباط 🌺';
+                        }
+                        final uri = Uri.parse(
+                          'https://wa.me/?text=${Uri.encodeComponent(text)}',
+                        );
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(
+                            uri,
+                            mode: LaunchMode.externalApplication,
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.chat_outlined, size: 18),
+                      label: const Text('إشعار واتساب'),
                     ),
                   if (item.status == 'suspended')
                     OutlinedButton.icon(
@@ -1779,6 +1839,35 @@ class _FundTab extends ConsumerWidget {
                 ),
               ),
             ],
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(42),
+              ),
+              onPressed: () async {
+                final now = DateTime.now();
+                final todayStr = DateFormat('yyyy-MM-dd').format(now);
+                final text =
+                    '*🤝 تقرير صندوق الزمالة والتكافل الاجتماعي — أحلى شباب*\n'
+                    '📅 التاريخ: $todayStr\n'
+                    '💰 الرصيد الحالي: ${_money(s.currentBalance)}\n'
+                    '📥 إجمالي الوارد: ${_money(s.totalInflows)} (${s.inflowsCount} حركة)\n'
+                    '📤 إجمالي المصروف: ${_money(s.totalOutflows)} (${s.outflowsCount} حركة)\n'
+                    '📊 هذا الشهر: وارد ${_money(s.monthlyInflows)} | مصروف ${_money(s.monthlyOutflows)}\n\n'
+                    '🤝 *تذكير:* جميع حصيلة الغرامات تذهب كاملة لصندوق الزمالة والتكافل لدعم الزملاء والتكافل الاجتماعي.';
+                final uri = Uri.parse(
+                  'https://wa.me/?text=${Uri.encodeComponent(text)}',
+                );
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(
+                    uri,
+                    mode: LaunchMode.externalApplication,
+                  );
+                }
+              },
+              icon: const Icon(Icons.share_outlined, size: 18),
+              label: const Text('مشاركة تقرير الصندوق عبر واتساب'),
+            ),
             const SizedBox(height: 16),
             const _SectionTitle(title: 'حركات الصندوق'),
             const SizedBox(height: 6),
