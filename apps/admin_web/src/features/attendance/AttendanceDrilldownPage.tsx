@@ -1,4 +1,20 @@
-import { ArrowRight, CalendarClock, CalendarX2, CheckCircle2, Clock3, Loader2, MapPin, Plane, Printer, Search, UserCheck, UserX, Users } from 'lucide-react';
+import {
+  ArrowRight,
+  ArrowUpDown,
+  CalendarClock,
+  CalendarX2,
+  CheckCircle2,
+  Clock3,
+  Loader2,
+  MapPin,
+  Plane,
+  Printer,
+  Search,
+  UserCheck,
+  UserX,
+  Users,
+  X,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import {
@@ -17,6 +33,7 @@ import { Pagination } from '../../ui/Pagination';
 import { SkeletonCard } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
+import { isPhoneLikeCode } from '../../ui/phoneDisplay';
 import { useOrganizationLookups } from '../employees/useOrganizationLookups';
 import { useHrPrefix } from '../workspaces/access';
 import { exportAttendancePdf, useAttendanceRosterPage } from './useAttendanceDashboard';
@@ -178,8 +195,16 @@ export function AttendanceDrilldownPage() {
   const hrPrefix = useHrPrefix();
   const currentCategory = CATEGORIES.find((c) => c.key === category) ?? CATEGORIES[0];
 
+  const isFiltered = Boolean(searchInput.trim() || branch || dept || sort !== 'name' || direction !== 'asc');
+
+  function handleClearFilters() {
+    setSearchInput('');
+    updateParams({ q: null, branch: null, dept: null, sort: null, dir: null });
+  }
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
+      {/* ─── ترويسة الصفحة ─── */}
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Link to={`${hrPrefix}/attendance`} className="btn-ghost btn-sm" aria-label="العودة إلى لوحة الحضور">
@@ -187,8 +212,18 @@ export function AttendanceDrilldownPage() {
             عودة
           </Link>
           <div>
-            <h1 className="text-lg font-black">قائمة «{currentCategory.label}»</h1>
-            <p className="mt-0.5 flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
+            <div className="flex items-center gap-2">
+              <span className="flex size-7 items-center justify-center rounded-lg bg-[var(--primary)]/10 text-[var(--primary)]">
+                <currentCategory.icon className="size-4" aria-hidden="true" />
+              </span>
+              <h1 className="text-lg font-black">قائمة «{currentCategory.label}»</h1>
+              {total > 0 ? (
+                <span className="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-xs font-bold text-[var(--text-muted)] border border-[var(--border)]">
+                  {total.toLocaleString('ar-EG')}
+                </span>
+              ) : null}
+            </div>
+            <p className="mt-1 flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
               <CalendarClock className="size-3.5" aria-hidden="true" />
               {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'full' }).format(new Date(`${dateIso}T00:00:00`))}
             </p>
@@ -212,8 +247,11 @@ export function AttendanceDrilldownPage() {
         </div>
       </header>
 
-      {/* ─── تبويبات الفئات ─── */}
-      <div className="flex flex-wrap gap-2" aria-label="فئات الحضور">
+      {/* ─── تبويبات الفئات داخل لوحة موحدة ─── */}
+      <nav
+        className="flex flex-wrap items-center gap-1.5 p-2 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs"
+        aria-label="فئات الحضور"
+      >
         {CATEGORIES.map((c) => {
           const active = c.key === category;
           const Icon = c.icon;
@@ -230,54 +268,99 @@ export function AttendanceDrilldownPage() {
             </button>
           );
         })}
-      </div>
+      </nav>
 
-      <div className="card space-y-3 p-3 sm:p-4">
-        {/* ─── شريط التحكم والبحث المدمج ─── */}
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="relative flex-1 min-w-[200px] max-w-sm">
+      <div className="card space-y-3.5 p-3 sm:p-4">
+        {/* ─── شريط التحكم والبحث المدمج في سطر واحد ─── */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
+          {/* حقل البحث بالاسم / الكود */}
+          <div className="relative flex-1 min-w-[220px]">
             <Search className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
             <input
               type="search"
-              className="input w-full ps-3 pe-9 text-xs font-bold"
+              className="input !h-10 w-full ps-8 pe-9 text-xs font-bold"
               placeholder="ابحث بالاسم أو الرقم الوظيفي أو الإدارة..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               aria-label="بحث في القائمة"
             />
-          </label>
+            {searchInput ? (
+              <button
+                type="button"
+                onClick={() => setSearchInput('')}
+                className="absolute start-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)] p-0.5 rounded transition-colors"
+                aria-label="مسح نص البحث"
+              >
+                <X className="size-3.5" aria-hidden="true" />
+              </button>
+            ) : null}
+          </div>
 
-          <select className="input min-w-32 text-xs font-bold shrink-0" value={branch} onChange={(e) => updateParams({ branch: e.target.value })} aria-label="تصفية حسب الفرع">
-            <option value="">كل الفروع</option>
-            {(lookups.data?.branches ?? []).map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.label}
-              </option>
-            ))}
-          </select>
-          <select className="input min-w-32 text-xs font-bold shrink-0" value={dept} onChange={(e) => updateParams({ dept: e.target.value })} aria-label="تصفية حسب الإدارة">
-            <option value="">كل الإدارات</option>
-            {(lookups.data?.departments ?? []).map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.label}
-              </option>
-            ))}
-          </select>
-          <select className="input min-w-28 text-xs font-bold shrink-0" value={sort} onChange={(e) => updateParams({ sort: e.target.value })} aria-label="ترتيب القائمة">
-            {SORT_OPTIONS.map((s) => (
-              <option key={s.key} value={s.key}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            className="btn-secondary btn-sm !h-9 text-xs font-bold shrink-0"
-            onClick={() => updateParams({ dir: direction === 'asc' ? 'desc' : 'asc' })}
-            aria-label={`ترتيب ${direction === 'asc' ? 'تنازلي' : 'تصاعدي'}`}
-          >
-            {direction === 'asc' ? 'تصاعدي ↑' : 'تنازلي ↓'}
-          </button>
+          {/* الفلاتر المنسدلة والترتيب */}
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              className="input !w-auto min-w-[130px] !h-10 text-xs font-bold shrink-0"
+              value={branch}
+              onChange={(e) => updateParams({ branch: e.target.value })}
+              aria-label="تصفية حسب الفرع"
+            >
+              <option value="">كل الفروع</option>
+              {(lookups.data?.branches ?? []).map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.label}
+                </option>
+              ))}
+            </select>
+
+            <select
+              className="input !w-auto min-w-[130px] !h-10 text-xs font-bold shrink-0"
+              value={dept}
+              onChange={(e) => updateParams({ dept: e.target.value })}
+              aria-label="تصفية حسب الإدارة"
+            >
+              <option value="">كل الإدارات</option>
+              {(lookups.data?.departments ?? []).map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.label}
+                </option>
+              ))}
+            </select>
+
+            <select
+              className="input !w-auto min-w-[110px] !h-10 text-xs font-bold shrink-0"
+              value={sort}
+              onChange={(e) => updateParams({ sort: e.target.value })}
+              aria-label="ترتيب القائمة"
+            >
+              {SORT_OPTIONS.map((s) => (
+                <option key={s.key} value={s.key}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+
+            <button
+              type="button"
+              className="btn-secondary !h-10 px-3 text-xs font-bold shrink-0 inline-flex items-center gap-1.5"
+              onClick={() => updateParams({ dir: direction === 'asc' ? 'desc' : 'asc' })}
+              aria-label={`ترتيب ${direction === 'asc' ? 'تنازلي' : 'تصاعدي'}`}
+            >
+              <ArrowUpDown className="size-3.5" aria-hidden="true" />
+              {direction === 'asc' ? 'تصاعدي ↑' : 'تنازلي ↓'}
+            </button>
+
+            {isFiltered ? (
+              <button
+                type="button"
+                onClick={handleClearFilters}
+                className="btn-ghost btn-sm !h-10 text-xs text-[var(--text-muted)] hover:text-[var(--danger)] shrink-0 inline-flex items-center gap-1"
+                aria-label="إعادة ضبط الفلاتر"
+              >
+                <X className="size-3.5" aria-hidden="true" />
+                إلغاء التصفية
+              </button>
+            ) : null}
+          </div>
         </div>
 
         {query.isError ? (
@@ -296,19 +379,18 @@ export function AttendanceDrilldownPage() {
             description={q ? 'جرّب البحث بكلمات أخرى أو عدّل الفلاتر.' : `لا يوجد موظفون ضمن فئة «${currentCategory.label}» لهذا اليوم.`}
           />
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
             <table className="data-table w-full">
-              <thead className="sticky top-0 z-10">
+              <thead className="sticky top-0 z-10 bg-[var(--surface-muted)]/90 backdrop-blur-xs">
                 <tr>
-                  <th className="w-14">الموظف</th>
-                  <th>الاسم</th>
+                  <th className="min-w-[200px]">الموظف</th>
                   <th>الحالة</th>
                   <th>الإدارة</th>
                   <th>التأخير</th>
-                  <th>الحضور/الانصراف</th>
+                  <th>الحضور / الانصراف</th>
                   <th>الموقع</th>
                   <th>العذر</th>
-                  <th aria-label="فتح الملف"></th>
+                  <th className="text-end" aria-label="فتح الملف"></th>
                 </tr>
               </thead>
               <tbody>
@@ -341,38 +423,64 @@ function Row({ item, focused }: { item: AttendanceRosterItem; focused: boolean }
   return (
     <tr data-focus-id={item.employeeId} className={focused ? 'entity-focus-highlight' : undefined}>
       <td>
-        <UserAvatar displayName={item.employeeName} photoUrl={item.photoUrl} size="sm" announceName={false} />
-      </td>
-      <td>
-        <div className="min-w-0">
-          <p className="truncate font-semibold">{item.employeeName}</p>
-          <p className="text-xs text-[var(--text-muted)]">{item.employeeCode ?? '—'}</p>
+        <div className="flex items-center gap-3">
+          <UserAvatar displayName={item.employeeName} photoUrl={item.photoUrl} size="sm" announceName={false} />
+          <div className="min-w-0">
+            <Link
+              to={`${hrPrefix}/employees/${item.employeeId}`}
+              className="font-bold text-sm text-[var(--text)] hover:text-[var(--primary)] hover:underline block truncate"
+            >
+              {item.employeeName}
+            </Link>
+            <p className="text-xs text-[var(--text-muted)] font-mono">
+              {item.employeeCode ? <bdi dir="ltr">{item.employeeCode}</bdi> : '—'}
+            </p>
+          </div>
         </div>
       </td>
       <td>
         <StatusBadge status={item.status ?? undefined} />
       </td>
-      <td className="text-xs text-[var(--text-muted)]">{item.departmentName ?? '—'}</td>
+      <td className="text-xs text-[var(--text-secondary)]">
+        {item.departmentName ? (
+          <span className="truncate max-w-[140px] block" title={item.departmentName}>
+            {item.departmentName}
+          </span>
+        ) : (
+          <span className="text-[var(--text-muted)]">—</span>
+        )}
+      </td>
       <td>
         {item.lateMinutes != null && item.lateMinutes > 0 ? (
-          <span className="text-xs font-semibold text-[var(--warning)]">{formatMinutes(item.lateMinutes)}</span>
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">
+            <Clock3 className="size-3" aria-hidden="true" />
+            {formatMinutes(item.lateMinutes)}
+          </span>
         ) : (
-          '—'
+          <span className="text-[var(--text-muted)]">—</span>
         )}
       </td>
       <td className="text-xs">
-        <span>{formatTime(item.firstCheckIn)}</span>
-        <span className="text-[var(--text-muted)]"> → </span>
-        <span>{formatTime(item.lastCheckOut)}</span>
+        {item.firstCheckIn ? (
+          <div className="flex items-center gap-1.5 font-medium">
+            <span className="text-[var(--text)]">{formatTime(item.firstCheckIn)}</span>
+            <span className="text-[var(--text-muted)] text-[10px]">←</span>
+            <span className={item.lastCheckOut ? 'text-[var(--text)]' : 'text-[var(--text-muted)]'}>
+              {formatTime(item.lastCheckOut)}
+            </span>
+          </div>
+        ) : (
+          <span className="text-[var(--text-muted)]">—</span>
+        )}
       </td>
       <td className="text-xs">
         {item.locationRequestStatus ? (
-          <span className="inline-flex items-center gap-1">
-            <MapPin className="size-3.5" aria-hidden="true" />
+          <span className="inline-flex items-center gap-1 text-[var(--text-secondary)]">
+            <MapPin className="size-3.5 text-[var(--primary)]" aria-hidden="true" />
             {locationStatusLabel(item.locationRequestStatus)}
           </span>
         ) : (
-          '—'
+          <span className="text-[var(--text-muted)]">—</span>
         )}
       </td>
       <td className="text-xs">
@@ -392,11 +500,14 @@ function Row({ item, focused }: { item: AttendanceRosterItem; focused: boolean }
             ) : null}
           </span>
         ) : (
-          '—'
+          <span className="text-[var(--text-muted)]">—</span>
         )}
       </td>
-      <td>
-        <Link to={`${hrPrefix}/employees/${item.employeeId}`} className="btn-ghost btn-xs whitespace-nowrap">
+      <td className="text-end">
+        <Link
+          to={`${hrPrefix}/employees/${item.employeeId}`}
+          className="btn-ghost btn-xs whitespace-nowrap text-xs font-bold text-[var(--primary)] hover:bg-[var(--primary)]/10"
+        >
           فتح الملف
         </Link>
       </td>
