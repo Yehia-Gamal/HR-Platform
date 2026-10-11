@@ -12,7 +12,9 @@ import {
   Flame,
   ArrowUpDown,
   RefreshCw,
+  MessageCircle,
 } from 'lucide-react';
+import { shareApproverNudge } from '../../core/whatsappShare';
 import { useApprovalSpeedReport, ApproverSpeedItem } from './useApprovalSpeedReport';
 
 const REQUEST_TYPE_LABELS: Record<string, string> = {
@@ -506,12 +508,13 @@ export function ApprovalSpeedPage() {
                     </div>
                   </th>
                   <th className="p-3 font-bold">مستوى السرعة</th>
+                  <th className="p-3 font-bold text-center">تنبيه ومتابعة</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
                 {filteredApprovers.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="p-8 text-center text-xs text-[var(--text-muted)]">
+                    <td colSpan={8} className="p-8 text-center text-xs text-[var(--text-muted)]">
                       لا يوجد معتمدون مطابقون للبحث
                     </td>
                   </tr>
@@ -580,6 +583,28 @@ export function ApprovalSpeedPage() {
                           >
                             {badge.text}
                           </span>
+                        </td>
+                        <td className="p-3 text-center">
+                          {app.pending_count > 0 ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                shareApproverNudge({
+                                  approverName: app.name,
+                                  pendingCount: app.pending_count,
+                                  avgHours: app.avg_hours,
+                                  phone: app.phone,
+                                })
+                              }
+                              className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors shadow-sm"
+                              title={`إرسال تذكير واتساب للمعتمد (${app.pending_count} طلبات معلقة)`}
+                            >
+                              <MessageCircle className="h-3.5 w-3.5" />
+                              <span>نكز واتساب</span>
+                            </button>
+                          ) : (
+                            <span className="text-[11px] text-[var(--text-muted)]">مكتمل</span>
+                          )}
                         </td>
                       </tr>
                     );

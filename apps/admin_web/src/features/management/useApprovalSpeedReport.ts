@@ -25,6 +25,7 @@ export const approverSpeedItemSchema = z.object({
   escalated_count: z.number(),
   pending_count: z.number(),
   oldest_pending_hours: z.number(),
+  phone: z.string().nullable().optional(),
 });
 
 export const byRequestTypeSpeedItemSchema = z.object({

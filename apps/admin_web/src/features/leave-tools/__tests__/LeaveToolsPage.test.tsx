@@ -65,6 +65,10 @@ vi.mock('../useLeaveTools', () => ({
   useCreateBulkAssignment: () => mockMutation,
 }));
 
+vi.mock('../../leaves/useLeaves', () => ({
+  useAdminLeaves: () => ({ data: { total: 0, rows: [] }, isLoading: false }),
+}));
+
 vi.mock('../../auth/AuthProvider', () => ({
   useAuth: () => ({ access: { permissions: ['*'] } }),
 }));

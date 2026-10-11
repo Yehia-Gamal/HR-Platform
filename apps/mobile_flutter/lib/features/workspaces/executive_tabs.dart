@@ -11,6 +11,7 @@ import 'package:ahla_shabab_management_os/features/mobile_data/mobile_executive_
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/approval_speed_radar_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/convoy_radar_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/daily_reports_feed_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/daily_reports_home_box.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_announcement_page.dart';
@@ -998,6 +999,12 @@ class ExecutiveMoreTab extends ConsumerWidget {
         _MoreSection(
           title: 'الموظفون والمشاريع والطلبات',
           entries: [
+            _MoreEntry(
+              icon: Icons.directions_bus_rounded,
+              title: 'رادار القوافل والميدان ومحطات الوصول',
+              subtitle: 'محطات الوصول الميداني ونسب توزيع المساعدات وبث الواتساب.',
+              onTap: () => push(const ConvoyRadarPage()),
+            ),
             _MoreEntry(
               icon: Icons.folder_special_outlined,
               title: 'مشاريع الجمعية',

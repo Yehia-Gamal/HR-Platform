@@ -1,4 +1,4 @@
-import { BusFront, CalendarClock, CheckCircle2, CircleAlert, ClipboardCheck, ListTodo, Plus, Search, TimerReset, X } from 'lucide-react';
+import { BusFront, CalendarClock, CheckCircle2, CircleAlert, ClipboardCheck, ListTodo, Plus, Radio, Search, TimerReset, X } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
@@ -12,6 +12,7 @@ import { safeErrorMessage } from '../../core/errorMapper';
 import { useAuth } from '../auth/AuthProvider';
 import { hasAnyPermission } from '../workspaces/access';
 import { useOperationsCenter, useOperationsCommands } from './useControlCenters';
+import { ConvoyRadarModal } from './ConvoyRadarModal';
 
 type Tab = 'tasks' | 'missions' | 'convoys';
 type TaskDraft = { title: string; description: string; assigneeId: string; priority: string; dueDate: string };
@@ -37,6 +38,7 @@ export function OperationsCenterPage() {
   const [tab, setTab] = useState<Tab>('tasks');
   const [search, setSearch] = useState('');
   const [taskDraft, setTaskDraft] = useState<TaskDraft | null>(null);
+  const [selectedRadarConvoy, setSelectedRadarConvoy] = useState<(typeof convoys)[number] | null>(null);
   const data = query.data;
   const term = search.trim().toLocaleLowerCase('ar');
   const tasks = useMemo(
@@ -298,6 +300,14 @@ export function OperationsCenterPage() {
                 <Info label="الركاب" value={`${item.passengers} فرد`} />
                 <Info label="المركبات" value={`${item.vehicles} مركبة`} />
               </div>
+              <button
+                type="button"
+                onClick={() => setSelectedRadarConvoy(item)}
+                className="mt-4 w-full flex items-center justify-center gap-2 rounded-xl border border-brand/30 bg-brand/10 py-2.5 text-xs font-black text-brand hover:bg-brand/20 transition-colors shadow-sm"
+              >
+                <Radio className="size-4 animate-pulse text-emerald-600" />
+                <span>فتح رادار القافلة ومحطات الوصول الميداني</span>
+              </button>
             </article>
           ))}
           {!convoys.length ? (
@@ -306,6 +316,13 @@ export function OperationsCenterPage() {
             </div>
           ) : null}
         </section>
+      ) : null}
+
+      {selectedRadarConvoy ? (
+        <ConvoyRadarModal
+          convoy={selectedRadarConvoy}
+          onClose={() => setSelectedRadarConvoy(null)}
+        />
       ) : null}
 
       {taskDraft ? (

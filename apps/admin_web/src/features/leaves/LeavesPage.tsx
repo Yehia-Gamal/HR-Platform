@@ -1,6 +1,7 @@
 import { LEAVE_TYPE_COLORS, LEAVE_TYPE_LABELS, type LeaveAdminRow } from '@ahla/shared-contracts';
-import { CalendarDays, Check, Clock3, Download, FileX, X } from 'lucide-react';
+import { CalendarDays, Check, Clock3, Download, FileX, Sparkles, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router';
 import { useUrlState } from '../../core/useUrlState';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
@@ -363,6 +364,13 @@ export function LeavesPage() {
         description="مراجعة واعتماد طلبات إجازات الموظفين"
         actions={
           <div className="flex flex-wrap items-center gap-2">
+            <Link
+              to="/admin/leave-tools"
+              className="flex h-9 items-center gap-1.5 rounded-lg bg-brand/10 text-brand px-3 text-xs font-bold hover:bg-brand/20 transition-colors"
+            >
+              <Sparkles className="size-3.5" />
+              <span>محاكي وتخطيط الإجازات</span>
+            </Link>
             <select value={year} onChange={(e) => setYear(Number(e.target.value))} className="input h-10 w-28 text-sm" aria-label="اختر السنة">
               {YEAR_OPTIONS.map((y) => (
                 <option key={y} value={y}>

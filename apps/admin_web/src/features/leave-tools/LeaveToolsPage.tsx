@@ -9,6 +9,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { hasAnyPermission } from '../workspaces/access';
 import { useEmployees } from '../employees/useEmployees';
 import { useAdjustLeaveBalance, useCreateBulkAssignment, useCreateLeaveForEmployee, useGrantRestCreditBulk, useLeaveTypes } from './useLeaveTools';
+import { LeaveSimulatorSection } from './LeaveSimulatorSection';
 
 // ─── اختيار موظفين متعدد (بحث + تحديد الكل النشطين) ─────────────────────────
 
@@ -741,6 +742,7 @@ export function LeaveToolsPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
+        <LeaveSimulatorSection />
         <BulkRestCreditSection />
         <AdjustBalanceSection />
         <CreateLeaveForEmployeeSection />

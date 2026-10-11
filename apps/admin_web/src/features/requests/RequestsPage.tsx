@@ -23,6 +23,7 @@ import { useToast } from '../../ui/Toast';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { useBulkApprove, useMyLeaveBalances, useRequestDecision, useRequestDetail, useRequests, useWorkAssignments, type Decision } from './useRequests';
 import { DecisionInsights, RequestJourney } from './RequestJourney';
+import { RequestSlaBadge, RequestWhatsAppShareButton } from './RequestSlaBadge';
 import { useAttendanceOperations, useAttendanceOperationsCommands } from '../advanced/useAdvancedOperations';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { cairoMonthIso } from '../../core/cairoTime';
@@ -565,6 +566,13 @@ export function RequestsPage() {
                     <span className="rounded-lg bg-brand/10 px-2.5 py-1 text-xs font-black text-brand">{labels[item.requestType]}</span>
                     <span className="rounded-lg bg-[var(--surface-muted)] px-2 py-1 text-xs font-black">#{item.requestNumber}</span>
                     <StatusBadge value={item.status} />
+                    <RequestSlaBadge
+                      status={item.status}
+                      createdAt={item.createdAt}
+                      decidedAt={item.decidedAt}
+                      activeStepName={item.activeStepName}
+                      compact
+                    />
                     {isAwaitingMe(item) ? (
                       <span className="rounded-lg bg-[var(--warning)]/15 px-2 py-1 text-xs font-black text-[var(--warning)]">بانتظارك</span>
                     ) : item.isMine ? (
@@ -659,6 +667,15 @@ export function RequestsPage() {
                     <span className="muted">
                       {new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.createdAt))}
                     </span>
+                    <RequestWhatsAppShareButton
+                      number={item.requestNumber}
+                      typeLabel={labels[item.requestType]}
+                      employeeName={item.employeeName}
+                      statusLabel={(REQUEST_STATUS_LABELS as Record<string, string>)[item.status] ?? item.status}
+                      reason={item.reason}
+                      currentStep={item.activeStepName}
+                      size="sm"
+                    />
                     {canDecideOn(item) ? (
                       <button className="btn-primary ms-auto text-xs" onClick={() => setSelected(item)}>
                         مراجعة واتخاذ إجراء
@@ -725,6 +742,20 @@ export function RequestsPage() {
           <div className="flex flex-wrap items-center gap-3 mb-5">
             <UserAvatar displayName={selected.employeeName} size="sm" />
             <p className="muted text-sm flex-1">{selected.employeeName}</p>
+            <RequestSlaBadge
+              status={selected.status}
+              createdAt={selected.createdAt}
+              decidedAt={selected.decidedAt}
+              activeStepName={selected.activeStepName}
+            />
+            <RequestWhatsAppShareButton
+              number={selected.requestNumber}
+              typeLabel={labels[selected.requestType]}
+              employeeName={selected.employeeName}
+              statusLabel={(REQUEST_STATUS_LABELS as Record<string, string>)[selected.status] ?? selected.status}
+              reason={selected.reason}
+              currentStep={selected.activeStepName}
+            />
             {selected.status === 'pending' ? <TierBadge workflowStatus={selected.workflowStatus} activeStepName={selected.activeStepName} /> : null}
             {selected.status === 'pending' && selected.decisionDueAt ? <EscalationCountdown dueAt={selected.decisionDueAt} /> : null}
           </div>
