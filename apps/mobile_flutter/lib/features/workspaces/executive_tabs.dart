@@ -10,6 +10,7 @@ import 'package:ahla_shabab_management_os/features/mobile_data/mobile_executive_
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_executive_insights_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/approval_speed_radar_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/daily_reports_feed_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/daily_reports_home_box.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_announcement_page.dart';
@@ -975,6 +976,12 @@ class ExecutiveMoreTab extends ConsumerWidget {
               title: 'تقارير الموظفين اليومية',
               subtitle: 'ما أنجزه الموظفون يومًا بيوم.',
               onTap: () => push(const DailyReportsFeedPage()),
+            ),
+            _MoreEntry(
+              icon: Icons.speed_rounded,
+              title: 'رادار تعطل الإجراءات وسرعة الاعتماد',
+              subtitle: 'زمن الرد ومعدلات إنجاز الطلبات بين الإدارات والمعتمدين.',
+              onTap: () => push(const ApprovalSpeedRadarPage()),
             ),
             _MoreEntry(
               icon: Icons.fact_check_outlined,

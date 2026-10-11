@@ -1,3 +1,4 @@
+import 'package:ahla_shabab_management_os/core/sharing/whatsapp_share_service.dart';
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
@@ -327,7 +328,7 @@ class _FeedCard extends StatelessWidget {
                         ],
                         MobileStatusPill(item.priority),
                         const Spacer(),
-                        if (item.publishedAt != null)
+                        if (item.publishedAt != null) ...[
                           Text(
                             DateFormat(
                               'd MMM',
@@ -335,6 +336,25 @@ class _FeedCard extends StatelessWidget {
                             ).format(item.publishedAt!.toLocal()),
                             style: Theme.of(context).textTheme.labelSmall,
                           ),
+                          const SizedBox(width: 8),
+                        ],
+                        IconButton(
+                          icon: const Icon(Icons.share_rounded, size: 18),
+                          color: const Color(0xFF25D366),
+                          tooltip: 'مشاركة القرار عبر واتساب',
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () {
+                            WhatsAppShareService.shareAnnouncement(
+                              title: item.title,
+                              body: item.body,
+                              publishedDate: item.publishedAt != null
+                                  ? DateFormat('d MMMM yyyy', 'ar').format(item.publishedAt!.toLocal())
+                                  : null,
+                            );
+                          },
+                        ),
                       ],
                     ),
                     const SizedBox(height: 12),

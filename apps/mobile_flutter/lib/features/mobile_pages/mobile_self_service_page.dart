@@ -5,6 +5,7 @@ import 'package:ahla_shabab_management_os/core/widgets/host_app_bar_scope.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/leave_planner_sheet.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/request_display.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/request_list_widgets.dart';
@@ -241,7 +242,70 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
                   ),
                 ),
               ),
-              data: (items) => LeaveBalanceStrip(balances: items),
+              data: (items) => Column(
+                children: [
+                  LeaveBalanceStrip(balances: items),
+                  const SizedBox(height: 10),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: () => LeavePlannerSheet.show(context),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            const Color(0xFF0284C7).withValues(alpha: .12),
+                            const Color(0xFF0284C7).withValues(alpha: .04),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: const Color(0xFF0284C7).withValues(alpha: .3),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 18,
+                            backgroundColor: const Color(0xFF0284C7).withValues(alpha: .16),
+                            child: const Icon(
+                              Icons.auto_awesome_rounded,
+                              color: Color(0xFF0284C7),
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'تخطيط إجازتي ومحاكي الرصيد الذكي 🗓️',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w900,
+                                    color: Color(0xFF0284C7),
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  'احسب رصيدك المتبقي بدقة وتأكد من عدم تضارب موعدك مع زملاء القسم قبل تقديم الطلب.',
+                                  style: TextStyle(fontSize: 11, height: 1.35),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 14,
+                            color: Color(0xFF0284C7),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
 
             // ── طلباتي السابقة ──
@@ -950,6 +1014,31 @@ class NewRequestSheetState extends State<NewRequestSheet> {
                               ),
                             ],
                           ],
+                        ),
+                      ),
+                      InkWell(
+                        onTap: () {
+                          Navigator.pop(context);
+                          LeavePlannerSheet.show(context);
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.auto_awesome_rounded, size: 14, color: Color(0xFF0284C7)),
+                              const SizedBox(width: 5),
+                              Text(
+                                'افتح محاكي ومخطط الإجازات الذكي لفحص التضارب 🗓️',
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],

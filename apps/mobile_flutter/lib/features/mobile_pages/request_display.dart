@@ -580,3 +580,223 @@ String? requestErrorMessage(Object error) {
   }
   return null;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// رادار تعطل الإجراءات وسرعة الاعتماد (SLA Tracker & Bottleneck Radar)
+// ═══════════════════════════════════════════════════════════════════════════
+
+enum RequestSlaTone {
+  fast,     // 🟢 أخضر: تم أو معلق في أقل من ساعتين
+  warning,  // 🟡 أصفر: معلق بين ساعتين و24 ساعة
+  breached, // 🔴 أحمر وامض/بارز: معلق لأكثر من 24 ساعة
+}
+
+class RequestSlaInfo {
+  const RequestSlaInfo({
+    required this.tone,
+    required this.label,
+    required this.detail,
+    required this.color,
+    required this.icon,
+    required this.elapsed,
+    required this.isCompleted,
+    this.responsibleParty,
+  });
+
+  final RequestSlaTone tone;
+  final String label;
+  final String detail;
+  final Color color;
+  final IconData icon;
+  final Duration elapsed;
+  final bool isCompleted;
+  final String? responsibleParty;
+}
+
+String _formatSlaDuration(Duration d) {
+  if (d.inMinutes < 60) {
+    final mins = d.inMinutes <= 0 ? 1 : d.inMinutes;
+    return '$mins د';
+  }
+  final hours = d.inHours;
+  if (hours < 24) {
+    return '$hours س';
+  }
+  final days = d.inDays;
+  final remHours = hours % 24;
+  return remHours > 0 ? '$days يوم و$remHours س' : '$days يوم';
+}
+
+/// احتساب حالة ومؤشر SLA للطلب لمعرفة سرعة البت أو سبب ومكان التعطل.
+RequestSlaInfo calculateRequestSla({
+  required DateTime createdAt,
+  required String status,
+  DateTime? decidedAt,
+  String? activeStepName,
+  String? activeStepRole,
+  String? activeStepActor,
+  String? decidedByName,
+}) {
+  final isDone = status == 'approved' ||
+      status == 'rejected' ||
+      status == 'returned' ||
+      status == 'cancelled' ||
+      status == 'withdrawn';
+
+  if (isDone) {
+    final finish = decidedAt ?? createdAt;
+    final diff = finish.difference(createdAt);
+    final elapsed = diff.isNegative ? Duration.zero : diff;
+    if (elapsed.inHours < 2) {
+      return RequestSlaInfo(
+        tone: RequestSlaTone.fast,
+        label: 'اعتماد قياسي (${_formatSlaDuration(elapsed)})',
+        detail: decidedByName != null ? 'اعتمده $decidedByName' : 'أُنجز سريعاً',
+        color: AppColors.statusSuccess,
+        icon: Icons.bolt_rounded,
+        elapsed: elapsed,
+        isCompleted: true,
+        responsibleParty: decidedByName,
+      );
+    } else if (elapsed.inHours < 24) {
+      return RequestSlaInfo(
+        tone: RequestSlaTone.fast,
+        label: 'أُنجز خلال ${_formatSlaDuration(elapsed)}',
+        detail: decidedByName != null ? 'بواسطة $decidedByName' : 'خلال اليوم',
+        color: const Color(0xFF0284C7),
+        icon: Icons.check_circle_outline_rounded,
+        elapsed: elapsed,
+        isCompleted: true,
+        responsibleParty: decidedByName,
+      );
+    } else {
+      return RequestSlaInfo(
+        tone: RequestSlaTone.warning,
+        label: 'اكتمل بعد ${_formatSlaDuration(elapsed)}',
+        detail: decidedByName != null ? 'بواسطة $decidedByName' : 'بعد 24 ساعة',
+        color: const Color(0xFF64748B),
+        icon: Icons.history_rounded,
+        elapsed: elapsed,
+        isCompleted: true,
+        responsibleParty: decidedByName,
+      );
+    }
+  }
+
+  // الطلب معلق (Pending)
+  final now = DateTime.now();
+  final diff = now.difference(createdAt);
+  final elapsed = diff.isNegative ? Duration.zero : diff;
+
+  final responsible = activeStepActor?.trim().isNotEmpty == true
+      ? activeStepActor!.trim()
+      : (activeStepName != null
+          ? requestStageName(activeStepName, roleSlug: activeStepRole)
+          : null);
+
+  if (elapsed.inHours < 2) {
+    return RequestSlaInfo(
+      tone: RequestSlaTone.fast,
+      label: 'جديد (${_formatSlaDuration(elapsed)})',
+      detail: responsible != null ? 'عند: $responsible' : 'أقل من ساعتين',
+      color: AppColors.statusSuccess,
+      icon: Icons.speed_rounded,
+      elapsed: elapsed,
+      isCompleted: false,
+      responsibleParty: responsible,
+    );
+  } else if (elapsed.inHours < 24) {
+    return RequestSlaInfo(
+      tone: RequestSlaTone.warning,
+      label: 'قيد الانتظار (${_formatSlaDuration(elapsed)})',
+      detail: responsible != null ? 'عند: $responsible' : 'أقل من 24 ساعة',
+      color: const Color(0xFFD97706),
+      icon: Icons.hourglass_top_rounded,
+      elapsed: elapsed,
+      isCompleted: false,
+      responsibleParty: responsible,
+    );
+  } else {
+    return RequestSlaInfo(
+      tone: RequestSlaTone.breached,
+      label: 'معلق أكثر من 24 س (${_formatSlaDuration(elapsed)})',
+      detail: responsible != null ? 'واقف عند: $responsible' : 'تجاوز مهلة الـ 24 ساعة',
+      color: AppColors.statusDanger,
+      icon: Icons.warning_amber_rounded,
+      elapsed: elapsed,
+      isCompleted: false,
+      responsibleParty: responsible,
+    );
+  }
+}
+
+/// شارة مؤشر SLA الزمني والمسؤول عن الخطوة.
+class RequestSlaChip extends StatelessWidget {
+  const RequestSlaChip({
+    required this.sla,
+    this.dense = false,
+    this.showDetail = true,
+    super.key,
+  });
+
+  final RequestSlaInfo sla;
+  final bool dense;
+  final bool showDetail;
+
+  @override
+  Widget build(BuildContext context) {
+    final isBreached = sla.tone == RequestSlaTone.breached && !sla.isCompleted;
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: dense ? 7 : 9,
+        vertical: dense ? 3 : 4.5,
+      ),
+      decoration: BoxDecoration(
+        color: isBreached
+            ? AppColors.statusDanger.withValues(alpha: .15)
+            : sla.color.withValues(alpha: .1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isBreached
+              ? AppColors.statusDanger.withValues(alpha: .6)
+              : sla.color.withValues(alpha: .28),
+          width: isBreached ? 1.2 : 0.8,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            sla.icon,
+            size: dense ? 12 : 14,
+            color: sla.color,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            sla.label,
+            style: TextStyle(
+              fontSize: dense ? 10.5 : 11.5,
+              fontWeight: FontWeight.w800,
+              color: sla.color,
+            ),
+          ),
+          if (showDetail && sla.responsibleParty != null && !sla.isCompleted) ...[
+            const SizedBox(width: 4),
+            Text(
+              '· ${sla.responsibleParty}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: dense ? 10 : 11,
+                fontWeight: FontWeight.w700,
+                color: sla.color.withValues(alpha: .85),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+

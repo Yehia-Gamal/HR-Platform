@@ -315,6 +315,18 @@ class RequestListCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
+                  RequestSlaChip(
+                    sla: calculateRequestSla(
+                      createdAt: item.createdAt,
+                      status: item.status,
+                      decidedAt: item.decidedAt,
+                      activeStepName: item.activeStepName,
+                      activeStepRole: item.activeStepRole,
+                      decidedByName: item.decidedByName,
+                    ),
+                    dense: true,
+                  ),
+                  const SizedBox(width: 6),
                   RequestStatusChip(item.status, dense: true),
                 ],
               ),

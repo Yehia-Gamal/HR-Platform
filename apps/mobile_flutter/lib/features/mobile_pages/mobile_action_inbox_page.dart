@@ -1,6 +1,7 @@
 import 'package:ahla_design_tokens/ahla_design_tokens.dart';
 import 'package:ahla_shabab_management_os/core/formatting/arabic_text.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:ahla_shabab_management_os/core/sharing/whatsapp_share_service.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
@@ -393,6 +394,18 @@ class _RequestActionCard extends ConsumerWidget {
                       spacing: 6,
                       runSpacing: 6,
                       children: [
+                        if (r != null)
+                          RequestSlaChip(
+                            sla: calculateRequestSla(
+                              createdAt: r.createdAt,
+                              status: r.status,
+                              decidedAt: r.decidedAt,
+                              activeStepName: r.activeStepName,
+                              activeStepRole: r.activeStepRole,
+                              decidedByName: r.decidedByName,
+                            ),
+                            dense: true,
+                          ),
                         if (r?.awaitingMe == true && !isMine)
                           const RequestMetaChip(
                             icon: Icons.notifications_active_rounded,
@@ -510,6 +523,25 @@ class _RequestActionCard extends ConsumerWidget {
                                 }
                               },
                             ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton.filledTonal(
+                            style: IconButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              backgroundColor: const Color(0xFF25D366).withValues(alpha: .15),
+                              foregroundColor: const Color(0xFF128C7E),
+                            ),
+                            tooltip: 'مشاركة عبر واتساب',
+                            icon: const Icon(Icons.share_rounded, size: 18),
+                            onPressed: () {
+                              WhatsAppShareService.shareRequest(
+                                number: r?.number ?? 0,
+                                typeLabel: requestTypeLabel(r?.type ?? ''),
+                                employeeName: r?.employeeName ?? '',
+                                reason: r?.reason ?? r?.title ?? '',
+                                stage: stage,
+                              );
+                            },
                           ),
                         ],
                       ),

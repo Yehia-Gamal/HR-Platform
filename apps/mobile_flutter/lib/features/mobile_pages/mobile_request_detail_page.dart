@@ -1,6 +1,7 @@
 import 'package:ahla_design_tokens/ahla_design_tokens.dart';
 import 'package:ahla_shabab_management_os/core/formatting/arabic_text.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:ahla_shabab_management_os/core/sharing/whatsapp_share_service.dart';
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
@@ -96,7 +97,24 @@ class _RequestScreen extends ConsumerWidget {
         : null;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('تفاصيل الطلب')),
+      appBar: AppBar(
+        title: const Text('تفاصيل الطلب'),
+        actions: [
+          IconButton(
+            tooltip: 'مشاركة عبر واتساب',
+            icon: const Icon(Icons.share_rounded),
+            onPressed: () {
+              WhatsAppShareService.shareRequest(
+                number: request.number,
+                typeLabel: requestTypeLabel(request.type),
+                employeeName: request.employeeName,
+                reason: request.reason ?? request.title ?? '',
+                stage: currentStage,
+              );
+            },
+          ),
+        ],
+      ),
       bottomNavigationBar: canDecide
           ? _DecisionBar(
               request: request,
@@ -703,7 +721,31 @@ class _HeroCard extends StatelessWidget {
                     ),
                   ),
                 ],
-                if (chip != null) ...[const SizedBox(height: 8), chip],
+                const SizedBox(height: 8),
+                Builder(
+                  builder: (_) {
+                    final activeStep = request.steps
+                        .where((s) => s.isCurrent == true || s.status == 'active')
+                        .firstOrNull;
+                    final sla = calculateRequestSla(
+                      createdAt: request.createdAt,
+                      status: request.status,
+                      decidedAt: request.decidedAt,
+                      activeStepName: activeStep?.name ?? currentStage,
+                      activeStepRole: activeStep?.roleSlug,
+                      activeStepActor: activeStep?.actorName,
+                      decidedByName: request.decidedByName,
+                    );
+                    return Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        RequestSlaChip(sla: sla),
+                        ?chip,
+                      ],
+                    );
+                  },
+                ),
               ],
             ),
           ),

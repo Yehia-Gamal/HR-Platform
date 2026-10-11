@@ -1,3 +1,4 @@
+import 'package:ahla_shabab_management_os/core/sharing/whatsapp_share_service.dart';
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
@@ -182,6 +183,19 @@ class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
                         ],
                       ),
                       const Spacer(),
+                      IconButton(
+                        tooltip: 'مشاركة لوحة الشرف في جروب الواتساب',
+                        icon: const Icon(Icons.share_rounded, color: Color(0xFF25D366)),
+                        onPressed: () {
+                          final topName = first?.name ?? 'نخبة الموظفين المتميزين';
+                          WhatsAppShareService.shareHonorCard(
+                            employeeName: topName,
+                            period: periodLabel,
+                            category: categoryLabel,
+                            rate: first?.metric,
+                          );
+                        },
+                      ),
                       IconButton(
                         icon: const Icon(Icons.close_rounded),
                         onPressed: () => Navigator.pop(context),
@@ -746,6 +760,21 @@ class _HonoreeListCard extends StatelessWidget {
                 color: rankColor,
               ),
             ),
+          ),
+          const SizedBox(width: 4),
+          IconButton(
+            icon: const Icon(Icons.share_rounded, size: 18),
+            color: const Color(0xFF25D366),
+            tooltip: 'مشاركة التكريم عبر واتساب',
+            visualDensity: VisualDensity.compact,
+            onPressed: () {
+              WhatsAppShareService.shareHonorCard(
+                employeeName: item.name,
+                period: 'الحالية',
+                category: item.department,
+                rate: item.metric,
+              );
+            },
           ),
         ],
       ),
