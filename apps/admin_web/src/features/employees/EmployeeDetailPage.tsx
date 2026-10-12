@@ -1073,7 +1073,23 @@ export function DeleteEmployeeDialog({
         {error ? <ErrorBanner message={error} /> : null}
         <label className="block">
           <span className="mb-1.5 block text-sm font-semibold">سبب الحذف النهائي</span>
-          <textarea className="input min-h-24 w-full" required minLength={10} value={reason} onChange={(e) => setReason(e.target.value)} />
+          <textarea
+            className="input min-h-24 w-full"
+            required
+            minLength={10}
+            placeholder="اكتب سبب الحذف هنا (10 أحرف على الأقل، مثال: استقالة الموظف أو حساب تجريبي)"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+          />
+          {reason.trim().length < 10 ? (
+            <span className="mt-1 block text-xs text-[var(--muted)]">
+              يجب إدخال سبب واضح لا يقل عن 10 أحرف (المدخل حالياً: {reason.trim().length} من 10).
+            </span>
+          ) : (
+            <span className="mt-1 block text-xs text-[var(--success)] font-medium">
+              ✓ سبب الحذف مستوفٍ للحد الأدنى المطلوب.
+            </span>
+          )}
         </label>
         <label className="block">
           <span className="mb-1.5 block text-sm font-semibold">
@@ -1090,6 +1106,11 @@ export function DeleteEmployeeDialog({
             autoComplete="off"
             disabled={deleteEmployee.isPending}
           />
+          {confirmText && !codeMatches ? (
+            <span className="mt-1 block text-xs text-[var(--danger)]">
+              كود الموظف غير متطابق تماماً مع ({employeeCode}).
+            </span>
+          ) : null}
         </label>
         <div className="flex justify-end gap-3">
           <button type="button" onClick={onClose} disabled={deleteEmployee.isPending} className="btn-secondary">
