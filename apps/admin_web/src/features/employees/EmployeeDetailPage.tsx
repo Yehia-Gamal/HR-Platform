@@ -1081,16 +1081,16 @@ export function DeleteEmployeeDialog({
             value={reason}
             onChange={(e) => setReason(e.target.value)}
           />
-          {reason.trim().length < 10 ? (
-            <span className="mt-1 block text-xs text-[var(--muted)]">
-              يجب إدخال سبب واضح لا يقل عن 10 أحرف (المدخل حالياً: {reason.trim().length} من 10).
-            </span>
-          ) : (
-            <span className="mt-1 block text-xs text-[var(--success)] font-medium">
-              ✓ سبب الحذف مستوفٍ للحد الأدنى المطلوب.
-            </span>
-          )}
         </label>
+        {reason.trim().length < 10 ? (
+          <span className="-mt-2 block text-xs text-[var(--muted)]">
+            يجب إدخال سبب واضح لا يقل عن 10 أحرف (المدخل حالياً: {reason.trim().length} من 10).
+          </span>
+        ) : (
+          <span className="-mt-2 block text-xs text-[var(--success)] font-medium">
+            ✓ سبب الحذف مستوفٍ للحد الأدنى المطلوب.
+          </span>
+        )}
         <label className="block">
           <span className="mb-1.5 block text-sm font-semibold">
             اكتب كود الموظف للتأكيد:{' '}
