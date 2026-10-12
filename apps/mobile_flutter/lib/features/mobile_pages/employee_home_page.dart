@@ -153,7 +153,7 @@ class EmployeeHomePage extends ConsumerWidget {
             _QuickAction(
               icon: Icons.location_searching_rounded,
               title: 'طلبات الموقع',
-              subtitle: access.isClinicStaff ? 'من مديرك مصطفى أحمد' : 'موافقة واضحة ومؤقتة',
+              subtitle: access.isClinicStaff ? 'من إدارة العيادات (مصطفى أحمد / يوسف رسمي)' : 'موافقة واضحة ومؤقتة',
               badgeCount: summary.value?.pendingLocationRequests,
               onTap: () => Navigator.push(
                 context,
