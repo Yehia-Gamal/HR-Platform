@@ -117,22 +117,26 @@ class _ExecutiveLocationEmployeeFilePageState
           child: query.when(
             loading: () => ListView(
               physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 48),
               children: [
-                const SizedBox(height: 200),
-                // رأس فوري أثناء التحميل (الاسم والصورة المتوافران مسبقاً)
                 _HeaderCard(
                   name: widget.employeeName,
                   photoUrl: widget.photoUrl,
                   subtitle: null,
                   status: null,
                 ),
-                const SizedBox(height: 260),
-                ListTile(
-                  leading: const Icon(Icons.info_outline_rounded),
-                  title: const Text('جارٍ تحميل سجلّ المواقع…'),
-                  trailing: const SizedBox.square(
-                    dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                const SizedBox(height: 32),
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 12),
+                        Text('جارٍ تحميل سجلّ المواقع…'),
+                      ],
+                    ),
                   ),
                 ),
               ],

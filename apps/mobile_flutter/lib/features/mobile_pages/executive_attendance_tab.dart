@@ -131,6 +131,7 @@ class _ExecutiveAttendanceTabState
 
             if (visible.isEmpty) {
               return ListView(
+                padding: EdgeInsets.fromLTRB(0, 16, 0, 110 + MediaQuery.of(context).padding.bottom),
                 children: [
                   const SizedBox(height: 120),
                   Center(
@@ -312,7 +313,7 @@ class _ExecutiveAttendanceTabState
             }
 
             return ListView(
-              padding: EdgeInsets.fromLTRB(0, 16, 0, 16 + bottomPad),
+              padding: EdgeInsets.fromLTRB(0, 16, 0, 110 + bottomPad),
               children: items,
             );
           },

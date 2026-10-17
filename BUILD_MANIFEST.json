@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-17T12:01:35.047Z",
+  "generatedAt": "2026-10-17T12:11:09.763Z",
   "files": [
     {
       "path": "_v23_discovery\\CURRENT_ARCHITECTURE.md",
@@ -10648,8 +10648,8 @@
     },
     {
       "path": "apps\\mobile_flutter\\lib\\features\\mobile_pages\\executive_attendance_tab.dart",
-      "size": 33681,
-      "sha256": "f6046b3d2bcbdf0b52e0e4eb40db0cc137aedb48369a027de58246ccca2c0eef"
+      "size": 33783,
+      "sha256": "4b536aef90c6b5f90862676d0dd2c2d401636b9cb1a99d9c1f2a839493ced994"
     },
     {
       "path": "apps\\mobile_flutter\\lib\\features\\mobile_pages\\executive_brief_page.dart",
@@ -10668,13 +10668,13 @@
     },
     {
       "path": "apps\\mobile_flutter\\lib\\features\\mobile_pages\\executive_location_employee_file_page.dart",
-      "size": 18276,
-      "sha256": "0b0d14492bef87d8940386b4396d6fede9fbdade354d3b5216e35f078c5a1071"
+      "size": 18300,
+      "sha256": "d4bac98f1f754620e0ded3a607bdd9442c63176ef5ab132ca77ea1160e6ee88b"
     },
     {
       "path": "apps\\mobile_flutter\\lib\\features\\mobile_pages\\executive_location_page.dart",
-      "size": 26268,
-      "sha256": "883bb700be77bd4e91e2f31be0fb4279da7605bc2e943c1dc97f34c23a1bfe35"
+      "size": 26269,
+      "sha256": "fbf3b19d9690fb5aec86c29d4398ec50bdc76974824fe5d7daef599d0434a0e2"
     },
     {
       "path": "apps\\mobile_flutter\\lib\\features\\mobile_pages\\executive_people_page.dart",
@@ -19293,13 +19293,13 @@
     },
     {
       "path": "supabase\\.temp\\storage-migration",
-      "size": 27,
-      "sha256": "9e45e77af8dcc30d61add3034e122f92058b22a3baa659a26e31d310619b4257"
+      "size": 34,
+      "sha256": "a984b1bf6712beb9bb13d3365b5ca9c77d73e0f8399c3faaa7a0c2d8b48bf621"
     },
     {
       "path": "supabase\\.temp\\storage-version",
       "size": 7,
-      "sha256": "b586fa54a56108373f7bd81d9b5eb8d34a0cd40e923c488ba896ff6d4e53d702"
+      "sha256": "35a36e21b88988644c289c8c010494baba3adb401db3ebe86d3dec38671ce189"
     },
     {
       "path": "supabase\\config.toml",

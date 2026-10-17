@@ -92,7 +92,7 @@ class _LocationDirectoryTab extends ConsumerWidget {
     return RefreshIndicator(
       onRefresh: () async => ref.invalidate(locationDirectoryProvider),
       child: ListView(
-        padding: EdgeInsets.fromLTRB(16, 12, 16, 16 + bottomPad),
+        padding: EdgeInsets.fromLTRB(16, 12, 16, 110 + bottomPad),
         children: [
           // لوحة التتبع الميداني اللحظي مع زر الطلب الجماعي
           Container(
