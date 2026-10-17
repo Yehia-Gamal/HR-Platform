@@ -8,16 +8,29 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 /// موفر بيانات تقرير سرعة الاعتماد ورادار التعطل
+/// موفر بيانات تقرير سرعة الاعتماد ورادار التعطل
+/// الفلاتر: 0 = هذا الشهر، 1 = آخر 30 يوم، 2 = كل الأوقات
 final approvalSpeedRadarProvider =
-    FutureProvider.family<Map<String, dynamic>, (DateTime?, DateTime?)>((
+    FutureProvider.family<Map<String, dynamic>, int>((
       ref,
-      range,
+      filterIndex,
     ) async {
-      final (from, to) = range;
-      final params = <String, dynamic>{};
+      final now = DateTime.now();
       final dateFmt = DateFormat('yyyy-MM-dd');
-      if (from != null) params['p_from'] = dateFmt.format(from);
-      if (to != null) params['p_to'] = dateFmt.format(to);
+      final params = <String, dynamic>{};
+
+      if (filterIndex == 0) {
+        // هذا الشهر
+        final start = DateTime(now.year, now.month, 1);
+        params['p_from'] = dateFmt.format(start);
+        params['p_to'] = dateFmt.format(now);
+      } else if (filterIndex == 1) {
+        // آخر 30 يوماً
+        final start = now.subtract(const Duration(days: 30));
+        params['p_from'] = dateFmt.format(start);
+        params['p_to'] = dateFmt.format(now);
+      }
+      // filterIndex == 2 => كل الأوقات (بدون قيود زمنية)
 
       final data = await rpcWithTimeout(
         ref
@@ -45,20 +58,6 @@ class _ApprovalSpeedRadarPageState
     extends ConsumerState<ApprovalSpeedRadarPage> {
   // فترات الفلترة: 0 = هذا الشهر، 1 = آخر 30 يوم، 2 = كل الأوقات
   int _selectedFilter = 0;
-
-  (DateTime?, DateTime?) get _currentRange {
-    final now = DateTime.now();
-    switch (_selectedFilter) {
-      case 0: // هذا الشهر
-        final start = DateTime(now.year, now.month, 1);
-        return (start, now);
-      case 1: // آخر 30 يوم
-        final start = now.subtract(const Duration(days: 30));
-        return (start, now);
-      default: // كل الأوقات
-        return (null, null);
-    }
-  }
 
   String _formatHours(num hours) {
     if (hours <= 0) return '0 س';
@@ -88,7 +87,7 @@ class _ApprovalSpeedRadarPageState
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final reportAsync = ref.watch(approvalSpeedRadarProvider(_currentRange));
+    final reportAsync = ref.watch(approvalSpeedRadarProvider(_selectedFilter));
 
     return Scaffold(
       appBar: AppBar(
@@ -98,13 +97,13 @@ class _ApprovalSpeedRadarPageState
             tooltip: 'تحديث البيانات',
             icon: const Icon(Icons.refresh_rounded),
             onPressed: () =>
-                ref.invalidate(approvalSpeedRadarProvider(_currentRange)),
+                ref.invalidate(approvalSpeedRadarProvider(_selectedFilter)),
           ),
         ],
       ),
       body: RefreshIndicator(
         onRefresh: () async =>
-            ref.invalidate(approvalSpeedRadarProvider(_currentRange)),
+            ref.invalidate(approvalSpeedRadarProvider(_selectedFilter)),
         child: reportAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (err, _) => Center(
@@ -123,7 +122,7 @@ class _ApprovalSpeedRadarPageState
                   const SizedBox(height: 14),
                   FilledButton.icon(
                     onPressed: () => ref.invalidate(
-                        approvalSpeedRadarProvider(_currentRange)),
+                        approvalSpeedRadarProvider(_selectedFilter)),
                     icon: const Icon(Icons.refresh_rounded),
                     label: const Text('إعادة المحاولة'),
                   ),
