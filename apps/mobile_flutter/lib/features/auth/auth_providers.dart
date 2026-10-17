@@ -12,7 +12,14 @@ final supabaseProvider = Provider<SupabaseClient>(
 
 final authSessionProvider = StreamProvider<Session?>((ref) async* {
   final client = ref.watch(supabaseProvider);
-  yield client.auth.currentSession;
+  var session = client.auth.currentSession;
+  if (session != null && session.isExpired) {
+    try {
+      final refreshed = await client.auth.refreshSession();
+      session = refreshed.session ?? session;
+    } catch (_) {}
+  }
+  yield session;
   await for (final state in client.auth.onAuthStateChange) {
     yield state.session;
   }

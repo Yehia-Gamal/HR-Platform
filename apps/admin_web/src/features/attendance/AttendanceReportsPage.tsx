@@ -291,7 +291,7 @@ export function AttendanceReportsPage() {
                               <StatusBadge value={d.status} />
                             </td>
                             {statement.data.capabilities.canEditDays ? (
-                              <td className="p-1 text-center">
+                              <td className="p-1 text-center whitespace-nowrap">
                                 <AttendanceDayEditor employeeId={statement.data.employee.id} day={d} />
                               </td>
                             ) : null}

@@ -7,6 +7,7 @@ import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.
 import 'package:ahla_shabab_management_os/features/mobile_pages/employee_profile_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_location_employee_file_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
+import 'package:ahla_shabab_management_os/shared/hierarchy_sort.dart';
 import 'package:flutter/material.dart';
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -80,8 +81,13 @@ class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
   ) {
     final scheme = Theme.of(context).colorScheme;
     final access = ref.watch(accessContextProvider).value;
-    final canGrantRest =
-        access?.hasPermission('requests.leave.balance.adjust') ?? false;
+    final isExecutive = item.id == '7b0740fa-66ba-4616-8674-3dbd8e14109e' ||
+        getHierarchyRank(name: item.name, jobTitle: item.jobTitle) == 1 ||
+        item.name.contains('محمد يوسف') ||
+        (item.jobTitle?.contains('المدير التنفيذي') ?? false) ||
+        (item.position?.contains('المدير التنفيذي') ?? false);
+    final canGrantRest = !isExecutive &&
+        (access?.canAdminEditAttendanceDays ?? false);
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
       children: [
@@ -113,7 +119,10 @@ class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    if (item.todayStatus?.status != null) ...[
+                    if (isExecutive) ...[
+                      const MobileStatusPill('exempt'),
+                      const SizedBox(height: 6),
+                    ] else if (item.todayStatus?.status != null) ...[
                       MobileStatusPill(item.todayStatus!.status!),
                       const SizedBox(height: 6),
                     ],
@@ -125,10 +134,63 @@ class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 10),
-        TodayStatusSection(todayStatus: item.todayStatus),
+        if (isExecutive)
+          Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(
+                color: scheme.outlineVariant.withValues(alpha: .5),
+                width: 1.2,
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: scheme.primary.withValues(alpha: .12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.verified_user_rounded,
+                      color: scheme.primary,
+                      size: 26,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'الإدارة العليا التنفيذية',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 15,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'معفى من تسجيل الحضور والانصراف بقرار الإدارة العليا',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          TodayStatusSection(todayStatus: item.todayStatus),
         const SizedBox(height: 14),
         // كل بطاقة تفتح ملف هذا الموظف (فيه طلباته ومهامه وتقييمه ومستنداته)
-        // — كانت «المهام» تفتح مهام المدير التنفيذي نفسه و«KPI» صندوقه كله.
         MetricGrid(
           cards: [
             (
@@ -143,12 +205,13 @@ class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
               Icons.task_outlined,
               () => _openEmployeeFile(context, item),
             ),
-            (
-              'KPI الأخير',
-              item.latestKpi?.score?.toStringAsFixed(1) ?? '—',
-              Icons.analytics_outlined,
-              () => _openEmployeeFile(context, item),
-            ),
+            if (!isExecutive)
+              (
+                'KPI الأخير',
+                item.latestKpi?.score?.toStringAsFixed(1) ?? '—',
+                Icons.analytics_outlined,
+                () => _openEmployeeFile(context, item),
+              ),
             (
               'وثائق قريبة',
               item.expiringDocuments.toString(),
@@ -191,7 +254,7 @@ class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
             ),
           ),
         ),
-        if (item.latestKpi != null) ...[
+        if (!isExecutive && item.latestKpi != null) ...[
           const SizedBox(height: 14),
           Card(
             color: scheme.primaryContainer.withValues(alpha: .45),
@@ -239,78 +302,80 @@ class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
             ),
           ),
         ],
-        const SizedBox(height: 18),
-        const MobileSectionHeader(
-          title: 'الحضور الحديث',
-          subtitle: 'آخر 14 سجلًا مجمعًا دون عرض بيانات تحقق حساسة.',
-        ),
-        const SizedBox(height: 10),
-        if (item.recentAttendance.isEmpty)
-          const Card(
-            child: Padding(
-              padding: EdgeInsets.all(22),
-              child: Center(child: Text('لا توجد سجلات حضور حديثة.')),
-            ),
-          )
-        else
-          Card(
-            child: Column(
-              children: item.recentAttendance
-                  .map(
-                    (attendance) => ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 4,
-                      ),
-                      leading: CircleAvatar(
-                        backgroundColor: _attendanceColor(
-                          context,
-                          attendance.status,
-                        ).withValues(alpha: .12),
-                        child: Icon(
-                          _attendanceIcon(attendance.status),
-                          color: _attendanceColor(context, attendance.status),
-                        ),
-                      ),
-                      title: Text(
-                        DateFormat(
-                          'EEEE، d MMM',
-                          'ar',
-                        ).format(attendance.workDate),
-                      ),
-                      subtitle: Text(
-                        attendance.lateMinutes > 0
-                            ? 'تأخير ${attendance.lateMinutes} دقيقة'
-                            : '${(attendance.workMinutes / 60).toStringAsFixed(1)} ساعة عمل',
-                      ),
-                      trailing: Text(
-                        _attendanceLabel(attendance.status),
-                        style: TextStyle(
-                          color: _attendanceColor(context, attendance.status),
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                  )
-                  .toList(growable: false),
-            ),
+        if (!isExecutive) ...[
+          const SizedBox(height: 18),
+          const MobileSectionHeader(
+            title: 'الحضور الحديث',
+            subtitle: 'آخر 14 سجلًا مجمعًا دون عرض بيانات تحقق حساسة.',
           ),
-        const SizedBox(height: 14),
-        // يفتح ملف موقع هذا الموظف مباشرة بدل الدليل العام والبحث عنه مجددًا
-        OutlinedButton.icon(
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute<void>(
-              builder: (_) => ExecutiveLocationEmployeeFilePage(
-                employeeId: item.id,
-                employeeName: item.name,
-                photoUrl: item.photoUrl,
+          const SizedBox(height: 10),
+          if (item.recentAttendance.isEmpty)
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(22),
+                child: Center(child: Text('لا توجد سجلات حضور حديثة.')),
+              ),
+            )
+          else
+            Card(
+              child: Column(
+                children: item.recentAttendance
+                    .map(
+                      (attendance) => ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        leading: CircleAvatar(
+                          backgroundColor: _attendanceColor(
+                            context,
+                            attendance.status,
+                          ).withValues(alpha: .12),
+                          child: Icon(
+                            _attendanceIcon(attendance.status),
+                            color: _attendanceColor(context, attendance.status),
+                          ),
+                        ),
+                        title: Text(
+                          DateFormat(
+                            'EEEE، d MMM',
+                            'ar',
+                          ).format(attendance.workDate),
+                        ),
+                        subtitle: Text(
+                          attendance.lateMinutes > 0
+                              ? 'تأخير ${attendance.lateMinutes} دقيقة'
+                              : '${(attendance.workMinutes / 60).toStringAsFixed(1)} ساعة عمل',
+                        ),
+                        trailing: Text(
+                          _attendanceLabel(attendance.status),
+                          style: TextStyle(
+                            color: _attendanceColor(context, attendance.status),
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(growable: false),
               ),
             ),
+          const SizedBox(height: 14),
+          // يفتح ملف موقع هذا الموظف مباشرة بدل الدليل العام والبحث عنه مجددًا
+          OutlinedButton.icon(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute<void>(
+                builder: (_) => ExecutiveLocationEmployeeFilePage(
+                  employeeId: item.id,
+                  employeeName: item.name,
+                  photoUrl: item.photoUrl,
+                ),
+              ),
+            ),
+            icon: const Icon(Icons.location_searching_rounded),
+            label: const Text('طلب موقع الموظف'),
           ),
-          icon: const Icon(Icons.location_searching_rounded),
-          label: const Text('طلب موقع الموظف'),
-        ),
+        ],
         const SizedBox(height: 12),
         Text(
           'آخر تحديث ${DateFormat('d MMM، h:mm a', 'ar').format(item.lastUpdatedAt.toLocal())}',

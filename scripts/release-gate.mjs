@@ -47,6 +47,7 @@ function run(cmd, opts = {}) {
     cwd: ROOT,
     encoding: 'utf-8',
     stdio: ['pipe', 'pipe', 'pipe'],
+    maxBuffer: 64 * 1024 * 1024,
     timeout: 300_000,
     ...opts,
   }).trim();

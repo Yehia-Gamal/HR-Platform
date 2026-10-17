@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import type { OrgChartEmployee, OrgChartTreeNode } from '@ahla/shared-contracts';
+import { hierarchyCompare, type OrgChartEmployee, type OrgChartTreeNode } from '@ahla/shared-contracts';
 import { rpc } from '../../core/rpc';
 import { useAuth } from '../auth/AuthProvider';
 
@@ -94,6 +94,17 @@ function buildOrgTree(employees: OrgChartEmployee[]): OrgChartTreeNode[] {
       roots.push(node);
     }
   }
+
+  const sortNodes = (nodes: OrgChartTreeNode[]) => {
+    nodes.sort((a, b) => hierarchyCompare(a.employee, b.employee));
+    for (const n of nodes) {
+      if (n.children.length > 1) {
+        sortNodes(n.children);
+      }
+    }
+  };
+
+  sortNodes(roots);
   return roots;
 }
 

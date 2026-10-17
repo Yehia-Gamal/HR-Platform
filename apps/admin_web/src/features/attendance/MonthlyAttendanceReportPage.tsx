@@ -704,7 +704,7 @@ function DayRow({ d, employeeId, canEdit }: { d: AttendanceStatementDay; employe
         })()}
       </td>
       {canEdit ? (
-        <td className="p-2.5 print:hidden">
+        <td className="p-2.5 print:hidden whitespace-nowrap">
           <AttendanceDayEditor employeeId={employeeId} day={d} />
         </td>
       ) : null}

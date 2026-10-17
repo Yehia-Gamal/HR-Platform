@@ -33,6 +33,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_self_serv
 import 'package:ahla_shabab_management_os/features/mobile_pages/monthly_attendance_statement_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/people_hub_page.dart';
 import 'package:ahla_shabab_management_os/shared/access_context.dart';
+import 'package:ahla_shabab_management_os/shared/hierarchy_sort.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -707,43 +708,61 @@ class ExecutivePeopleTab extends StatelessWidget {
   final ValueNotifier<int> segment;
 
   @override
-  Widget build(BuildContext context) => ValueListenableBuilder<int>(
-    valueListenable: segment,
-    builder: (context, value, _) => Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
-          child: SegmentedButton<int>(
-            showSelectedIcon: false,
-            segments: const [
-              ButtonSegment(
-                value: 0,
-                icon: Icon(Icons.badge_outlined),
-                label: Text('دليل الموظفين'),
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return ValueListenableBuilder<int>(
+      valueListenable: segment,
+      builder: (context, value, _) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            color: scheme.surface,
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+            child: SegmentedButton<int>(
+              showSelectedIcon: false,
+              style: SegmentedButton.styleFrom(
+                visualDensity: VisualDensity.compact,
               ),
-              ButtonSegment(
-                value: 1,
-                icon: Icon(Icons.my_location_rounded),
-                label: Text('طلب الموقع'),
-              ),
-            ],
-            selected: {value},
-            onSelectionChanged: (s) => segment.value = s.first,
+              segments: const [
+                ButtonSegment(
+                  value: 0,
+                  icon: Icon(Icons.badge_outlined, size: 18),
+                  label: Text(
+                    'دليل الموظفين',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                ButtonSegment(
+                  value: 1,
+                  icon: Icon(Icons.my_location_rounded, size: 18),
+                  label: Text(
+                    'طلب الموقع',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+              selected: {value},
+              onSelectionChanged: (s) => segment.value = s.first,
+            ),
           ),
-        ),
-        Expanded(
-          child: IndexedStack(
-            index: value,
-            children: const [
-              _PeopleDirectory(),
-              ExecutiveLocationRequestsView(),
-            ],
+          Divider(
+            height: 1,
+            thickness: 0.6,
+            color: scheme.outlineVariant.withValues(alpha: 0.35),
           ),
-        ),
-      ],
-    ),
-  );
+          Expanded(
+            child: IndexedStack(
+              index: value,
+              children: const [
+                _PeopleDirectory(),
+                ExecutiveLocationRequestsView(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _PeopleDirectory extends ConsumerStatefulWidget {
@@ -812,24 +831,44 @@ class _PeopleDirectoryState extends ConsumerState<_PeopleDirectory> {
                     ref.invalidate(mobileExecutivePeopleProvider(_query)),
               ),
             ],
-            data: (list) => list.isEmpty
-                ? const [
-                    Padding(
-                      padding: EdgeInsets.all(40),
-                      child: Center(child: Text('لا توجد نتائج مطابقة')),
-                    ),
-                  ]
-                : [
-                    Text(
-                      arEmployees(list.length),
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            data: (list) {
+              final access = ref.watch(accessContextProvider).value;
+              final canSeeClinic = canViewClinicGirls(access);
+              final visible = canSeeClinic
+                  ? list
+                  : list
+                      .where((p) => !isClinicGirl(
+                            name: p.name,
+                            jobTitle: p.jobTitle,
+                            department: p.department,
+                          ))
+                      .toList(growable: false);
+              final sortedList = sortByHierarchy<ExecutivePersonItem>(
+                visible,
+                (p) => p.jobTitle ?? '',
+                (p) => p.name,
+                getDepartment: (p) => p.department ?? '',
+              );
+              if (sortedList.isEmpty) {
+                return const [
+                  Padding(
+                    padding: EdgeInsets.all(40),
+                    child: Center(child: Text('لا توجد نتائج مطابقة')),
+                  ),
+                ];
+              }
+              return [
+                Text(
+                  arEmployees(sortedList.length),
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
                         color: scheme.onSurfaceVariant,
                         fontWeight: FontWeight.w800,
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    for (final p in list) _PersonTile(person: p),
-                  ],
+                ),
+                const SizedBox(height: 6),
+                for (final p in sortedList) _PersonTile(person: p),
+              ];
+            },
           ),
         ],
       ),

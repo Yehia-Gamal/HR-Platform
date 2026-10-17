@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_location_employee_file_page.dart';
+import 'package:ahla_shabab_management_os/shared/hierarchy_sort.dart';
+import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:intl/intl.dart';
 
 /// فئات الفلترة المتاحة — تُطابق حالات الحضور.
@@ -115,7 +117,19 @@ class _ExecutiveAttendanceTabState
             ),
           ),
           data: (employees) {
-            if (employees.isEmpty) {
+            final access = ref.watch(accessContextProvider).value;
+            final canSeeClinic = canViewClinicGirls(access);
+            final visible = canSeeClinic
+                ? employees
+                : employees
+                    .where((e) => !isClinicGirl(
+                          name: e.name,
+                          jobTitle: e.jobTitle,
+                          department: e.department,
+                        ))
+                    .toList(growable: false);
+
+            if (visible.isEmpty) {
               return ListView(
                 children: [
                   const SizedBox(height: 120),
@@ -138,7 +152,7 @@ class _ExecutiveAttendanceTabState
 
             // حساب الأعداد لكل فئة
             final counts = <_FilterCategory, int>{};
-            for (final e in employees) {
+            for (final e in visible) {
               final cat = _employeeCategory(e);
               counts[cat] = (counts[cat] ?? 0) + 1;
             }
@@ -147,7 +161,7 @@ class _ExecutiveAttendanceTabState
             // من في مأمورية أو إجازة أو راحة ليس مطلوبًا في الجمعية اليوم.
             final presentCount = counts[_FilterCategory.present] ?? 0;
             final lateCount = counts[_FilterCategory.late] ?? 0;
-            final expectedCount = employees.length -
+            final expectedCount = visible.length -
                 (counts[_FilterCategory.mission] ?? 0) -
                 (counts[_FilterCategory.onLeave] ?? 0) -
                 (counts[_FilterCategory.weekend] ?? 0);
@@ -157,23 +171,14 @@ class _ExecutiveAttendanceTabState
                     .clamp(0, 100)
                 : 0;
 
-            // تطبيق الفلترة
-            final filtered = _applyFilters(employees);
-
-            // تجميع النتائج المفلترة حسب القسم
-            final grouped = <String, List<AttendanceTodayEmployee>>{};
-            for (final emp in filtered) {
-              final dept = emp.department?.isNotEmpty == true
-                  ? emp.department!
-                  : 'بدون قسم';
-              (grouped[dept] ??= []).add(emp);
-            }
-            final sortedDepts = grouped.keys.toList()
-              ..sort((a, b) {
-                if (a == 'بدون قسم') return 1;
-                if (b == 'بدون قسم') return -1;
-                return a.compareTo(b);
-              });
+            // تطبيق الفلترة ثم الترتيب حسب الهيكل الإداري المعتمد
+            final filtered = _applyFilters(visible);
+            final sortedEmployees = sortByHierarchy<AttendanceTodayEmployee>(
+              filtered,
+              (e) => e.jobTitle ?? '',
+              (e) => e.name,
+              getDepartment: (e) => e.department ?? '',
+            );
 
             final bottomPad = MediaQuery.of(context).padding.bottom;
             final scheme = Theme.of(context).colorScheme;
@@ -296,63 +301,14 @@ class _ExecutiveAttendanceTabState
               const SizedBox(height: 8),
             ];
 
-            // أقسام + بطاقات
-            for (final dept in sortedDepts) {
-              final deptEmployees = grouped[dept]!;
-
-              int present = 0, late = 0, absent = 0, weekend = 0;
-              for (final e in deptEmployees) {
-                if (e.isOnMission) continue;
-                if (e.attendanceStatus == 'present') present++;
-                if (e.attendanceStatus == 'late') late++;
-                if (e.attendanceStatus == 'absent') absent++;
-                if (e.attendanceStatus == 'weekend') weekend++;
-              }
-              final summaryParts = <String>[];
-              if (present > 0) summaryParts.add('$present حاضر');
-              if (late > 0) summaryParts.add('$late متأخر');
-              if (absent > 0) summaryParts.add('$absent غائب');
-              if (weekend > 0) summaryParts.add('$weekend راحة');
-
+            // عرض البطاقات مرتبة بالهيكل الإداري
+            for (final e in sortedEmployees) {
               items.add(
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(4, 8, 4, 6),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.business_rounded,
-                        size: 18,
-                        color: scheme.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          dept,
-                          style: Theme.of(context).textTheme.titleSmall
-                              ?.copyWith(fontWeight: FontWeight.w900),
-                        ),
-                      ),
-                      Text(
-                        summaryParts.isNotEmpty
-                            ? '${deptEmployees.length} موظف — ${summaryParts.join(' · ')}'
-                            : arEmployees(deptEmployees.length),
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _AttendanceCard(employee: e),
                 ),
               );
-
-              for (final e in deptEmployees) {
-                items.add(
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _AttendanceCard(employee: e),
-                  ),
-                );
-              }
             }
 
             return ListView(
@@ -820,33 +776,38 @@ class _AttendanceCardState extends ConsumerState<_AttendanceCard> {
                       ),
                     ),
                   ),
-                  // زر صغير لطلب إرسال الموقع الآن من هذا الموظف.
-                  Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: Tooltip(
-                      message: inCooldown
-                          ? 'انتظر $cooldownRemaining ثانية'
-                          : 'طلب موقع الآن',
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(20),
-                        onTap: inCooldown
-                            ? null
-                            : () => _sendLocationRequest(context),
-                        child: Padding(
-                          padding: const EdgeInsets.all(6),
-                          child: Icon(
-                            inCooldown
-                                ? Icons.hourglass_top_rounded
-                                : Icons.my_location_rounded,
-                            size: 20,
-                            color: inCooldown
-                                ? Theme.of(context).colorScheme.onSurfaceVariant
-                                : Theme.of(context).colorScheme.primary,
+                  // زر صغير لطلب إرسال الموقع الآن من هذا الموظف (يُستثنى منه الطاقم الطبي للعيادات).
+                  if (!isClinicGirl(
+                    name: employee.name,
+                    jobTitle: employee.jobTitle,
+                    department: employee.department,
+                  ))
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Tooltip(
+                        message: inCooldown
+                            ? 'انتظر $cooldownRemaining ثانية'
+                            : 'طلب موقع الآن',
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(20),
+                          onTap: inCooldown
+                              ? null
+                              : () => _sendLocationRequest(context),
+                          child: Padding(
+                            padding: const EdgeInsets.all(6),
+                            child: Icon(
+                              inCooldown
+                                  ? Icons.hourglass_top_rounded
+                                  : Icons.my_location_rounded,
+                              size: 20,
+                              color: inCooldown
+                                  ? Theme.of(context).colorScheme.onSurfaceVariant
+                                  : Theme.of(context).colorScheme.primary,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
                 ],
               ),
             ],

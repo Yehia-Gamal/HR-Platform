@@ -41,8 +41,8 @@ String? _canonicalEntityTypeExact(String raw) => switch (raw) {
   'late_out' ||
   'missed_in' ||
   'missed_out' ||
-  'weekly_executive_summary' ||
   'attendance_manager_notify' => 'attendance',
+  'weekly_executive_summary' => 'weekly_executive_summary',
   'casual_leave_auto_approved' ||
   'request_approval_needed' ||
   'mission' ||
@@ -103,6 +103,10 @@ String resolveRouteFromDeepLink(String deepLink) {
     if (idx >= 0 && parts.length >= idx + 3) {
       final kind = parts[idx + 1];
       final id = parts[idx + 2];
+      // تقرير الحضور التنفيذي الأسبوعي /action/reports/attendance?start=...
+      if (kind == 'reports' && id == 'attendance') {
+        return _withQuery('/action/weekly_executive_summary/default', uri);
+      }
       // UUID صالح → اقبل أي kind.
       if (_uuidRegExp.hasMatch(id)) return _withQuery('/action/$kind/$id', uri);
       // معرّف غير UUID (مثل تاريخ attendance أو default) → اقبل فقط للأنواع المعروفة.
@@ -129,9 +133,12 @@ String resolveRouteFromDeepLink(String deepLink) {
         final id = (date != null && date.isNotEmpty) ? date : 'default';
         return _withQuery('/action/attendance/$id', uri);
       }
-      if (target == 'reports' ||
+      if ((target == 'reports' && parts.length >= idx + 3 && parts[idx + 2] == 'attendance') ||
           target == 'reports/attendance' ||
-          target == 'daily_report' ||
+          target == 'weekly_executive_summary') {
+        return _withQuery('/action/weekly_executive_summary/default', uri);
+      }
+      if (target == 'daily_report' ||
           target == 'daily-reports') {
         return _withQuery('/action/daily_report/default', uri);
       }
@@ -209,6 +216,7 @@ bool _isKnownActionKind(String kind) {
     'device' ||
     'association_project' ||
     'notification' ||
+    'weekly_executive_summary' ||
     'fellowship_fund' => true,
     _ => false,
   };
@@ -236,6 +244,7 @@ String resolveNotificationRoute({
     'kpi' => '/action/kpi/$cleanId',
     'attendance_correction' => '/action/attendance_correction/$cleanId',
     'attendance' => '/action/attendance/$cleanId',
+    'weekly_executive_summary' => '/action/weekly_executive_summary/$cleanId',
     'location' ||
     'location_request' ||
     'live_location_request' => '/action/live_location_request/$cleanId',
@@ -309,6 +318,7 @@ String? _kindFromLegacyPath(String actionUrl) {
     '/location-requests' => 'live_location_request',
     '/attendance' => 'attendance',
     '/attendance-requests' => 'attendance',
+    '/reports/attendance' => 'weekly_executive_summary',
     '/requests' => 'request',
     '/hr/requests' => 'request',
     '/kpi' => 'kpi',

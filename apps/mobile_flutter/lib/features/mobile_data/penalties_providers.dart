@@ -149,33 +149,17 @@ class FellowshipFundTransaction {
   final String? category;
   final String? reason;
 
-  /// اسم صاحب الحركة — للإدارة وHR فقط (والموظف يرى اسمه).
+  /// اسم صاحب الحركة — متاح بشفافية للجميع لترسيخ التكافل الاجتماعي والانضباط.
   final String? employeeName;
   final String? performerName;
   final double? balanceAfter;
   final String? notes;
 }
 
-/// هل يملك المستخدم رؤية غرامات غيره (فريقه أو الجميع)؟ الخادم يصفّي الصفوف.
+/// هل يملك المستخدم رؤية غرامات غيره؟ أصبحت متاحة لجميع منسوبي الجمعية بشفافية.
 bool canSeeOthersPenalties(WidgetRef ref) {
   final access = ref.watch(accessContextProvider).value;
-  if (access == null) return false;
-  const roles = {
-    'admin',
-    'system-admin',
-    'executive-secretary',
-    'executive',
-    'executive-director',
-    'hr-manager',
-    'hr-specialist',
-    'direct-manager',
-    'department-manager',
-    'operations-manager',
-    'operations-manager-1',
-    'operations-manager-2',
-    'clinics-manager',
-  };
-  return access.roles.any(roles.contains);
+  return access != null;
 }
 
 /// هل يملك المستخدم إجراءات الغرامات (تأكيد السداد، الإلغاء، رفع الإيقاف،

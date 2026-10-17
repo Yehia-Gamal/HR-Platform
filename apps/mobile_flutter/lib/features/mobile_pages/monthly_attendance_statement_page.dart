@@ -7,6 +7,7 @@ import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dar
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/admin_attendance_day_edit_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -199,6 +200,71 @@ class _StatementBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = statement.summary;
     final scheme = Theme.of(context).colorScheme;
+    final isExecutive = statement.employeeId == '7b0740fa-66ba-4616-8674-3dbd8e14109e' ||
+        statement.employeeNameAr.contains('محمد يوسف') ||
+        statement.jobTitle.contains('المدير التنفيذي');
+
+    if (s.isAttendanceExempt || isExecutive) {
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 48),
+        children: [
+          _EmployeeHeader(statement: statement),
+          const SizedBox(height: 24),
+          Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(
+                color: scheme.outlineVariant.withValues(alpha: 0.5),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: scheme.primary.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.verified_user_rounded,
+                      size: 48,
+                      color: scheme.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    isExecutive
+                        ? 'المدير التنفيذي — معفى من البصمة'
+                        : 'معفى من تسجيل الحضور والانصراف',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    isExecutive
+                        ? 'المدير التنفيذي معفى تمامًا من سجلات الحضور والانصراف بقرار الإدارة العليا، ولا يخضع لنظام البصمة أو تقارير الدوام.'
+                        : 'هذا الموظف معفى من نظام البصمة وسجلات الحضور بقرار إداري.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: scheme.onSurfaceVariant,
+                      height: 1.5,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
     final convoyDays = statement.days.where((d) => (d.status.contains('قافلة') || d.hasConvoyFundi) && !d.status.contains('فاندي')).length;
     final fundiDays = statement.days.where((d) => d.status.contains('فاندي')).length;
     final cDays = statement.days.isNotEmpty ? convoyDays : s.convoyFundiDays;
@@ -657,8 +723,10 @@ class _AttendancePercentageCard extends StatelessWidget {
             const SizedBox(height: 12),
             const Divider(height: 1),
             const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+            Wrap(
+              alignment: WrapAlignment.spaceAround,
+              spacing: 12,
+              runSpacing: 6,
               children: [
                 _StatBadge(
                   label: 'راحة أسبوعية',
@@ -2468,8 +2536,11 @@ class _DayDetailSheet extends ConsumerWidget {
       ));
     }
 
-    // ── التعديل الإداري لليوم أو إلغاؤه — الموارد البشرية والإدارة (canEditDays من الخادم) ──
-    if (statement.canEditDays) {
+    final access = ref.watch(accessContextProvider).value;
+    final canEditDaysAdmin = statement.canEditDays && (access?.canAdminEditAttendanceDays ?? false);
+
+    // ── التعديل الإداري لليوم أو إلغاؤه — الموارد البشرية والسكرتير التنفيذي حصراً ──
+    if (canEditDaysAdmin) {
       actions.add(_ActionTile(
         icon: Icons.edit_calendar_rounded,
         label: 'تعديل اليوم إدارياً (حالة اليوم وساعات العمل)',
@@ -2479,7 +2550,7 @@ class _DayDetailSheet extends ConsumerWidget {
       ));
     }
 
-    if (day?.hasAdminOverride == true && statement.canEditDays) {
+    if (day?.hasAdminOverride == true && canEditDaysAdmin) {
       actions.add(_ActionTile(
         icon: Icons.restart_alt_rounded,
         label: 'إلغاء التعديل الإداري والعودة لاحتساب النظام',
@@ -2556,20 +2627,13 @@ class _DayDetailSheet extends ConsumerWidget {
   // ── فتح ورقة التعديل الإداري ──
   Future<void> _openAdminEditDaySheet(BuildContext context, WidgetRef ref) async {
     Navigator.pop(context);
-    final result = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => _AdminEditDaySheet(
-        statement: statement,
-        day: day,
-        dateStr: _dateStr,
-        dayNum: dayNum,
-        year: year,
-        month: month,
-      ),
+    final result = await AdminAttendanceDayEditSheet.show(
+      context,
+      employeeId: statement.employeeId,
+      employeeName: statement.employeeNameAr,
+      initialDate: _dateStr,
+      initialDay: day,
+      hasExistingOverride: day?.hasAdminOverride == true,
     );
     if (result == true) {
       _invalidateProviders(ref);
@@ -2941,7 +3005,7 @@ class _RetroactiveDayChangeSheetState extends State<_RetroactiveDayChangeSheet> 
     if (!widget.isClinicStaff) ...[
       (id: 'mission', label: 'مأمورية عمل', icon: Icons.directions_car_rounded, color: const Color(0xFF0EA5E9)),
       (id: 'convoy', label: 'قافلة مساعدات (كامب)', icon: Icons.volunteer_activism_rounded, color: const Color(0xFF8B5CF6)),
-      (id: 'fundraising', label: 'يوم ترفيهي (فاندي / Fun Day)', icon: Icons.celebration_rounded, color: const Color(0xFFEC4899)),
+      (id: 'fundraising', label: 'يوم ترفيهي (فاندي)', icon: Icons.celebration_rounded, color: const Color(0xFFEC4899)),
     ],
   ];
 
@@ -3702,362 +3766,6 @@ class _DetailChip extends StatelessWidget {
 
 // ─── ورقة تعديل اليوم إدارياً ─────────────────────────────────────
 
-class _AdminEditDaySheet extends ConsumerStatefulWidget {
-  const _AdminEditDaySheet({
-    required this.statement,
-    required this.day,
-    required this.dateStr,
-    required this.dayNum,
-    required this.year,
-    required this.month,
-  });
 
-  final MonthlyAttendanceStatement statement;
-  final AttendanceStatementDay? day;
-  final String dateStr;
-  final int dayNum;
-  final int year;
-  final int month;
 
-  @override
-  ConsumerState<_AdminEditDaySheet> createState() => _AdminEditDaySheetState();
-}
-
-class _AdminEditDaySheetState extends ConsumerState<_AdminEditDaySheet> {
-  late String _dayType;
-  late String _leaveType;
-  late TextEditingController _checkInController;
-  late TextEditingController _checkOutController;
-  late TextEditingController _reasonController;
-  late TextEditingController _notesController;
-  bool _clearCheckIn = false;
-  bool _clearCheckOut = false;
-  bool _isSubmitting = false;
-
-  static const _dayTypes = [
-    ('work', 'يوم عمل (حاضر)', Icons.work_outline),
-    ('leave', 'إجازة معتمدة', Icons.beach_access_outlined),
-    ('mission', 'مأمورية عمل', Icons.directions_car_outlined),
-    ('convoy', 'قافلة مساعدات (كامب)', Icons.volunteer_activism_outlined),
-    ('fundraising', 'يوم ترفيهي (فاندي / Fun Day)', Icons.celebration_outlined),
-    ('rest', 'راحة أسبوعية', Icons.wb_sunny_outlined),
-    ('holiday', 'عطلة رسمية', Icons.calendar_today_outlined),
-    ('absent', 'تأكيد غياب', Icons.cancel_outlined),
-  ];
-
-  static const _leaveTypes = [
-    ('annual', 'إجازة سنوية (اعتيادية)'),
-    ('casual', 'إجازة عارضة'),
-    ('sick', 'إجازة مرضية'),
-    ('unpaid', 'إجازة بدون راتب'),
-    ('weekly_rest_comp', 'بدل راحة أسبوعية'),
-  ];
-
-  static const _quickHours = [
-    ('8 ساعات (09:00 - 17:00)', '09:00', '17:00'),
-    ('8 ساعات (08:00 - 16:00)', '08:00', '16:00'),
-    ('4 ساعات (09:00 - 13:00)', '09:00', '13:00'),
-    ('10 ساعات (08:00 - 18:00)', '08:00', '18:00'),
-  ];
-
-  static const _presetReasons = [
-    'تعديل ساعات العمل المعتمدة',
-    'تصحيح وقت الحضور والانصراف',
-    'إجازة معتمدة من الإدارة',
-    'مأمورية عمل رسمية',
-    'عطلة رسمية معتمدة',
-    'دوام كامل معتمد',
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    final existingType = widget.day?.adminOverride?['dayType'] as String? ?? 'work';
-    _dayType = existingType;
-    _leaveType = widget.day?.adminOverride?['leaveType'] as String? ?? 'annual';
-    _checkInController = TextEditingController(
-      text: widget.day?.checkIn != null && widget.day!.checkIn!.length >= 5
-          ? widget.day!.checkIn!.substring(0, 5)
-          : '09:00',
-    );
-    _checkOutController = TextEditingController(
-      text: widget.day?.checkOut != null && widget.day!.checkOut!.length >= 5
-          ? widget.day!.checkOut!.substring(0, 5)
-          : '17:00',
-    );
-    _reasonController = TextEditingController(
-      text: widget.day?.adminOverride?['reason'] as String? ?? 'تعديل ساعات وحضور معتمد',
-    );
-    _notesController = TextEditingController(
-      text: widget.day?.adminOverride?['notes'] as String? ?? '',
-    );
-  }
-
-  @override
-  void dispose() {
-    _checkInController.dispose();
-    _checkOutController.dispose();
-    _reasonController.dispose();
-    _notesController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    setState(() => _isSubmitting = true);
-    try {
-      final empId = widget.statement.employeeId;
-      await ref.read(mobileCommandsProvider).setAttendanceDayAdmin(
-            employeeId: empId,
-            date: widget.dateStr,
-            dayType: _dayType,
-            checkIn: _dayType == 'work' && !_clearCheckIn ? _checkInController.text.trim() : null,
-            checkOut: _dayType == 'work' && !_clearCheckOut ? _checkOutController.text.trim() : null,
-            clearCheckIn: _dayType != 'work' || _clearCheckIn,
-            clearCheckOut: _dayType != 'work' || _clearCheckOut,
-            reason: _reasonController.text.trim().isNotEmpty
-                ? _reasonController.text.trim()
-                : 'اعتماد الحالة',
-            notes: _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
-            leaveType: _dayType == 'leave' || _dayType == 'absent' ? _leaveType : null,
-          );
-      if (mounted) {
-        Navigator.pop(context, true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم حفظ التعديل بنجاح.')),
-        );
-      }
-    } catch (error) {
-      setState(() => _isSubmitting = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(humanizeError(error))),
-        );
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return DraggableScrollableSheet(
-      initialChildSize: 0.85,
-      maxChildSize: 0.95,
-      minChildSize: 0.4,
-      expand: false,
-      builder: (context, scrollController) {
-        return ListView(
-          controller: scrollController,
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: scheme.onSurfaceVariant.withValues(alpha: .3),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            Text(
-              'تعديل يوم ${widget.dateStr}',
-              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'تعديل حالة اليوم أو ساعات العمل وتوثيقه في سجل التدقيق.',
-              style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
-            ),
-            const SizedBox(height: 16),
-
-            // 1. اختيار حالة اليوم
-            Text(
-              'حالة اليوم',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: scheme.primary),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _dayTypes.map((t) {
-                final isSelected = _dayType == t.$1;
-                return ChoiceChip(
-                  avatar: Icon(t.$3, size: 16, color: isSelected ? scheme.onPrimary : scheme.primary),
-                  label: Text(t.$2, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                  selected: isSelected,
-                  selectedColor: scheme.primary,
-                  labelStyle: TextStyle(color: isSelected ? scheme.onPrimary : scheme.onSurface),
-                  onSelected: (val) {
-                    if (val) {
-                      setState(() {
-                        _dayType = t.$1;
-                        if (_dayType == 'leave' || _dayType == 'absent') {
-                          _leaveType = _dayType == 'absent' ? 'unpaid' : 'annual';
-                        }
-                      });
-                    }
-                  },
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 16),
-
-            // 2. تفاصيل الإجازة إن اختيرت
-            if (_dayType == 'leave' || _dayType == 'absent') ...[
-              Text(
-                'نوع الإجازة',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: scheme.primary),
-              ),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                value: _leaveType,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                ),
-                items: _leaveTypes.map((lt) => DropdownMenuItem(value: lt.$1, child: Text(lt.$2))).toList(),
-                onChanged: (val) => setState(() => _leaveType = val ?? 'annual'),
-              ),
-              const SizedBox(height: 16),
-            ],
-
-            // 3. ساعات وأوقات العمل عند اختيار يوم عمل
-            if (_dayType == 'work') ...[
-              Text(
-                'ساعات وأوقات العمل',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: scheme.primary),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: _quickHours.map((qh) {
-                  final isActive = _checkInController.text == qh.$2 &&
-                      _checkOutController.text == qh.$3 &&
-                      !_clearCheckIn &&
-                      !_clearCheckOut;
-                  return ActionChip(
-                    label: Text(qh.$1, style: const TextStyle(fontSize: 11)),
-                    backgroundColor: isActive ? scheme.primaryContainer : null,
-                    side: BorderSide(color: isActive ? scheme.primary : scheme.outlineVariant),
-                    onPressed: () {
-                      setState(() {
-                        _checkInController.text = qh.$2;
-                        _checkOutController.text = qh.$3;
-                        _clearCheckIn = false;
-                        _clearCheckOut = false;
-                      });
-                    },
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _checkInController,
-                      enabled: !_clearCheckIn,
-                      decoration: const InputDecoration(
-                        labelText: 'وقت الحضور (HH:MM)',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      controller: _checkOutController,
-                      enabled: !_clearCheckOut,
-                      decoration: const InputDecoration(
-                        labelText: 'وقت الانصراف (HH:MM)',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: CheckboxListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('بدون حضور', style: TextStyle(fontSize: 11)),
-                      value: _clearCheckIn,
-                      onChanged: (v) => setState(() => _clearCheckIn = v ?? false),
-                    ),
-                  ),
-                  Expanded(
-                    child: CheckboxListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('بدون انصراف', style: TextStyle(fontSize: 11)),
-                      value: _clearCheckOut,
-                      onChanged: (v) => setState(() => _clearCheckOut = v ?? false),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-            ],
-
-            // 4. سبب التعديل
-            Text(
-              'سبب التعديل',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: scheme.primary),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: _presetReasons.map((pr) {
-                return ActionChip(
-                  label: Text(pr, style: const TextStyle(fontSize: 11)),
-                  onPressed: () => setState(() => _reasonController.text = pr),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _reasonController,
-              decoration: const InputDecoration(
-                labelText: 'اكتب سبب التعديل…',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // 5. ملاحظات
-            TextField(
-              controller: _notesController,
-              maxLines: 2,
-              decoration: const InputDecoration(
-                labelText: 'ملاحظات إضافية (اختيارية)',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // 6. زر الحفظ
-            FilledButton.icon(
-              icon: _isSubmitting
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Icon(Icons.save_rounded),
-              label: Text(_isSubmitting ? 'جارٍ الحفظ…' : 'حفظ التعديل الإداري'),
-              onPressed: _isSubmitting ? null : _submit,
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
 

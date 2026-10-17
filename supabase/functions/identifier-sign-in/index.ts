@@ -63,8 +63,21 @@ type NormalizedIdentifier = {
   value: string;
 };
 
+function sanitizeIdentifier(raw: string): string {
+  // إزالة جميع علامات اتجاه النص المخفية والمسافات غير المرئية
+  let cleaned = raw.replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069\u200B\uFEFF\u00A0\r\n\t]/g, '');
+  // تحويل الأرقام العربية المشرقية والفارسية (٠-٩ / ۰-۹) إلى أرقام قياسية 0-9
+  const arabicIndic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+  const easternIndic = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+  for (let i = 0; i < 10; i++) {
+    cleaned = cleaned.replaceAll(arabicIndic[i], String(i));
+    cleaned = cleaned.replaceAll(easternIndic[i], String(i));
+  }
+  return cleaned.trim();
+}
+
 function normalizeIdentifier(raw: string): NormalizedIdentifier {
-  const value = raw.trim();
+  const value = sanitizeIdentifier(raw);
   if (value.includes('@')) {
     return { kind: 'email', value: value.toLowerCase() };
   }
@@ -106,7 +119,10 @@ async function sha256(value: string): Promise<string> {
 }
 
 function genericFailure(req: Request, status = 401) {
-  return json(req, { error: 'INVALID_CREDENTIALS' }, status);
+  return json(req, {
+    error: 'INVALID_CREDENTIALS',
+    message: 'كلمة المرور أو رقم الهاتف/البريد غير صحيح. إذا تكررت المشكلة تواصل مع مسؤول النظام (باشمهندس يحيى).'
+  }, status);
 }
 
 // ESI-01: wait until a FIXED absolute deadline computed at request start, so a
@@ -196,24 +212,19 @@ Deno.serve(createHandler({ functionName: 'identifier-sign-in', version: '1.0.0' 
         .eq('is_deleted', false)
         .in('status', ['active', 'suspended'])
         .limit(1);
-      if (normalized.kind === 'phone') {
-        // P0-FIX: البحث المتساهل عن الهاتف. بعض السجلات (من update_employee_admin
-        // قبل التصحيح) خُزّنت بصيغة محلية '01XXXXXXXXX' بدل E.164. نطوّع قائمة
-        // الصيغ المرشحة ونبحث بأي منها لضمان مطابقة الحساب مهما كان الترميز المخزّن.
-        const variants = new Set<string>([normalized.value]);
-        if (normalized.value.startsWith('+20')) {
-          variants.add('0' + normalized.value.slice(3));            // محلي
-          variants.add(normalized.value.slice(1));                 // '20XXXXXXXXX' بدون '+'
-        } else if (normalized.value.startsWith('20') && normalized.value.length === 12) {
-          variants.add('+' + normalized.value);
-          variants.add('0' + normalized.value.slice(2));
-        } else if (/^01\d{9}$/.test(normalized.value)) {
-          variants.add('+20' + normalized.value.slice(1));
-        }
-        employeeQuery = employeeQuery.in('phone_e164', [...variants]);
-      } else {
-        employeeQuery = employeeQuery.eq('employee_code', normalized.value);
+      const variants = new Set<string>([normalized.value]);
+      if (normalized.value.startsWith('+20')) {
+        variants.add('0' + normalized.value.slice(3));            // محلي
+        variants.add(normalized.value.slice(1));                 // '20XXXXXXXXX' بدون '+'
+      } else if (normalized.value.startsWith('20') && normalized.value.length === 12) {
+        variants.add('+' + normalized.value);
+        variants.add('0' + normalized.value.slice(2));
+      } else if (/^01\d{9}$/.test(normalized.value)) {
+        variants.add('+20' + normalized.value.slice(1));
       }
+      const variantList = [...variants];
+      const orFilter = variantList.map((v) => `phone_e164.eq."${v}",employee_code.eq."${v}"`).join(',');
+      employeeQuery = employeeQuery.or(orFilter);
       const { data: employee } = await employeeQuery.maybeSingle();
       if (employee?.id) {
         const { data: profile } = await admin

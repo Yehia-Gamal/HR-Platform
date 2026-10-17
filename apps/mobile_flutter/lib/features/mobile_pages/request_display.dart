@@ -130,12 +130,16 @@ class RequestStatusChip extends StatelessWidget {
         children: [
           Icon(style.icon, size: dense ? 13 : 15, color: style.color),
           const SizedBox(width: 4),
-          Text(
-            style.label,
-            style: TextStyle(
-              color: style.color,
-              fontWeight: FontWeight.w800,
-              fontSize: dense ? 11 : 12,
+          Flexible(
+            child: Text(
+              style.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: style.color,
+                fontWeight: FontWeight.w800,
+                fontSize: dense ? 11 : 12,
+              ),
             ),
           ),
         ],
@@ -773,24 +777,30 @@ class RequestSlaChip extends StatelessWidget {
             color: sla.color,
           ),
           const SizedBox(width: 4),
-          Text(
-            sla.label,
-            style: TextStyle(
-              fontSize: dense ? 10.5 : 11.5,
-              fontWeight: FontWeight.w800,
-              color: sla.color,
+          Flexible(
+            child: Text(
+              sla.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: dense ? 10.5 : 11.5,
+                fontWeight: FontWeight.w800,
+                color: sla.color,
+              ),
             ),
           ),
           if (showDetail && sla.responsibleParty != null && !sla.isCompleted) ...[
             const SizedBox(width: 4),
-            Text(
-              '· ${sla.responsibleParty}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: dense ? 10 : 11,
-                fontWeight: FontWeight.w700,
-                color: sla.color.withValues(alpha: .85),
+            Flexible(
+              child: Text(
+                '· ${sla.responsibleParty}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: dense ? 10 : 11,
+                  fontWeight: FontWeight.w700,
+                  color: sla.color.withValues(alpha: .85),
+                ),
               ),
             ),
           ],

@@ -15,6 +15,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_notificat
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_official_feed_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_profile_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/my_instant_penalties_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/my_team_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/team_operations_summary_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/team_requests_page.dart';
@@ -295,6 +296,11 @@ class WorkspaceScaffold extends ConsumerWidget {
                   'comms.decision.manage',
                 ]),
           ),
+        ),
+        _MoreItem(
+          icon: Icons.volunteer_activism_outlined,
+          label: 'الغرامات وصندوق الزمالة',
+          page: const MyInstantPenaltiesPage(),
         ),
       ],
     ];

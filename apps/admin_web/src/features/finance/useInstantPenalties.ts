@@ -377,3 +377,54 @@ export function useBulkCancelPenalties() {
     },
   });
 }
+
+// ─── صندوق ساعات العمل الإضافي (Daily Overtime Summary) ────────────────────
+
+export interface DailyOvertimeEmployee {
+  employeeId: string;
+  employeeName: string;
+  employeeCode: string;
+  departmentName: string | null;
+  firstCheckIn: string;
+  lastCheckOut: string | null;
+  isStillWorking: boolean;
+  workMinutes: number;
+  requiredMinutes: number;
+  overtimeMinutes: number;
+  overtimeHours: number;
+  overtimeFormatted: string;
+}
+
+export interface DailyOvertimeSummary {
+  date: string;
+  totalOvertimeMinutes: number;
+  totalOvertimeHours: number;
+  totalOvertimeFormatted: string;
+  employeesCount: number;
+  employees: DailyOvertimeEmployee[];
+}
+
+export function useDailyOvertimeSummary(date?: string) {
+  const auth = useAuth();
+  return useQuery({
+    queryKey: ['daily-overtime-summary', auth.isMock, date],
+    enabled: auth.status === 'authenticated',
+    queryFn: async (): Promise<DailyOvertimeSummary> => {
+      if (auth.isMock) {
+        return {
+          date: date ?? new Date().toISOString().slice(0, 10),
+          totalOvertimeMinutes: 0,
+          totalOvertimeHours: 0,
+          totalOvertimeFormatted: '0 دقيقة',
+          employeesCount: 0,
+          employees: [],
+        };
+      }
+      return await rpc<DailyOvertimeSummary>('get_daily_overtime_summary', {
+        p_date: date ?? null,
+      });
+    },
+    refetchInterval: 30000,
+  });
+}
+

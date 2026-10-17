@@ -21,6 +21,7 @@ import {
   ShieldAlert,
   Sparkles,
   SunMedium,
+  Timer,
   XCircle,
   Zap,
 } from 'lucide-react';
@@ -56,6 +57,9 @@ import {
   useTriggerCheckPenaltiesNow,
   useBulkConfirmPenaltyPayments,
   useBulkCancelPenalties,
+  useDailyOvertimeSummary,
+  type DailyOvertimeSummary,
+  type DailyOvertimeEmployee,
   type InstantPenalty,
   type PendingPenaltyEmployee,
 } from './useInstantPenalties';
@@ -81,14 +85,18 @@ function fmtLateDisplay(totalMinutes: number | null | undefined): string {
 }
 
 const ARABIC_DAYS = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+const ARABIC_MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 
-/** تنسيق التاريخ مع اسم اليوم: "2026-09-28" → "الإثنين 2026-09-28" */
+/** تنسيق التاريخ مع اسم اليوم بالعربية الرسمية دون علامات سالبة تسبب انعكاس النص في PDF */
 function fmtDateWithDay(dateStr: string | null | undefined): string {
   if (!dateStr) return '—';
   const d = new Date(dateStr + 'T00:00:00');
   if (Number.isNaN(d.getTime())) return dateStr;
   const dayName = ARABIC_DAYS[d.getDay()];
-  return `${dayName} ${dateStr}`;
+  const day = d.getDate();
+  const month = ARABIC_MONTHS[d.getMonth()];
+  const year = d.getFullYear();
+  return `${dayName}، ${day} ${month} ${year}`;
 }
 
 function getYesterdayIso(): string {
@@ -194,6 +202,8 @@ export function InstantPenaltiesPage() {
   }, [selectedIds, penalties.data]);
 
   const [earlyWarningModalOpen, setEarlyWarningModalOpen] = useState(false);
+  const [overtimeModalOpen, setOvertimeModalOpen] = useState(false);
+  const overtimeSummary = useDailyOvertimeSummary(dateFilterMode === 'today' ? cairoTodayIso() : specificDate || undefined);
 
   // ─── رادار الإنذار المبكر للموظفين الذين تكرر تأخيرهم (2+ غرامات) ──────
   const earlyWarningList = useMemo(() => {
@@ -549,10 +559,27 @@ export function InstantPenaltiesPage() {
       key: 'status',
       header: 'الحالة',
       render: (p) => {
+        if (p.awaitingCheckoutConfirmation) {
+          return (
+            <div className="flex flex-col gap-0.5" title="أتم الموظف 8 ساعات عمل بنجاح، وبانتظار تسجيل بصمة الانصراف بمقر العمل لإلغاء الغرامة نهائياً وتأكيد التواجد.">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 whitespace-nowrap">
+                <Clock className="size-3 text-amber-500 shrink-0" />
+                مستوفي 8 س (بانتظار بصمة الانصراف)
+              </span>
+              {p.elapsedMinutesToday ? (
+                <span className="text-[10px] text-[var(--text-muted)] font-mono">
+                  {Math.floor(p.elapsedMinutesToday / 60)} س و {p.elapsedMinutesToday % 60} د بالعمل
+                </span>
+              ) : null}
+            </div>
+          );
+        }
+
         const isExempt =
           p.status === 'cancelled' &&
           (p.notes?.includes('إلغاء بأثر رجعي') ||
             p.notes?.includes('إلغاء تلقائي') ||
+            p.notes?.includes('إلغاء نهائي') ||
             p.notes?.includes('مأمورية') ||
             p.notes?.includes('إجازة') ||
             p.notes?.includes('قافلة') ||
@@ -745,7 +772,7 @@ export function InstantPenaltiesPage() {
 
     const sections = [
       {
-        title: `كشف الغرامات الفورية للتأخير — ${dateLabel}`,
+        title: 'بيان وتفاصيل الغرامات المسجلة للتأخير',
         subtitle: `الحالة: ${statusLabel} | العدد: ${rows.length} غرامة | إجمالي المطلوب سداده: ${formatCurrency(owedAmount)}`,
         table: {
           headers: ['الموظف', 'الإدارة', 'التاريخ', 'التأخير', 'الغرامة الأصلية', 'المطلوب', 'التصعيد', 'الحالة'],
@@ -795,7 +822,7 @@ export function InstantPenaltiesPage() {
       printReport(
         [
           {
-            title: 'كشف الموظفين المطالبين بسداد غرامات التأخير',
+            title: 'بيان الموظفين المطالبين بالسداد',
             subtitle: `${items.length} موظف مطالب بالسداد — إجمالي المطلوب: ${formatCurrency(stats.totalOwed)}`,
             table: {
               headers: ['الموظف', 'الكود', 'الإدارة', 'عدد الغرامات', 'المبلغ المطلوب', 'حالة الحساب'],
@@ -810,7 +837,7 @@ export function InstantPenaltiesPage() {
             },
           },
         ],
-        'كشف المطالبين بالسداد',
+        'كشف المطالبين بسداد غرامات التأخير',
         [
           { label: 'إجمالي المطالبين', value: String(items.length) },
           { label: 'المعلقون عن العمل', value: String(stats.suspendedCount) },
@@ -826,8 +853,8 @@ export function InstantPenaltiesPage() {
       printReport(
         [
           {
-            title: 'كشف الموظفين الموقوفين عن العمل (اليوم الثالث)',
-            subtitle: `${items.length} موظف موقوف لعدم سداد الغرامة — إجمالي المطلوب: ${formatCurrency(totalAmount)}`,
+            title: 'بيان الموظفين الموقوفين عن العمل لعدم السداد',
+            subtitle: `${items.length} موظف موقوف — إجمالي المطلوب: ${formatCurrency(totalAmount)}`,
             table: {
               headers: ['الموظف', 'الكود', 'الإدارة', 'التاريخ', 'التأخير', 'الغرامة الأصلية', 'المطلوب (500 ج.م)', 'الحالة'],
               rows: items.map((p) => [
@@ -843,7 +870,7 @@ export function InstantPenaltiesPage() {
             },
           },
         ],
-        'كشف الموقوفين عن العمل',
+        'كشف الموقوفين عن العمل (اليوم الثالث)',
         [
           { label: 'الموظفون الموقوفون', value: String(items.length) },
           { label: 'إجمالي المبالغ المستحقة', value: formatCurrency(totalAmount) },
@@ -872,7 +899,7 @@ export function InstantPenaltiesPage() {
     printReport(
       [
         {
-          title: tierTitle,
+          title: 'بيان وتفاصيل الغرامات المسجلة',
           subtitle: `${filtered.length} غرامة — إجمالي المبالغ: ${formatCurrency(total)}`,
           table: {
             headers: ['الموظف', 'الإدارة', 'التاريخ', 'التأخير', 'الغرامة الأصلية', 'المطلوب', 'التصعيد', 'الحالة'],
@@ -1094,6 +1121,36 @@ export function InstantPenaltiesPage() {
             </button>
           </div>
         )}
+
+        {/* ─── صندوق ساعات العمل الإضافي (Daily Overtime Hub) ─────────── */}
+        <div className="rounded-xl border border-teal-500/30 bg-gradient-to-r from-teal-500/10 via-emerald-500/5 to-transparent p-3.5 text-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-teal-500/20 text-teal-700 dark:text-teal-300 shrink-0">
+              <Timer className="size-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-teal-950 dark:text-teal-200">
+                  صندوق ساعات العمل الإضافي — Overtime Hub
+                </span>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30">
+                  {overtimeSummary.data?.employeesCount ?? 0} موظفاً قضوا وقتاً إضافياً اليوم
+                </span>
+              </div>
+              <p className="text-xs text-teal-900/80 dark:text-teal-300/80 mt-0.5">
+                إجمالي الوقت الإضافي لليوم: <span className="font-bold font-mono text-teal-700 dark:text-teal-300">{overtimeSummary.data?.totalOvertimeFormatted || '0 دقيقة'}</span> ({overtimeSummary.data?.totalOvertimeMinutes ?? 0} دقيقة زيادة فوق ساعات العمل المقررة)
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-bold bg-teal-600 hover:bg-teal-700 text-white shadow-sm transition-all cursor-pointer whitespace-nowrap shrink-0"
+            onClick={() => setOvertimeModalOpen(true)}
+          >
+            <Timer className="size-3.5" />
+            <span>عرض تفاصيل الموظفين والوقت الإضافي</span>
+          </button>
+        </div>
 
         <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
           {[
@@ -2560,6 +2617,75 @@ export function InstantPenaltiesPage() {
                   </div>
                 );
               })}
+            </div>
+          </div>
+        </DialogOverlay>
+      )}
+
+      {/* ─── نافذة تفاصيل ساعات العمل الإضافي ───────────────────────────── */}
+      {overtimeModalOpen && (
+        <DialogOverlay
+          title="بيان ساعات العمل الإضافي لليوم (Overtime Hub)"
+          onClose={() => setOvertimeModalOpen(false)}
+          maxWidth="max-w-2xl"
+        >
+          <div className="space-y-4 max-h-[75vh] overflow-y-auto p-1">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="rounded-lg bg-[var(--surface-muted)] p-3 border border-[var(--border-subtle)] text-center">
+                <p className="text-xs text-[var(--text-muted)]">إجمالي الساعات الإضافية</p>
+                <p className="font-bold font-mono text-base text-teal-600 dark:text-teal-400 mt-0.5">
+                  {overtimeSummary.data?.totalOvertimeFormatted || '0'}
+                </p>
+              </div>
+              <div className="rounded-lg bg-[var(--surface-muted)] p-3 border border-[var(--border-subtle)] text-center">
+                <p className="text-xs text-[var(--text-muted)]">عدد الموظفين المستحقين</p>
+                <p className="font-bold font-mono text-base text-[var(--text-primary)] mt-0.5">
+                  {overtimeSummary.data?.employeesCount ?? 0} موظفاً
+                </p>
+              </div>
+              <div className="rounded-lg bg-[var(--surface-muted)] p-3 border border-[var(--border-subtle)] text-center col-span-2 sm:col-span-1">
+                <p className="text-xs text-[var(--text-muted)]">إجمالي الدقائق الإضافية</p>
+                <p className="font-bold font-mono text-base text-[var(--text-secondary)] mt-0.5">
+                  {overtimeSummary.data?.totalOvertimeMinutes ?? 0} دقيقة
+                </p>
+              </div>
+            </div>
+
+            <div className="divide-y divide-[var(--border-subtle)] rounded-xl border border-[var(--border)] overflow-hidden">
+              {(overtimeSummary.data?.employees ?? []).length === 0 ? (
+                <div className="p-6 text-center text-xs text-[var(--text-muted)]">
+                  لا يوجد وقت إضافي مسجل لهذا اليوم حتى الآن.
+                </div>
+              ) : (
+                (overtimeSummary.data?.employees ?? []).map((emp) => (
+                  <div key={emp.employeeId} className="p-3 bg-[var(--surface)] hover:bg-[var(--surface-muted)] flex items-center justify-between gap-3 text-xs">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm text-[var(--text-primary)] truncate">{emp.employeeName}</span>
+                        {emp.isStillWorking && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                            مستمر بالعمل الآن
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
+                        {emp.departmentName || '—'} • كود: {emp.employeeCode}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3 shrink-0 text-left font-mono">
+                      <div>
+                        <span className="inline-flex items-center gap-1 font-bold text-teal-600 dark:text-teal-400 bg-teal-500/10 px-2 py-0.5 rounded border border-teal-500/20">
+                          +{emp.overtimeFormatted}
+                        </span>
+                        <p className="text-[10px] text-[var(--text-muted)] mt-0.5 text-right">
+                          ({emp.overtimeMinutes} دقيقة إضافية)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </DialogOverlay>

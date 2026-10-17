@@ -47,7 +47,7 @@ class PushService {
   static const String urgentChannelDesc =
       'إشعارات طلب الموقع الفوري — صوت عالي متكرر واهتزاز وشاشة كاملة';
 
-  static const String generalChannelId = 'general_notifications_v2';
+  static const String generalChannelId = 'general_notifications_v4';
   static const String generalChannelName = 'الإشعارات والتنبيهات العامة';
   static const String generalChannelDesc =
       'إشعارات القرارات، طلبات الموافقة، الغرامات الفورية، والإعلانات الإدارية';
@@ -73,14 +73,15 @@ class PushService {
         ]),
       );
 
-  static const AndroidNotificationChannel _generalChannel =
+  static final AndroidNotificationChannel _generalChannel =
       AndroidNotificationChannel(
         generalChannelId,
         generalChannelName,
         description: generalChannelDesc,
-        importance: Importance.high,
+        importance: Importance.max,
         playSound: true,
         enableVibration: true,
+        vibrationPattern: Int64List.fromList([0, 300, 200, 300]),
       );
 
   static const _platform = MethodChannel('com.ahlashabab/urgent_notification');
@@ -140,6 +141,8 @@ class PushService {
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
         >();
+    await androidPlugin?.deleteNotificationChannel('general_notifications_v2');
+    await androidPlugin?.deleteNotificationChannel('general_notifications_v3');
     await androidPlugin?.createNotificationChannel(_urgentChannel);
     await androidPlugin?.createNotificationChannel(_generalChannel);
 
@@ -304,8 +307,8 @@ class PushService {
       targetChannel.id,
       targetChannel.name,
       channelDescription: targetChannel.description,
-      importance: isUrgent ? Importance.max : Importance.high,
-      priority: isUrgent ? Priority.max : Priority.high,
+      importance: Importance.max,
+      priority: Priority.max,
       fullScreenIntent: isUrgent,
       category: isUrgent
           ? AndroidNotificationCategory.alarm
@@ -317,7 +320,7 @@ class PushService {
           : null,
       vibrationPattern: isUrgent
           ? Int64List.fromList([0, 800, 300, 800, 300, 800, 300, 800])
-          : null,
+          : Int64List.fromList([0, 300, 200, 300]),
       visibility: NotificationVisibility.public,
       timeoutAfter: 5 * 60 * 1000,
       // FLAG_INSISTENT (4) يكرر الصوت حتى يتفاعل المستخدم.
@@ -603,7 +606,7 @@ Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
       channelId,
       channelName,
       description: channelDesc,
-      importance: isUrgent ? Importance.max : Importance.high,
+      importance: Importance.max,
       playSound: true,
       enableVibration: true,
       sound: isUrgent
@@ -620,7 +623,7 @@ Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
               300,
               800,
             ])
-          : null,
+          : Int64List.fromList([0, 300, 200, 300]),
     );
 
     final plugin = FlutterLocalNotificationsPlugin();
@@ -676,8 +679,8 @@ Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
           channel.id,
           channel.name,
           channelDescription: channel.description,
-          importance: isUrgent ? Importance.max : Importance.high,
-          priority: isUrgent ? Priority.max : Priority.high,
+          importance: Importance.max,
+          priority: Priority.max,
           fullScreenIntent: isUrgent,
           category: isUrgent
               ? AndroidNotificationCategory.alarm
@@ -689,7 +692,7 @@ Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
               : null,
           vibrationPattern: isUrgent
               ? Int64List.fromList([0, 500, 200, 500])
-              : null,
+              : Int64List.fromList([0, 300, 200, 300]),
           visibility: NotificationVisibility.public,
           timeoutAfter: 5 * 60 * 1000,
         ),

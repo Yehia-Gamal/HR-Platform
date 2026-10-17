@@ -316,7 +316,9 @@ class _TeamRequestsPageState extends ConsumerState<TeamRequestsPage> {
               (r.canDecide ?? true),
         )
         .toList(growable: false);
-    final awaiting = pendingMine.where((r) => r.awaitingMe ?? true).length;
+    final awaiting = pendingMine
+        .where((r) => r.awaitingMe == true || r.canDecide == true)
+        .length;
     final overdue = pendingMine
         .where((r) => r.effectiveDueAt?.isBefore(now) ?? false)
         .length;
@@ -672,12 +674,12 @@ class _TeamRequestCard extends StatelessWidget {
         side: BorderSide(
           color: selected
               ? AppColors.statusSuccess
-              : r.awaitingMe == true
+              : (r.awaitingMe == true || r.canDecide == true)
               ? AppColors.statusInfo.withValues(alpha: .45)
               : (due?.overdue ?? false)
               ? AppColors.statusDanger.withValues(alpha: .35)
               : scheme.outlineVariant.withValues(alpha: .6),
-          width: selected || r.awaitingMe == true ? 1.4 : 1,
+          width: selected || (r.awaitingMe == true || r.canDecide == true) ? 1.4 : 1,
         ),
       ),
       color: selected ? AppColors.statusSuccess.withValues(alpha: .06) : null,
@@ -821,14 +823,14 @@ class _TeamRequestCard extends StatelessWidget {
                 spacing: 6,
                 runSpacing: 6,
                 children: [
-                  if (r.awaitingMe == true)
+                  if (r.awaitingMe == true || r.canDecide == true)
                     const RequestMetaChip(
                       icon: Icons.notifications_active_rounded,
                       text: 'دورك الآن',
                       color: AppColors.statusInfo,
                       strong: true,
                     ),
-                  if (stage != null && r.awaitingMe != true)
+                  if (stage != null && r.awaitingMe != true && r.canDecide != true)
                     RequestMetaChip(icon: Icons.route_rounded, text: 'عند $stage'),
                   if (due != null)
                     RequestMetaChip(

@@ -598,9 +598,19 @@ class AttendanceState {
     required this.localDeviceStatus,
     required this.todayCheckInAt,
     required this.todayCheckOutAt,
+    this.workMinutes = 0,
+    this.overtimeMinutes = 0,
     this.missionToday,
     this.isSplitShift = false,
     this.checkInCount = 0,
+    this.lateMinutes = 0,
+    this.estimatedLatePenaltyAmount = 0.0,
+    this.todayCheckInTime,
+    this.targetCheckoutAt,
+    this.targetCheckoutTime,
+    this.compensationRemainingMinutes = 0,
+    this.isCompensationEligible = false,
+    this.isCompensationCompleted = false,
   });
   factory AttendanceState.fromJson(Map<String, dynamic> json) =>
       AttendanceState(
@@ -629,6 +639,8 @@ class AttendanceState {
         todayCheckOutAt: json['todayCheckOutAt'] == null
             ? null
             : DateTime.parse(json['todayCheckOutAt'] as String),
+        workMinutes: (json['workMinutes'] as num?)?.toInt() ?? 0,
+        overtimeMinutes: (json['overtimeMinutes'] as num?)?.toInt() ?? 0,
         missionToday: json['missionToday'] == null
             ? null
             : MissionToday.fromJson(
@@ -636,6 +648,20 @@ class AttendanceState {
               ),
         isSplitShift: json['isSplitShift'] as bool? ?? false,
         checkInCount: (json['checkInCount'] as num?)?.toInt() ?? 0,
+        lateMinutes: (json['lateMinutes'] as num?)?.toInt() ?? 0,
+        estimatedLatePenaltyAmount:
+            (json['estimatedLatePenaltyAmount'] as num?)?.toDouble() ?? 0.0,
+        todayCheckInTime: json['todayCheckInTime'] as String?,
+        targetCheckoutAt: json['targetCheckoutAt'] == null
+            ? null
+            : DateTime.parse(json['targetCheckoutAt'] as String),
+        targetCheckoutTime: json['targetCheckoutTime'] as String?,
+        compensationRemainingMinutes:
+            (json['compensationRemainingMinutes'] as num?)?.toInt() ?? 0,
+        isCompensationEligible:
+            json['isCompensationEligible'] as bool? ?? false,
+        isCompensationCompleted:
+            json['isCompensationCompleted'] as bool? ?? false,
       );
   final bool attendanceRequired;
   final bool selfPunchEnabled;
@@ -647,6 +673,8 @@ class AttendanceState {
   final DateTime? lastEventAt;
   final String? lastEventStatus;
   final String? todayStatus;
+  final int workMinutes;
+  final int overtimeMinutes;
 
   /// حالة الجهاز المحلي: null (لا يوجد)، 'pending'، 'active'، 'blocked'، إلخ.
   final String? localDeviceStatus;
@@ -665,6 +693,30 @@ class AttendanceState {
 
   /// 0588: عدد بصمات الحضور المسجلة اليوم.
   final int checkInCount;
+
+  /// 0675: دقائق التأخير المسجلة لليوم.
+  final int lateMinutes;
+
+  /// 0675: مبلغ الغرامة التقديرية للتأخير (ج.م).
+  final double estimatedLatePenaltyAmount;
+
+  /// 0675: وقت الحضور الفعلي بنظام 12 ساعة (مثال: "10:23 ص").
+  final String? todayCheckInTime;
+
+  /// 0675: موعد الانصراف المستهدف لإكمال 8 ساعات عمل.
+  final DateTime? targetCheckoutAt;
+
+  /// 0675: نص موعد الانصراف المستهدف (مثال: "06:23 م").
+  final String? targetCheckoutTime;
+
+  /// 0675: دقائق العمل المتبقية لإتمام 8 ساعات عمل.
+  final int compensationRemainingMinutes;
+
+  /// 0675: هل الموظف متأخر ولديه فرصة تعويض بإتمام 8 ساعات عمل؟
+  final bool isCompensationEligible;
+
+  /// 0675: هل أتم الموظف 8 ساعات عمل وبانتظار بصمة الانصراف التأكيدية؟
+  final bool isCompensationCompleted;
 }
 
 class MobileFeedItem {
@@ -1751,6 +1803,8 @@ class MobileTeamMember {
     required this.firstCheckIn,
     required this.pendingRequests,
     required this.kpiStage,
+    this.workMinutes = 0,
+    this.overtimeMinutes = 0,
   });
   factory MobileTeamMember.fromJson(Map<String, dynamic> json) =>
       MobileTeamMember(
@@ -1770,6 +1824,8 @@ class MobileTeamMember {
             : DateTime.parse(json['firstCheckIn'] as String),
         pendingRequests: (json['pendingRequests'] as num?)?.toInt() ?? 0,
         kpiStage: json['kpiStage'] as String?,
+        workMinutes: (json['workMinutes'] as num?)?.toInt() ?? 0,
+        overtimeMinutes: (json['overtimeMinutes'] as num?)?.toInt() ?? 0,
       );
   final String id;
   final String? employeeCode;
@@ -1785,6 +1841,8 @@ class MobileTeamMember {
   final DateTime? firstCheckIn;
   final int pendingRequests;
   final String? kpiStage;
+  final int workMinutes;
+  final int overtimeMinutes;
 }
 
 /// ملخص موظف من دليل الموظفين الإداري — get_employees_enriched (إدارة الموظفين).
@@ -1964,6 +2022,7 @@ class MobileNotificationItem {
     'attendance_correction',
     'attendance_corrections',
     'association_project',
+    'weekly_executive_summary',
   };
 
   bool get hasSupportedAction =>
@@ -1980,7 +2039,6 @@ class MobileNotificationItem {
     'attendance_manager_notify',
     'broadcast_alert',
     'fellowship_fund',
-    'weekly_executive_summary',
     'work_assignments',
     'kpi_appeals',
     'break_glass_requests',
@@ -3666,6 +3724,7 @@ class Employee360TodayStatus {
     this.checkInAt,
     this.checkOutAt,
     this.workMinutes = 0,
+    this.overtimeMinutes = 0,
     this.dueTime,
   });
 
@@ -3679,6 +3738,7 @@ class Employee360TodayStatus {
         checkInAt: _optDate(j['checkInAt']),
         checkOutAt: _optDate(j['checkOutAt']),
         workMinutes: (j['workMinutes'] as num?)?.toInt() ?? 0,
+        overtimeMinutes: (j['overtimeMinutes'] as num?)?.toInt() ?? 0,
         dueTime: j['dueTime'] as String?,
       );
 
@@ -3695,6 +3755,7 @@ class Employee360TodayStatus {
   final DateTime? checkInAt;
   final DateTime? checkOutAt;
   final int workMinutes;
+  final int overtimeMinutes;
 }
 
 class Attendance30Summary {

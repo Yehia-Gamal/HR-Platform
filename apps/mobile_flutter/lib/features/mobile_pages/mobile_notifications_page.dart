@@ -16,6 +16,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_tasks_pag
 import 'package:ahla_shabab_management_os/features/mobile_pages/my_instant_penalties_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/passkey_devices_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/notification_settings_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/weekly_executive_summary_page.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -530,6 +531,7 @@ class _MobileNotificationsPageState
   Widget? _localPageFor(MobileNotificationItem item) {
     if (!item.hasLocalRoute) return null;
     return switch (item.canonicalType) {
+      'weekly_executive_summary' => WeeklyExecutiveSummaryPage(item: item),
       'instant_penalty' => MyInstantPenaltiesPage(highlightId: item.entityId),
       'daily_report' => const MobileDailyReportsPage(),
       'device' => const PasskeyDevicesPage(),
@@ -556,14 +558,31 @@ class _MobileNotificationsPageState
     }
     if (!mounted) return;
 
-    // 2. فحص إشعارات الحضور والانصراف بدقة
+    final rawType = (item.entityType ?? '').toLowerCase();
+    final canonical = item.canonicalType ?? rawType;
+
+    // 2. فحص إشعار الملخص الأسبوعي للحضور التنفيذي
+    final isWeeklySummary = canonical == 'weekly_executive_summary' ||
+        rawType == 'weekly_executive_summary' ||
+        item.meta('kind') == 'weekly_executive_summary' ||
+        (item.actionUrl?.contains('reports/attendance') ?? false) ||
+        item.title.contains('الملخص الأسبوعي');
+    if (isWeeklySummary) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => WeeklyExecutiveSummaryPage(item: item),
+        ),
+      );
+      return;
+    }
+
+    // 3. فحص إشعارات الحضور والانصراف بدقة
     final currentEmpId = ref.read(accessContextProvider).value?.employeeId;
     final targetEmpId = item.meta('employeeId') ??
         (item.entityType == 'late_attendance_alert' ? item.entityId : null);
     final empName = item.meta('employeeName') ?? item.meta('employee_name');
     final workDate = item.meta('workDate');
-    final rawType = (item.entityType ?? '').toLowerCase();
-    final canonical = item.canonicalType ?? rawType;
     final isAttendanceEvent = canonical == 'attendance' ||
         rawType.contains('attendance') ||
         rawType == 'punch_reminder' ||
@@ -690,13 +709,21 @@ class _FilterChip extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(99),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(99),
+            border: Border.all(
+              color: selected
+                  ? Colors.transparent
+                  : scheme.outlineVariant.withValues(alpha: 0.35),
+            ),
+          ),
           child: Text(
             label,
             style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
+              fontSize: 12.5,
+              fontWeight: selected ? FontWeight.w900 : FontWeight.w700,
               color: selected ? scheme.onPrimary : scheme.onSurfaceVariant,
             ),
           ),
@@ -706,8 +733,8 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-/// بطاقة إشعار: أيقونة ملوّنة بالفئة، العنوان والساعة، ثم النص على سطرين —
-/// اليوم صار عنوان مجموعة فلا يتكرر «اليوم ·» في كل بطاقة.
+/// بطاقة إشعار: أيقونة ملوّنة بالفئة، الفئة والوقت في سطر علوي،
+/// ثم العنوان عريضاً بوضوح تام لمنع أي اقتطاع، يليه نص التفاصيل.
 class _NotificationCard extends StatelessWidget {
   const _NotificationCard({
     required this.item,
@@ -732,39 +759,53 @@ class _NotificationCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final unread = !item.isRead && !localRead;
     final humanizedBody = _humanizeNotificationBody(item.body);
-    final color = _notificationColor(item.category, scheme);
+    final isWeekly = item.canonicalType == 'weekly_executive_summary' ||
+        item.entityType == 'weekly_executive_summary' ||
+        item.meta('kind') == 'weekly_executive_summary' ||
+        (item.actionUrl?.contains('reports/attendance') ?? false) ||
+        item.title.contains('الملخص الأسبوعي');
+    final color = isWeekly
+        ? const Color(0xFF0F9F6E)
+        : _notificationColor(item.category, scheme);
+    final iconData = isWeekly
+        ? Icons.analytics_rounded
+        : _notificationIcon(item.category);
+    final categoryText = isWeekly
+        ? 'ملخص أسبوعي'
+        : _notificationCategoryLabel(item.category);
     final muted = scheme.onSurfaceVariant;
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
         color: unread
-            ? scheme.primary.withValues(alpha: 0.06)
+            ? scheme.primary.withValues(alpha: 0.07)
             : scheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: selected
-              ? scheme.error.withValues(alpha: .6)
+              ? scheme.error.withValues(alpha: .7)
               : unread
-              ? scheme.primary.withValues(alpha: 0.3)
+              ? scheme.primary.withValues(alpha: 0.28)
               : scheme.outlineVariant.withValues(alpha: 0.3),
+          width: unread || selected ? 1.2 : 1.0,
         ),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           onTap: selecting ? onToggleSelect : onTap,
           onLongPress: selecting ? null : onLongPress,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (selecting)
                   SizedBox(
-                    width: 40,
-                    height: 40,
+                    width: 42,
+                    height: 42,
                     child: Checkbox(
                       value: selected,
                       onChanged: (_) => onToggleSelect?.call(),
@@ -773,16 +814,16 @@ class _NotificationCard extends StatelessWidget {
                   )
                 else
                   Container(
-                    width: 40,
-                    height: 40,
+                    width: 42,
+                    height: 42,
                     decoration: BoxDecoration(
-                      color: color.withValues(alpha: unread ? .16 : .09),
+                      color: color.withValues(alpha: unread ? .18 : .10),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
-                      _notificationIcon(item.category),
-                      size: 20,
-                      color: unread ? color : color.withValues(alpha: .75),
+                      iconData,
+                      size: 21,
+                      color: unread ? color : color.withValues(alpha: .8),
                     ),
                   ),
                 const SizedBox(width: 12),
@@ -791,47 +832,98 @@ class _NotificationCard extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // السطر العلوي: الفئة والوقت وشارة غير مقروء
                       Row(
                         children: [
-                          Expanded(
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: color.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
                             child: Text(
-                              item.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                              categoryText,
                               style: TextStyle(
-                                fontSize: 13.5,
-                                fontWeight: unread
-                                    ? FontWeight.w800
-                                    : FontWeight.w600,
-                                color: unread ? scheme.onSurface : muted,
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w800,
+                                color: color,
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 6),
                           Text(
-                            '${_notificationCategoryLabel(item.category)} · '
-                            '${_notificationClock(item.createdAt)}',
+                            '·',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: muted.withValues(alpha: 0.5),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            _notificationClock(item.createdAt),
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                               color: muted.withValues(alpha: .85),
                             ),
                           ),
-                          if (unread) ...[
-                            const SizedBox(width: 6),
+                          const Spacer(),
+                          if (unread)
                             Container(
-                              width: 8,
-                              height: 8,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
-                                color: scheme.primary,
-                                shape: BoxShape.circle,
+                                color: scheme.primary.withValues(alpha: 0.14),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 6,
+                                    height: 6,
+                                    decoration: BoxDecoration(
+                                      color: scheme.primary,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'جديد',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      color: scheme.primary,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
                         ],
                       ),
+                      const SizedBox(height: 6),
+                      // سطر العنوان: مساحة كاملة لعرض اسم الشخص والطلب دون قص
+                      Text(
+                        item.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14,
+                          height: 1.35,
+                          fontWeight: unread
+                              ? FontWeight.w900
+                              : FontWeight.w700,
+                          color: unread ? scheme.onSurface : muted,
+                        ),
+                      ),
                       if (humanizedBody.isNotEmpty) ...[
-                        const SizedBox(height: 3),
+                        const SizedBox(height: 4),
                         Text(
                           humanizedBody,
                           maxLines: 2,
@@ -840,8 +932,8 @@ class _NotificationCard extends StatelessWidget {
                             fontSize: 12.5,
                             height: 1.45,
                             color: unread
-                                ? scheme.onSurface.withValues(alpha: 0.85)
-                                : muted.withValues(alpha: 0.8),
+                                ? scheme.onSurface.withValues(alpha: 0.82)
+                                : muted.withValues(alpha: 0.78),
                           ),
                         ),
                       ],
@@ -931,6 +1023,7 @@ IconData _notificationIcon(String category) => switch (category) {
   'daily_report_like' => Icons.favorite_outline_rounded,
   'daily_report_comment' => Icons.chat_bubble_outline_rounded,
   'attendance_manager_notify' => Icons.schedule_outlined,
+  'weekly_executive_summary' => Icons.analytics_outlined,
   _ => Icons.notifications_outlined,
 };
 
@@ -956,6 +1049,7 @@ String _notificationCategoryLabel(String category) => switch (category) {
   'daily_report_like' => 'إعجاب',
   'daily_report_comment' => 'تعليق',
   'attendance_manager_notify' => 'حضور',
+  'weekly_executive_summary' => 'ملخص',
   _ => 'عام',
 };
 
@@ -1006,10 +1100,16 @@ class NotificationDetailSheet extends ConsumerWidget {
     final reason = item.meta('reason');
     final requestType = item.meta('requestType');
 
-    final isAttendance = item.canonicalType == 'attendance' ||
-        (item.entityType ?? '').contains('attendance') ||
-        item.category == 'attendance' ||
-        item.category == 'attendance_manager_notify';
+    final isWeeklySummary = item.canonicalType == 'weekly_executive_summary' ||
+        item.entityType == 'weekly_executive_summary' ||
+        item.meta('kind') == 'weekly_executive_summary' ||
+        (item.actionUrl?.contains('reports/attendance') ?? false) ||
+        item.title.contains('الملخص الأسبوعي');
+    final isAttendance = !isWeeklySummary &&
+        (item.canonicalType == 'attendance' ||
+            (item.entityType ?? '').contains('attendance') ||
+            item.category == 'attendance' ||
+            item.category == 'attendance_manager_notify');
     final isPenalty = (item.canonicalType ?? '').contains('penalty') ||
         (item.entityType ?? '').contains('penalty');
     final isRequest = item.canonicalType == 'request' ||
@@ -1053,17 +1153,23 @@ class NotificationDetailSheet extends ConsumerWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: urgent
-                        ? scheme.errorContainer
-                        : scheme.primaryContainer,
+                    color: isWeeklySummary
+                        ? const Color(0xFF0F9F6E).withValues(alpha: 0.15)
+                        : urgent
+                            ? scheme.errorContainer
+                            : scheme.primaryContainer,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
-                    _notificationIcon(item.category),
+                    isWeeklySummary
+                        ? Icons.analytics_rounded
+                        : _notificationIcon(item.category),
                     size: 22,
-                    color: urgent
-                        ? scheme.onErrorContainer
-                        : scheme.primary,
+                    color: isWeeklySummary
+                        ? const Color(0xFF0F9F6E)
+                        : urgent
+                            ? scheme.onErrorContainer
+                            : scheme.primary,
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -1074,8 +1180,12 @@ class NotificationDetailSheet extends ConsumerWidget {
                       Row(
                         children: [
                           _SlimBadge(
-                            text: _notificationCategoryLabel(item.category),
-                            color: scheme.primary,
+                            text: isWeeklySummary
+                                ? 'ملخص أسبوعي'
+                                : _notificationCategoryLabel(item.category),
+                            color: isWeeklySummary
+                                ? const Color(0xFF0F9F6E)
+                                : scheme.primary,
                           ),
                         ],
                       ),
@@ -1192,7 +1302,26 @@ class NotificationDetailSheet extends ConsumerWidget {
             // أزرار الإجراء
             Row(
               children: [
-                if (isAttendance)
+                if (isWeeklySummary)
+                  Expanded(
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF0F9F6E),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => WeeklyExecutiveSummaryPage(item: item),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.analytics_rounded),
+                      label: const Text('عرض تفاصيل الملخص الأسبوعي'),
+                    ),
+                  )
+                else if (isAttendance)
                   Expanded(
                     child: FilledButton.icon(
                       onPressed: () {

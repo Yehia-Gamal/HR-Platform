@@ -43,6 +43,7 @@ class SyncQueueItem {
         'punch_attendance' => 'تسجيل حضور/انصراف',
         'submit_request' => 'إرسال طلب',
         'decide_request' => 'قرار على طلب',
+        'delegate_request_to_abu_ammar' => 'تفويض طلب لمدير التشغيل',
         'request_correction' => 'طلب تصحيح حضور',
         'save_daily_report' => 'حفظ تقرير يومي',
         'service_request' => 'فتح تذكرة خدمة',

@@ -80,11 +80,18 @@ class _MyPenaltiesTab extends ConsumerWidget {
         ),
         data: (items) {
           final unpaid = items.where((p) => _isUnpaid(p.status)).toList();
+          final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+          final unpaidToday =
+              unpaid.where((p) => p.workDate == todayStr).firstOrNull;
           return ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
             children: [
               _MySummaryCard(items: items),
+              if (unpaidToday != null) ...[
+                const SizedBox(height: 10),
+                _TodayCompensationProposalBanner(penalty: unpaidToday),
+              ],
               const SizedBox(height: 10),
               const _PolicyCard(),
               if (unpaid.isNotEmpty) ...[
@@ -446,6 +453,28 @@ class _PolicyCard extends ConsumerWidget {
                 ),
               ],
             ),
+            const SizedBox(height: 8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.verified_outlined,
+                  size: 15,
+                  color: Color(0xFF059669),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'تعويض التأخير: إذا استوفيت 8 ساعات عمل كاملة وسجلت بصمة الانصراف بمقر العمل، تُسقَط الغرامة وتُلغى تلقائياً.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: const Color(0xFF059669),
+                      fontWeight: FontWeight.w700,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -563,7 +592,19 @@ class _PenaltyCard extends ConsumerWidget {
       if (item.suspensionLiftedAt != null)
         ('رُفع الإيقاف', _dateTime(item.suspensionLiftedAt!), null),
       if (item.status == 'cancelled' && cancelReason.isNotEmpty)
-        (meta.exempt ? 'سبب الإعفاء' : 'سبب الإلغاء', cancelReason, null),
+        (
+          meta.label.contains('8 ساعات')
+              ? 'تعويض التأخير'
+              : meta.label.contains('الوردية')
+                  ? 'سبب الإلغاء'
+                  : (meta.exempt ? 'سبب الإعفاء' : 'سبب الإلغاء'),
+          cancelReason,
+          meta.label.contains('8 ساعات')
+              ? const Color(0xFF059669)
+              : meta.label.contains('الوردية')
+                  ? const Color(0xFF0284C7)
+                  : null,
+        ),
     ];
 
     return Card(
@@ -665,6 +706,12 @@ class _PenaltyCard extends ConsumerWidget {
               ),
             ],
             if (notes.lines.isNotEmpty) _NotesToggle(lines: notes.lines),
+            if (active &&
+                item.workDate ==
+                    DateFormat('yyyy-MM-dd').format(DateTime.now())) ...[
+              const SizedBox(height: 10),
+              _TodayCompensationProposalBanner(penalty: item, compact: true),
+            ],
             if (item.excuseStatus == 'submitted' && active) ...[
               const SizedBox(height: 10),
               _Notice(
@@ -1525,6 +1572,35 @@ class _TeamPenaltiesTabState extends ConsumerState<_TeamPenaltiesTab> {
                 ),
               ),
               const SizedBox(height: 10),
+              Card(
+                color: theme.colorScheme.primaryContainer.withValues(alpha: .2),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: BorderSide(
+                    color: theme.colorScheme.primary.withValues(alpha: .25),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  child: Row(
+                    children: [
+                      Icon(Icons.visibility_rounded, color: theme.colorScheme.primary, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'سجل الانضباط الشفاف: جميع غرامات التأخير تُورّد بالكامل لصندوق الزمالة والتكافل لدعم الزملاء.',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
               TextField(
                 controller: _search,
                 decoration: InputDecoration(
@@ -1919,14 +1995,25 @@ class _FundTxTile extends StatelessWidget {
     final color = tx.isInflow
         ? AppColors.statusSuccess
         : AppColors.statusDanger;
-    final title = tx.isInflow
-        ? (tx.sourceType == 'instant_penalty'
-              ? 'سداد غرامة تأخير'
-              : (tx.category ?? 'إيداع'))
-        : (tx.category ?? 'صرف من الصندوق');
+    final String title;
+    if (tx.isInflow) {
+      if (tx.sourceType == 'instant_penalty') {
+        title = tx.employeeName != null && tx.employeeName!.isNotEmpty
+            ? 'سداد غرامة تأخير — ${tx.employeeName}'
+            : 'سداد غرامة تأخير';
+      } else {
+        title = tx.category ?? 'إيداع';
+      }
+    } else {
+      title = tx.category ?? 'صرف من الصندوق';
+    }
     final sub = [
-      if (tx.employeeName != null) tx.employeeName!,
-      if (tx.reason != null && tx.reason != tx.category) tx.reason!,
+      if (tx.employeeName != null && tx.sourceType != 'instant_penalty')
+        'الزميل: ${tx.employeeName}',
+      if (tx.reason != null &&
+          tx.reason != tx.category &&
+          tx.reason != tx.employeeName)
+        tx.reason!,
       '${DateFormat('d MMMM y', 'ar').format(tx.createdAt.toLocal())} · ${DateFormat('h:mm a', 'ar').format(tx.createdAt.toLocal())}',
     ];
     return Padding(
@@ -2116,6 +2203,136 @@ class _Notice extends StatelessWidget {
   );
 }
 
+class _TodayCompensationProposalBanner extends ConsumerWidget {
+  const _TodayCompensationProposalBanner({
+    required this.penalty,
+    this.compact = false,
+  });
+
+  final MobileInstantPenalty penalty;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(attendanceStateProvider).asData?.value;
+    final checkInStr = state?.todayCheckInTime ??
+        (state?.todayCheckInAt != null
+            ? DateFormat('h:mm a', 'ar').format(state!.todayCheckInAt!.toLocal())
+            : null);
+    final targetStr = state?.targetCheckoutTime ??
+        (state?.todayCheckInAt != null
+            ? DateFormat('h:mm a', 'ar').format(
+                state!.todayCheckInAt!.add(const Duration(hours: 8)).toLocal(),
+              )
+            : null);
+    final remainingMins = state?.compensationRemainingMinutes ?? 0;
+    final reached =
+        (state?.isCompensationCompleted ?? false) ||
+        (state?.workMinutes ?? 0) >= 480;
+
+    return Container(
+      padding: EdgeInsets.all(compact ? 12 : 14),
+      decoration: BoxDecoration(
+        color: reached
+            ? AppColors.statusSuccess.withValues(alpha: 0.12)
+            : const Color(0xFFFFF7ED),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: reached
+              ? AppColors.statusSuccess.withValues(alpha: 0.4)
+              : const Color(0xFFFDBA74),
+          width: 1.2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                reached
+                    ? Icons.verified_user_rounded
+                    : Icons.lightbulb_rounded,
+                color: reached
+                    ? AppColors.statusSuccess
+                    : const Color(0xFFEA580C),
+                size: compact ? 18 : 22,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  reached
+                      ? 'أتممت 8 ساعات عمل — سجّل انصرافك لإلغاء الغرامة 🎉'
+                      : 'فرصة ذكية لإسقاط هذه الغرامة (${penalty.currentAmount.toStringAsFixed(0)} ج.م) 💡',
+                  style: TextStyle(
+                    fontSize: compact ? 13 : 14,
+                    fontWeight: FontWeight.bold,
+                    color: reached
+                        ? AppColors.statusSuccess
+                        : const Color(0xFFC2410C),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            reached
+                ? 'استوفيت ساعات العمل المطلوبة (8 ساعات كاملة). سجّل بصمة الانصراف الآن بمقر العمل لإسقاط الغرامة تلقائياً دون أي خصم.'
+                : (checkInStr != null && targetStr != null)
+                    ? 'حضرت اليوم الساعة $checkInStr (تأخير ${penalty.lateMinutes} د). إذا استكملت 8 ساعات عمل حتى الساعة $targetStr وسجلت بصمة الانصراف، فسيتم تلقائياً إلغاء الغرامة وإسقاط الخصم كاملاً!'
+                    : 'إذا استكملت 8 ساعات عمل وسجلت بصمة الانصراف بمقر العمل، فسيتم تلقائياً إلغاء الغرامة وإسقاط الخصم كاملاً دون أي مقابل!',
+            style: TextStyle(
+              fontSize: compact ? 12 : 12.5,
+              height: 1.4,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          if (!reached && targetStr != null) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFEDD5),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFFED7AA)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.timer_outlined,
+                    size: 15,
+                    color: Color(0xFFEA580C),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'الموعد المستهدف للانصراف: $targetStr',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF9A3412),
+                    ),
+                  ),
+                  const Spacer(),
+                  if (remainingMins > 0)
+                    Text(
+                      'متبقٍ ${remainingMins ~/ 60} س و ${remainingMins % 60} د',
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFFC2410C),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _SectionTitle extends StatelessWidget {
   const _SectionTitle({required this.title, this.trailing});
 
@@ -2284,6 +2501,26 @@ String _paymentLabel(String? method) => switch (method) {
 ) {
   if (item.status == 'cancelled') {
     final hay = '${item.cancelledReason ?? ''} ${item.notes ?? ''}';
+    final isEightHours =
+        hay.contains('8 ساعات') || hay.contains('ثماني ساعات');
+    if (isEightHours) {
+      return (
+        label: 'معفاة (8 ساعات عمل)',
+        color: const Color(0xFF059669),
+        icon: Icons.timer_outlined,
+        exempt: true,
+      );
+    }
+    final isShiftChange =
+        hay.contains('وردية') || hay.contains('فترة العمل') || hay.contains('فترة عمل');
+    if (isShiftChange) {
+      return (
+        label: 'ملغاة (اعتماد الوردية)',
+        color: const Color(0xFF0284C7),
+        icon: Icons.swap_horiz_rounded,
+        exempt: true,
+      );
+    }
     final exempt = const [
       'إعفاء',
       'معفى',

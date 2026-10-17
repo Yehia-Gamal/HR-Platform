@@ -525,6 +525,7 @@ class _EventRow extends StatelessWidget {
 
   /// المصدر يُذكر فقط حين لا يكون التطبيق نفسه.
   static String? _sourceLabel(String source) => switch (source) {
+    'mission_field_checkout' => 'انصراف ميداني — مأمورية',
     'mission_auto' => 'تلقائي — نهاية مأمورية',
     'kiosk' => 'جهاز الحضور',
     'web' => 'من الويب',

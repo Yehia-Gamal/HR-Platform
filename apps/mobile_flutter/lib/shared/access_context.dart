@@ -140,6 +140,29 @@ class AccessContext {
     }
     return labels.toList(growable: false);
   }
+
+  /// هل يملك صلاحية تعديل دوام الموظفين وإضافة الراحات يدوياً؟
+  /// مقتصرة حصراً على الموارد البشرية والسكرتير التنفيذي، ومستبعد منها المدير التنفيذي تماماً.
+  bool get canAdminEditAttendanceDays {
+    // المدير التنفيذي لا يملك صلاحية التعديل الإجرائي اليومي
+    if (roles.contains('executive-director') ||
+        roles.contains('executive') ||
+        employeeId == '7b0740fa-66ba-4616-8674-3dbd8e14109e' ||
+        displayName.contains('محمد يوسف')) {
+      return false;
+    }
+
+    if (employeeCode != null && employeeCode!.contains('01154869616')) {
+      return true;
+    }
+
+    const hrAndSecretaryRoles = {
+      'hr-manager',
+      'hr-specialist',
+      'executive-secretary',
+    };
+    return roles.any(hrAndSecretaryRoles.contains);
+  }
 }
 
 /// مطابقة لـ roles.name_ar في قاعدة البيانات، بترتيب الأولوية في العرض.

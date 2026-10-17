@@ -1,7 +1,6 @@
 import 'package:ahla_design_tokens/ahla_design_tokens.dart';
 import 'package:ahla_shabab_management_os/core/formatting/arabic_text.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
-import 'package:ahla_shabab_management_os/core/sharing/whatsapp_share_service.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
@@ -11,6 +10,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_ro
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_request_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/request_decision_sheet.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/request_display.dart';
+import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -333,223 +333,322 @@ class _RequestActionCard extends ConsumerWidget {
         : requestBriefLine(type, r.payload);
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 12),
       clipBehavior: Clip.antiAlias,
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: r?.awaitingMe == true
-              ? AppColors.statusInfo.withValues(alpha: .45)
+          color: (r?.awaitingMe == true || r?.canDecide == true) && !isMine
+              ? AppColors.brandPrimary.withValues(alpha: .5)
               : (due?.overdue ?? false) && !isMine
-              ? AppColors.statusDanger.withValues(alpha: .35)
-              : scheme.outlineVariant.withValues(alpha: .6),
+              ? AppColors.statusDanger.withValues(alpha: .4)
+              : scheme.outlineVariant.withValues(alpha: .5),
+          width: (r?.awaitingMe == true || r?.canDecide == true) && !isMine
+              ? 1.4
+              : 1.0,
         ),
       ),
       child: InkWell(
         onTap: onOpen,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
-          child: Row(
+          padding: const EdgeInsets.all(14),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                radius: 21,
-                backgroundColor: color.withValues(alpha: .12),
-                child: Icon(
-                  r == null ? Icons.approval_outlined : requestTypeIcon(type),
-                  color: color,
-                  size: 21,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      headline,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 14,
+              // ── السطر الرئيسي: الأيقونة + العنوان ورقم الطلب + السهم ──
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      AppAvatar(
+                        name: r?.employeeName ?? entry.item.title,
+                        photoUrl: r?.employeePhotoUrl,
+                        radius: 22,
                       ),
-                    ),
-                    if (second != null && second.trim().isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        second.trim(),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          height: 1.4,
-                          color: scheme.onSurfaceVariant,
+                      Positioned(
+                        bottom: -2,
+                        left: -2,
+                        child: Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: scheme.surface,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Icon(
+                            r == null
+                                ? Icons.approval_outlined
+                                : requestTypeIcon(type),
+                            size: 11,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ],
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (r != null)
-                          RequestSlaChip(
-                            sla: calculateRequestSla(
-                              createdAt: r.createdAt,
-                              status: r.status,
-                              decidedAt: r.decidedAt,
-                              activeStepName: r.activeStepName,
-                              activeStepRole: r.activeStepRole,
-                              decidedByName: r.decidedByName,
-                            ),
-                            dense: true,
+                        Text(
+                          headline,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 14.5,
                           ),
-                        if (r?.awaitingMe == true && !isMine)
-                          const RequestMetaChip(
-                            icon: Icons.notifications_active_rounded,
-                            text: 'دورك الآن',
-                            color: AppColors.statusInfo,
-                            strong: true,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          r == null
+                              ? _workflowLabel(entry.item.status)
+                              : 'طلب #${r.number} · قُدِّم ${arAgo(r.createdAt)}',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: scheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
                           ),
-                        if (stage != null && (r?.awaitingMe != true || isMine))
-                          RequestMetaChip(
-                            icon: Icons.route_rounded,
-                            text: 'عند $stage',
-                          )
-                        else if (r == null)
-                          RequestMetaChip(
-                            icon: Icons.route_rounded,
-                            text: _workflowLabel(entry.item.status),
-                          ),
-                        if (due != null)
-                          RequestMetaChip(
-                            icon: due.overdue
-                                ? Icons.warning_amber_rounded
-                                : Icons.schedule_rounded,
-                            text: due.label,
-                            color: due.overdue ? AppColors.statusDanger : null,
-                            strong: due.overdue,
-                          ),
-                        if (r != null)
-                          RequestMetaChip(
-                            icon: Icons.history_rounded,
-                            text: 'قُدِّم ${arAgo(r.createdAt)}',
-                          ),
+                        ),
                       ],
                     ),
-                    if (r?.awaitingMe == true && !isMine && entry.id != null) ...[
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: FilledButton.tonalIcon(
-                              style: FilledButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
-                                visualDensity: VisualDensity.compact,
-                                backgroundColor:
-                                    AppColors.statusSuccess.withValues(alpha: .14),
-                                foregroundColor: AppColors.statusSuccess,
-                              ),
-                              icon: const Icon(
-                                Icons.check_circle_outline_rounded,
-                                size: 18,
-                              ),
-                              label: const Text(
-                                'اعتماد سريع',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 13,
-                                ),
-                              ),
-                              onPressed: () async {
-                                final done = await showRequestDecisionSheet(
-                                  context,
-                                  ref,
-                                  requestId: entry.id!,
-                                  number: r?.number ?? 0,
-                                  type: r?.type ?? '',
-                                  employeeName: r?.employeeName ?? '',
-                                  decision: 'approve',
-                                );
-                                if (done) {
-                                  ref.invalidate(mobileActionCenterProvider);
-                                  ref.invalidate(mobileRequestsProvider);
-                                }
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
-                                visualDensity: VisualDensity.compact,
-                                side: BorderSide(
-                                  color: AppColors.statusDanger.withValues(
-                                    alpha: .5,
-                                  ),
-                                ),
-                                foregroundColor: AppColors.statusDanger,
-                              ),
-                              icon: const Icon(Icons.close_rounded, size: 18),
-                              label: const Text(
-                                'رفض / إعادة',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 13,
-                                ),
-                              ),
-                              onPressed: () async {
-                                final done = await showRequestDecisionSheet(
-                                  context,
-                                  ref,
-                                  requestId: entry.id!,
-                                  number: r?.number ?? 0,
-                                  type: r?.type ?? '',
-                                  employeeName: r?.employeeName ?? '',
-                                  decision: 'reject',
-                                );
-                                if (done) {
-                                  ref.invalidate(mobileActionCenterProvider);
-                                  ref.invalidate(mobileRequestsProvider);
-                                }
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton.filledTonal(
-                            style: IconButton.styleFrom(
-                              visualDensity: VisualDensity.compact,
-                              backgroundColor: const Color(0xFF25D366).withValues(alpha: .15),
-                              foregroundColor: const Color(0xFF128C7E),
-                            ),
-                            tooltip: 'مشاركة عبر واتساب',
-                            icon: const Icon(Icons.share_rounded, size: 18),
-                            onPressed: () {
-                              WhatsAppShareService.shareRequest(
-                                number: r?.number ?? 0,
-                                typeLabel: requestTypeLabel(r?.type ?? ''),
-                                employeeName: r?.employeeName ?? '',
-                                reason: r?.reason ?? r?.title ?? '',
-                                stage: stage,
-                              );
-                            },
-                          ),
-                        ],
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.chevron_left_rounded,
+                    color: scheme.onSurfaceVariant.withValues(alpha: .7),
+                    size: 22,
+                  ),
+                ],
+              ),
+
+              // ── تفاصيل الطلب / السبب ──
+              if (second != null && second.trim().isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerHighest.withValues(alpha: .35),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    second.trim(),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      height: 1.4,
+                      color: scheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+
+              // ── الشارات (مؤشر SLA + حالة الدور) ──
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  if (r != null)
+                    RequestSlaChip(
+                      sla: calculateRequestSla(
+                        createdAt: r.createdAt,
+                        status: r.status,
+                        decidedAt: r.decidedAt,
+                        activeStepName: r.activeStepName,
+                        activeStepRole: r.activeStepRole,
+                        decidedByName: r.decidedByName,
                       ),
-                    ],
+                      dense: true,
+                      showDetail: false,
+                    ),
+                  if ((r?.awaitingMe == true || r?.canDecide == true) && !isMine)
+                    const RequestMetaChip(
+                      icon: Icons.notifications_active_rounded,
+                      text: 'دورك الآن',
+                      color: AppColors.statusInfo,
+                      strong: true,
+                    )
+                  else if (stage != null)
+                    RequestMetaChip(
+                      icon: Icons.route_rounded,
+                      text: 'عند $stage',
+                    )
+                  else if (r == null)
+                    RequestMetaChip(
+                      icon: Icons.route_rounded,
+                      text: _workflowLabel(entry.item.status),
+                    ),
+                  if (due != null && !due.overdue)
+                    RequestMetaChip(
+                      icon: Icons.schedule_rounded,
+                      text: due.label,
+                      color: const Color(0xFFD97706),
+                    ),
+                ],
+              ),
+
+              // ── أزرار الإجراء السريع بكامل عرض البطاقة ──
+              if ((r?.awaitingMe == true || r?.canDecide == true) &&
+                  !isMine &&
+                  entry.id != null) ...[
+                const SizedBox(height: 12),
+                Divider(
+                  height: 1,
+                  thickness: 0.8,
+                  color: scheme.outlineVariant.withValues(alpha: .35),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.tonalIcon(
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 8,
+                          ),
+                          visualDensity: VisualDensity.compact,
+                          backgroundColor:
+                              AppColors.statusSuccess.withValues(alpha: .15),
+                          foregroundColor: AppColors.statusSuccess,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        icon: const Icon(
+                          Icons.check_circle_outline_rounded,
+                          size: 16,
+                        ),
+                        label: const Text(
+                          'اعتماد سريع',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 12,
+                          ),
+                        ),
+                        onPressed: () async {
+                          final done = await showRequestDecisionSheet(
+                            context,
+                            ref,
+                            requestId: entry.id!,
+                            number: r?.number ?? 0,
+                            type: r?.type ?? '',
+                            employeeName: r?.employeeName ?? '',
+                            decision: 'approve',
+                          );
+                          if (done) {
+                            ref.invalidate(mobileActionCenterProvider);
+                            ref.invalidate(mobileRequestsProvider);
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 8,
+                          ),
+                          visualDensity: VisualDensity.compact,
+                          side: BorderSide(
+                            color: AppColors.statusDanger.withValues(alpha: .5),
+                          ),
+                          foregroundColor: AppColors.statusDanger,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        icon: const Icon(Icons.close_rounded, size: 16),
+                        label: const Text(
+                          'رفض / إعادة',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 12,
+                          ),
+                        ),
+                        onPressed: () async {
+                          final done = await showRequestDecisionSheet(
+                            context,
+                            ref,
+                            requestId: entry.id!,
+                            number: r?.number ?? 0,
+                            type: r?.type ?? '',
+                            employeeName: r?.employeeName ?? '',
+                            decision: 'reject',
+                          );
+                          if (done) {
+                            ref.invalidate(mobileActionCenterProvider);
+                            ref.invalidate(mobileRequestsProvider);
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: FilledButton.tonalIcon(
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 8,
+                          ),
+                          visualDensity: VisualDensity.compact,
+                          backgroundColor:
+                              const Color(0xFFD97706).withValues(alpha: .15),
+                          foregroundColor: const Color(0xFFB45309),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        icon: const Icon(Icons.bolt_rounded, size: 16),
+                        label: const Text(
+                          'تفويض الآن',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 12,
+                          ),
+                        ),
+                        onPressed: () async {
+                          final done = await showRequestDelegateSheet(
+                            context,
+                            ref,
+                            requestId: entry.id!,
+                            number: r?.number ?? 0,
+                            type: r?.type ?? '',
+                            employeeName: r?.employeeName ?? '',
+                          );
+                          if (done) {
+                            ref.invalidate(mobileActionCenterProvider);
+                            ref.invalidate(mobileRequestsProvider);
+                          }
+                        },
+                      ),
+                    ),
                   ],
                 ),
-              ),
-              Icon(Icons.chevron_left_rounded, color: scheme.onSurfaceVariant),
+              ],
             ],
           ),
         ),

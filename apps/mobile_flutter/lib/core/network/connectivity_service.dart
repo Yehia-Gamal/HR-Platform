@@ -284,16 +284,34 @@ String _humanizePostgrest(PostgrestException error) {
 
 String _humanizeFunctionError(FunctionException error) {
   final status = error.status;
-  if (status == 401 || status == 403) {
-    return 'انتهت صلاحية الجلسة أو ليس لديك صلاحية. سجّل الدخول من جديد.';
+  final details = error.details;
+  if (details is Map) {
+    final code = details['error']?.toString();
+    final msg = details['message']?.toString();
+    if (code == 'INVALID_CREDENTIALS') {
+      return 'كلمة المرور أو رقم الهاتف/البريد غير صحيح. تأكد من صحة البيانات أو تواصل مع مسؤول النظام (باشمهندس يحيى).';
+    }
+    if (code == 'WEB_ONLY_ACCOUNT') {
+      return 'هذا الحساب مخصص للوحة الويب فقط وغير مصرح بالدخول من تطبيق الهاتف. تواصل مع مسؤول النظام (باشمهندس يحيى).';
+    }
+    if (code == 'TOO_MANY_ATTEMPTS') {
+      return 'تم تجاوز عدد محاولات الدخول المسموح بها مؤقتاً. انتظر 15 دقيقة ثم أعد المحاولة، أو تواصل مع مسؤول النظام (باشمهندس يحيى).';
+    }
+    if (msg != null && _isArabic(msg)) return msg;
+  }
+  if (status == 401) {
+    return 'بيانات الدخول غير صحيحة أو الحساب غير مسجل لدينا. تواصل مع مسؤول النظام (باشمهندس يحيى).';
+  }
+  if (status == 403) {
+    return 'ليس لديك صلاحية لتنفيذ هذا الإجراء. تواصل مع مسؤول النظام (باشمهندس يحيى).';
   }
   if (status == 429) {
-    return 'عدد المحاولات كثير. انتظر قليلاً ثم أعد المحاولة.';
+    return 'تم تجاوز عدد المحاولات المسموح بها مؤقتاً. انتظر دقيقة ثم أعد المحاولة، أو تواصل مع مسؤول النظام (باشمهندس يحيى).';
   }
   if (status >= 500) {
-    return 'خطأ في الخادم. أعد المحاولة بعد لحظات.';
+    return 'خطأ في خادم النظام أثناء معالجة الطلب. أعد المحاولة بعد لحظات، أو تواصل مع مسؤول النظام (باشمهندس يحيى).';
   }
-  return 'تعذر إكمال العملية. أعد المحاولة.';
+  return 'تعذر إتمام العملية. أعد المحاولة، أو تواصل مع مسؤول النظام (باشمهندس يحيى).';
 }
 
 bool _isArabic(String text) {

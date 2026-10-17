@@ -330,13 +330,30 @@ class _PeopleHubPageState extends ConsumerState<PeopleHubPage> {
         ..statusLabel = d.statusTodayLabel
         ..activity = d.activityTitle;
     }
-    final people = byId.values.toList(growable: false);
+    final access = ref.watch(accessContextProvider).value;
+    final canSeeClinic = canViewClinicGirls(access);
+    final allPeople = byId.values.toList(growable: false);
+    final people = canSeeClinic
+        ? allPeople
+        : allPeople
+            .where((p) => !isClinicGirl(
+                  name: p.name,
+                  jobTitle: p.jobTitle,
+                  department: p.department,
+                ))
+            .toList(growable: false);
     for (final p in people) {
       final m = p.managerId == null ? null : byId[p.managerId];
-      m?.team.add(p);
+      if (m != null && people.contains(m)) {
+        m.team.add(p);
+      }
     }
-    List<_Person> sorted(List<_Person> list) =>
-        sortByHierarchy<_Person>(list, (p) => p.jobTitle ?? '', (p) => p.name);
+    List<_Person> sorted(List<_Person> list) => sortByHierarchy<_Person>(
+          list,
+          (p) => p.jobTitle ?? '',
+          (p) => p.name,
+          getDepartment: (p) => p.department ?? '',
+        );
     for (final p in people) {
       final ordered = sorted(p.team);
       p.team
@@ -506,8 +523,19 @@ class _PeopleHubPageState extends ConsumerState<PeopleHubPage> {
         ],
       ),
       data: (items) {
+        final access = ref.watch(accessContextProvider).value;
+        final canSeeClinic = canViewClinicGirls(access);
+        final visibleItems = canSeeClinic
+            ? items
+            : items
+                .where((e) => !isClinicGirl(
+                      name: e.fullNameAr,
+                      jobTitle: e.jobTitle,
+                      department: e.department,
+                    ))
+                .toList(growable: false);
         final matches = sortByHierarchy<MobileEmployeeSummary>(
-          items
+          visibleItems
               .where(
                 (e) =>
                     _query.isEmpty ||
@@ -518,6 +546,7 @@ class _PeopleHubPageState extends ConsumerState<PeopleHubPage> {
               .toList(),
           (e) => e.jobTitle ?? '',
           (e) => e.fullNameAr,
+          getDepartment: (e) => e.department ?? '',
         );
         return ListView(
           physics: const AlwaysScrollableScrollPhysics(),

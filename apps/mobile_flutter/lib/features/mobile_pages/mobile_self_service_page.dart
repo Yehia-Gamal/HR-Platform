@@ -42,7 +42,7 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
               (r) =>
                   !r.isMineFor(me) &&
                   r.status == 'pending' &&
-                  (r.awaitingMe ?? r.canDecide ?? false),
+                  (r.awaitingMe == true || r.canDecide == true),
             )
             .length;
 

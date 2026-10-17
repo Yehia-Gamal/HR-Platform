@@ -8,6 +8,7 @@ import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/location_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/passkey_attendance_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
+import 'package:ahla_shabab_management_os/features/mobile_data/penalties_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/release_governance.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';

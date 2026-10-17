@@ -6,6 +6,7 @@ import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dar
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_employee_summary_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
+import 'package:ahla_shabab_management_os/shared/hierarchy_sort.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -90,6 +91,8 @@ class _ExecutiveLocationEmployeeFilePageState
             ? 'يرجى الانتظار 30 ثانية بين الطلبات.'
             : msg.contains('cannot request own location')
             ? 'لا يمكن طلب موقعك الخاص.'
+            : msg.contains('clinic_staff_location_request_not_allowed')
+            ? 'طاقم العيادات الطبية مستثنى من طلبات الموقع الميداني.'
             : msg.contains('not active')
             ? 'الموظف غير نشط أو لا يملك حساباً مرتبطاً.'
             : 'تعذر إرسال الطلب. تحقق من الاتصال وأعد المحاولة.';
@@ -193,30 +196,66 @@ class _ExecutiveLocationEmployeeFilePageState
           status: emp.status,
         ),
         const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: FilledButton.icon(
-                onPressed: inCooldown || !mounted
-                    ? null
-                    : () => _sendRequest(context, ref),
-                icon: const Icon(Icons.location_on_rounded),
-                label: Text(
-                  inCooldown
-                      ? 'انتظر $cooldownRemaining ثانية'
-                      : 'طلب موقع الآن',
-                ),
+        if (isClinicGirl(
+          name: emp.name,
+          jobTitle: emp.jobTitle,
+          department: emp.department,
+        )) ...[
+          Card(
+            color: Theme.of(context)
+                .colorScheme
+                .surfaceContainerHighest
+                .withValues(alpha: 0.5),
+            child: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  Icon(Icons.local_hospital_outlined, size: 20),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'طاقم طبي بالعيادات — مستثنى من طلبات الموقع الميداني.',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(width: 8),
-            if (last?.hasCoordinates ?? false)
-              FilledButton.tonalIcon(
-                onPressed: () => _openMap(last!.latitude!, last.longitude!),
-                icon: const Icon(Icons.map_rounded, size: 18),
-                label: const Text('افتح الخريطة'),
-              ),
+          ),
+          if (last?.hasCoordinates ?? false) ...[
+            const SizedBox(height: 8),
+            FilledButton.tonalIcon(
+              onPressed: () => _openMap(last!.latitude!, last.longitude!),
+              icon: const Icon(Icons.map_rounded, size: 18),
+              label: const Text('افتح الخريطة'),
+            ),
           ],
-        ),
+        ] else ...[
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: inCooldown || !mounted
+                      ? null
+                      : () => _sendRequest(context, ref),
+                  icon: const Icon(Icons.location_on_rounded),
+                  label: Text(
+                    inCooldown
+                        ? 'انتظر $cooldownRemaining ثانية'
+                        : 'طلب موقع الآن',
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (last?.hasCoordinates ?? false)
+                FilledButton.tonalIcon(
+                  onPressed: () => _openMap(last!.latitude!, last.longitude!),
+                  icon: const Icon(Icons.map_rounded, size: 18),
+                  label: const Text('افتح الخريطة'),
+                ),
+            ],
+          ),
+        ],
         const SizedBox(height: 8),
         OutlinedButton.icon(
           onPressed: () => Navigator.push(

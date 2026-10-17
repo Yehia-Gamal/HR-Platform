@@ -53,7 +53,7 @@ with yr_emp as (
   where slug in ('clinics-manager', 'direct-manager', 'department-manager')
 )
 insert into public.user_roles (user_id, role_id, granted_by, effective_from)
-select yr_emp.user_id, target_roles.id, '00000000-0000-0000-0000-000000000000'::uuid, now() at time zone 'Africa/Cairo'
+select yr_emp.user_id, target_roles.id, null::uuid, now() at time zone 'Africa/Cairo'
 from yr_emp, target_roles
 where not exists (
   select 1 from public.user_roles ur

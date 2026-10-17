@@ -1,3 +1,4 @@
+import 'dart:convert' show jsonDecode;
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/core/config/app_config.dart';
@@ -34,12 +35,31 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   // V12 §17 لم يعد سارياً: رابط إعادة تعيين كلمة السر ظاهر دائماً.
 
+  static String sanitizeIdentifier(String raw) {
+    // 1. إزالة جميع علامات اتجاه النص المخفية والمسافات غير المرئية
+    String cleaned = raw.replaceAll(
+      RegExp(r'[\u200E\u200F\u202A-\u202E\u2066-\u2069\u200B\uFEFF\u00A0\r\n\t]'),
+      '',
+    );
+    // 2. تحويل الأرقام العربية المشرقية والفارسية (٠-٩ / ۰-۹) إلى أرقام قياسية 0-9
+    const arabicIndic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    const easternIndic = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+    for (int i = 0; i < 10; i++) {
+      cleaned = cleaned.replaceAll(arabicIndic[i], i.toString());
+      cleaned = cleaned.replaceAll(easternIndic[i], i.toString());
+    }
+    return cleaned.trim();
+  }
+
   Future<void> _submit() async {
     _log('[LOGIN] _submit called');
     if (!_formKey.currentState!.validate()) {
       _log('[LOGIN] form validation failed');
       return;
     }
+    final cleanIdentifier = sanitizeIdentifier(_identifier.text);
+    final cleanPassword = _password.text.trim();
+
     setState(() {
       _loading = true;
       _error = null;
@@ -51,8 +71,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           .invoke(
             'identifier-sign-in',
             body: {
-              'identifier': _identifier.text.trim(),
-              'password': _password.text,
+              'identifier': cleanIdentifier,
+              'password': cleanPassword,
             },
           )
           .timeout(const Duration(seconds: 20));
@@ -89,48 +109,108 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     } on AuthException catch (error) {
       _log('[LOGIN] AuthException: ${error.message}');
       if (mounted) setState(() => _error = error.message);
+    } on FunctionException catch (error) {
+      _log('[LOGIN] FunctionException: ${error.status} -> ${error.details}');
+      if (mounted) setState(() => _error = _humanizeLoginFunctionError(error));
     } catch (error, stack) {
       _log('[LOGIN] catch: $error\n$stack');
-      // أخطاء الشبكة/timeout/DNS تعرض رسالة واضحة.
-      if (mounted) setState(() => _error = humanizeError(error, stack));
+      if (mounted) setState(() => _error = _humanizeLoginGenericError(error, stack));
     } finally {
       _log('[LOGIN] finished, mounted: $mounted');
       if (mounted) setState(() => _loading = false);
     }
   }
 
+  static String _humanizeLoginFunctionError(FunctionException error) {
+    String? code;
+    String? message;
+    final details = error.details;
+    if (details is Map) {
+      code = details['error'] as String?;
+      message = details['message'] as String?;
+    } else if (details is String) {
+      try {
+        final decoded = jsonDecode(details);
+        if (decoded is Map) {
+          code = decoded['error'] as String?;
+          message = decoded['message'] as String?;
+        }
+      } catch (_) {
+        message = details;
+      }
+    }
+
+    if (code != null) {
+      return _humanizeAuthError(code, message);
+    }
+
+    if (error.status == 401) {
+      return 'كلمة المرور أو رقم الهاتف/البريد غير صحيح. تأكد من صحة البيانات أو تواصل مع مسؤول النظام (باشمهندس يحيى).';
+    }
+    if (error.status == 403) {
+      return 'هذا الحساب مخصص للوحة التحكم عبر الويب فقط وغير مصرح بالدخول من تطبيق الهاتف. تواصل مع مسؤول النظام (باشمهندس يحيى).';
+    }
+    if (error.status == 429) {
+      return 'تم تجاوز عدد محاولات الدخول المسموح بها مؤقتاً لحماية الحساب. انتظر 15 دقيقة ثم أعد المحاولة، أو تواصل مع مسؤول النظام (باشمهندس يحيى).';
+    }
+    if (error.status >= 500) {
+      return 'خطأ في خادم النظام أثناء تسجيل الدخول. أعد المحاولة بعد قليل أو تواصل مع مسؤول النظام (باشمهندس يحيى).';
+    }
+
+    return _humanizeAuthError(code, message);
+  }
+
+  static String _humanizeLoginGenericError(dynamic error, StackTrace? stack) {
+    final msg = error.toString().toLowerCase();
+    if (msg.contains('socketexception') ||
+        msg.contains('clientexception') ||
+        msg.contains('network_error') ||
+        msg.contains('failed host lookup') ||
+        msg.contains('connection refused') ||
+        msg.contains('timed out') ||
+        msg.contains('timeoutexception')) {
+      return 'لا يوجد اتصال بالإنترنت أو تعذر الوصول إلى الخادم. تحقق من اتصال الشبكة بهاتفك ثم أعد المحاولة، أو تواصل مع مسؤول النظام (باشمهندس يحيى).';
+    }
+    return humanizeError(error, stack);
+  }
+
   /// يحوّل رموز أخطاء identifier-sign-in إلى رسائل عربية عملية تخبر المستخدم
-  /// بما يفعله تالياً — لا مجرد "بيانات غير صحيحة".
+  /// بما يفعله تالياً مع ذكر بيانات التواصل مع مسؤول النظام.
   static String _humanizeAuthError(String? code, String? message) {
     switch (code) {
       case 'TOO_MANY_ATTEMPTS':
-        return 'عدد المحاولات تجاوز الحد المسموح. انتظر 15 دقيقة ثم أعد المحاولة، أو استخدم «إعادة تعيين كلمة السر؟» بالأسفل.';
+        return 'تم تجاوز عدد محاولات الدخول المسموح بها مؤقتاً لحماية الحساب. انتظر 15 دقيقة ثم أعد المحاولة، أو تواصل مع مسؤول النظام (باشمهندس يحيى).';
       case 'WEB_ONLY_ACCOUNT':
-        return 'هذا الحساب مخصص للوحة الويب فقط. استخدم حساب السكرتير التنفيذي على الهاتف.';
+        return 'هذا الحساب مخصص للوحة التحكم عبر الويب فقط وغير مصرح بالدخول من تطبيق الهاتف. تواصل مع مسؤول النظام (باشمهندس يحيى).';
       case 'INVALID_CREDENTIALS':
       case 'INVALID_IDENTIFIER':
       case 'WRONG_PASSWORD':
-        return 'البريد أو الهاتف أو كود الموظف أو كلمة المرور غير صحيحة. تحقق من الإدخال أو استخدم «إعادة تعيين كلمة السر؟» بالأسفل.';
+        return 'كلمة المرور أو رقم الهاتف/البريد غير صحيح، أو الحساب غير مسجل لدينا. تأكد من صحة البيانات أو تواصل مع مسؤول النظام (باشمهندس يحيى).';
       case 'ACCOUNT_DISABLED':
       case 'ACCOUNT_SUSPENDED':
       case 'ACCOUNT_ARCHIVED':
-        return 'هذا الحساب موقوف أو مؤرشف. تواصل مع مسؤول الموارد البشرية لإعادة تفعيله.';
+        return 'هذا الحساب موقوف أو قيد المراجعة. تواصل مع مسؤول النظام (باشمهندس يحيى) لإعادة تفعيله.';
       case 'EMPLOYEE_NOT_FOUND':
       case 'NO_EMPLOYEE_RECORD':
-        return 'لا يوجد سجل موظف مرتبط بهذا الحساب. تواصل مع مسؤول الموارد البشرية.';
+        return 'رقم الهاتف أو الحساب غير مسجل لدينا في منظومة الموظفين. تواصل مع مسؤول النظام (باشمهندس يحيى).';
       case 'EMAIL_NOT_CONFIRMED':
-        return 'لم يتم تأكيد البريد الإلكتروني بعد. افتح آخر رسالة تفعيل أو استخدم «إعادة تعيين كلمة السر؟» للحصول على رابط جديد.';
+        return 'لم يتم تأكيد البريد الإلكتروني بعد. تواصل مع مسؤول النظام (باشمهندس يحيى) لإرسال رابط تفعيل جديد.';
       case 'MUST_CHANGE_PASSWORD':
-        return 'يجب تغيير كلمة المرور الأولية قبل الاستمرار. افتح رابط التفعيل من بريدك أو استخدم «إعادة تعيين كلمة السر؟».';
+        return 'يجب تغيير كلمة المرور الأولية قبل الاستمرار. تواصل مع مسؤول النظام (باشمهندس يحيى).';
       case 'RATE_LIMITED':
       case 'TOO_MANY_REQUESTS':
-        return 'الطلبات كثيرة جداً. انتظر دقيقة ثم أعد المحاولة.';
+        return 'الطلبات كثيرة جداً. انتظر دقيقة ثم أعد المحاولة، أو تواصل مع مسؤول النظام (باشمهندس يحيى).';
       case 'NETWORK_ERROR':
-        return 'تعذّر الوصول إلى الخادم. تحقق من اتصال الإنترنت ثم أعد المحاولة.';
+        return 'لا يوجد اتصال بالإنترنت أو تعذّر الوصول إلى الخادم. تحقق من اتصال الشبكة ثم أعد المحاولة، أو تواصل مع مسؤول النظام (باشمهندس يحيى).';
       default:
         final msg = message?.trim();
-        if (msg != null && msg.isNotEmpty && msg.length < 200) return msg;
-        return 'تعذّر تسجيل الدخول حالياً. أعد المحاولة، أو استخدم «إعادة تعيين كلمة السر؟» إن استمرت المشكلة.';
+        if (msg != null && msg.isNotEmpty && msg.length < 200) {
+          if (msg.contains('Invalid login credentials')) {
+            return 'كلمة المرور أو رقم الهاتف/البريد غير صحيح. تأكد من صحة البيانات أو تواصل مع مسؤول النظام (باشمهندس يحيى).';
+          }
+          return '$msg — للمساعدة تواصل مع مسؤول النظام (باشمهندس يحيى).';
+        }
+        return 'تعذّر تسجيل الدخول. تأكد من صحة رقم الهاتف وكلمة المرور، وإذا تكررت المشكلة تواصل مع مسؤول النظام (باشمهندس يحيى).';
     }
   }
 
@@ -302,7 +382,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                     ),
                                     validator: (value) =>
                                         value != null &&
-                                            value.trim().length >= 2
+                                            sanitizeIdentifier(value).length >= 2
                                         ? null
                                         : 'أدخل البريد أو الهاتف أو كود الموظف.',
                                   ),

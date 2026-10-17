@@ -89,4 +89,42 @@ describe('generateReportHtml', () => {
     expect(html).toContain('@media print');
     expect(html).toContain('.no-print, .action-bar { display: none !important; }');
   });
+
+  it('يولّد شارات الحالة ووثيقة الاعتماد المحدثة بدون توقيعات إضافية', async () => {
+    const { generateReportHtml } = await import('./exportUtils');
+    const html = generateReportHtml(
+      [
+        {
+          title: 'بيان وتفاصيل الغرامات المسجلة للتأخير',
+          subtitle: 'كافة الحالات',
+          table: {
+            headers: ['الموظف', 'الإدارة', 'التأخير', 'المبلغ', 'التصعيد', 'الحالة'],
+            rows: [
+              ['مصطفي محمد فايد', 'إدارة الحسابات', '39 دقيقة', '50 ج.م', 'أولية', 'بانتظار الدفع'],
+              ['يحيي جمال السبع', 'السكرتير التنفيذي', '23 دقيقة', '20 ج.م', 'أولية', 'مدفوعة'],
+              ['عمرو سيد', 'المشتريات', 'ساعتان', '500 ج.م', 'مضاعفة', 'معلق عن العمل'],
+            ],
+          },
+        },
+      ],
+      'كشف الغرامات الفورية',
+      [
+        { label: 'عدد الغرامات بالكشف', value: '3' },
+        { label: 'المطالبون بالسداد', value: '1' },
+      ],
+    );
+
+    expect(html).toContain('badge-pending');
+    expect(html).toContain('badge-paid');
+    expect(html).toContain('badge-suspended');
+    expect(html).toContain('badge-initial');
+    expect(html).toContain('badge-doubled');
+    expect(html).toContain('report-stamp-box');
+    expect(html).toContain('وثيقة إدارية معتمدة');
+    expect(html).not.toContain('جمهورية مصر العربية');
+    expect(html).not.toContain('signatures');
+    expect(html).not.toContain('اعتماد: المسؤول العام للنظام');
+    expect(html).toContain('nowrap');
+  });
 });
+

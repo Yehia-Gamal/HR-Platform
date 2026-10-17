@@ -132,8 +132,7 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
           { label: 'تشغيل الحضور', to: `${hrPrefix}/attendance/operations`, icon: CalendarDays },
         ]
       : [
-          { label: 'مركز الإجراءات', to: '/admin/actions', icon: ShieldAlert },
-          { label: 'طلبات الموظفين', to: '/admin/hr/requests', icon: BadgeCheck },
+          { label: 'مركز الإجراءات والطلبات', to: '/admin/actions', icon: ShieldAlert },
           { label: 'قرار رسمي', to: '/admin/official-feed', icon: Plus },
           { label: 'مشاريع الجمعية', to: '/admin/association-projects', icon: FolderKanban },
           { label: 'حالة النظام', to: '/admin/settings', icon: Settings },

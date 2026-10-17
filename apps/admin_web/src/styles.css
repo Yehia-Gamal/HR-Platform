@@ -2163,8 +2163,8 @@ a.no-underline:hover .metric-card--linked {
 }
 .stmt-table {
   width: 100%;
-  min-width: 940px;
-  font-size: 0.84rem;
+  min-width: 820px;
+  font-size: 0.81rem;
   border-collapse: separate;
   border-spacing: 0;
 }
@@ -2172,7 +2172,7 @@ a.no-underline:hover .metric-card--linked {
   position: sticky;
   top: 0;
   z-index: 2;
-  padding: 0.55rem 0.65rem;
+  padding: 0.5rem 0.5rem;
   font-size: 0.7rem;
   font-weight: var(--font-black);
   color: var(--text-secondary);
@@ -2182,7 +2182,7 @@ a.no-underline:hover .metric-card--linked {
   white-space: nowrap;
 }
 .stmt-table tbody td {
-  padding: 0.45rem 0.65rem;
+  padding: 0.38rem 0.5rem;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
 }
@@ -2215,31 +2215,67 @@ a.no-underline:hover .metric-card--linked {
   font-variant-numeric: tabular-nums;
   font-weight: var(--font-bold);
   direction: ltr;
-  unicode-bidi: embed;
+  unicode-bidi: isolate;
   white-space: nowrap;
+  font-size: 0.78rem;
 }
 .stmt-table .cell-day {
   color: var(--text-muted);
   white-space: nowrap;
+  font-size: 0.78rem;
 }
 .stmt-table .cell-time {
   font-variant-numeric: tabular-nums;
   direction: ltr;
-  unicode-bidi: embed;
+  unicode-bidi: isolate;
   font-weight: var(--font-bold);
   white-space: nowrap;
+  font-size: 0.78rem;
 }
 .stmt-table .cell-num {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  font-size: 0.78rem;
 }
 .stmt-table .cell-shift {
   color: var(--text-secondary);
   white-space: nowrap;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.stmt-table .cell-actions {
-  text-align: end;
+.stmt-table th.cell-actions,
+.stmt-table td.cell-actions {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: var(--surface);
+  text-align: center;
+  white-space: nowrap;
+  box-shadow: 3px 0 8px -2px rgba(0, 0, 0, 0.28);
+  padding: 0.25rem 0.45rem;
+}
+.stmt-table thead th.cell-actions {
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  background: var(--surface-muted);
+}
+.stmt-table tbody tr:hover td.cell-actions {
+  background: color-mix(in srgb, var(--surface-muted) 55%, var(--surface));
+}
+.stmt-table tbody tr.row-absent td.cell-actions {
+  background: color-mix(in srgb, var(--danger) 4%, var(--surface));
+}
+.stmt-table tbody tr.row-absent:hover td.cell-actions {
+  background: color-mix(in srgb, var(--danger) 7%, var(--surface));
+}
+.stmt-table tbody tr.row-open td.cell-actions {
+  background: color-mix(in srgb, var(--brand-primary) 4%, var(--surface));
+}
+.stmt-table tbody tr.row-future td.cell-actions {
+  background: color-mix(in srgb, var(--surface-muted) 30%, var(--surface));
 }
 .stmt-table .dash {
   color: var(--text-disabled);

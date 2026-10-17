@@ -2,6 +2,7 @@ import 'package:ahla_design_tokens/ahla_design_tokens.dart';
 import 'package:ahla_shabab_management_os/core/formatting/arabic_text.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_request_detail_page.dart';
+import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/request_display.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show DateFormat;
@@ -280,15 +281,46 @@ class RequestListCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CircleAvatar(
-                    radius: 21,
-                    backgroundColor: typeColor.withValues(alpha: .12),
-                    child: Icon(
-                      requestTypeIcon(item.type),
-                      size: 21,
-                      color: typeColor,
-                    ),
-                  ),
+                  showOwner
+                      ? Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            AppAvatar(
+                              name: item.employeeName,
+                              photoUrl: item.employeePhotoUrl,
+                              radius: 21,
+                            ),
+                            Positioned(
+                              bottom: -2,
+                              left: -2,
+                              child: Container(
+                                padding: const EdgeInsets.all(3),
+                                decoration: BoxDecoration(
+                                  color: typeColor,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: scheme.surface,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Icon(
+                                  requestTypeIcon(item.type),
+                                  size: 11,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      : CircleAvatar(
+                          radius: 21,
+                          backgroundColor: typeColor.withValues(alpha: .12),
+                          child: Icon(
+                            requestTypeIcon(item.type),
+                            size: 21,
+                            color: typeColor,
+                          ),
+                        ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -325,6 +357,7 @@ class RequestListCard extends StatelessWidget {
                       decidedByName: item.decidedByName,
                     ),
                     dense: true,
+                    showDetail: false,
                   ),
                   const SizedBox(width: 6),
                   RequestStatusChip(item.status, dense: true),

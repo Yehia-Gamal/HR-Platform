@@ -206,9 +206,16 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
       );
     }
 
+    // حسم الإجراء: إذا كانت القيمة CHECK_OUT أو CHECK_IN صريحة نعتمدها،
+    // أما إذا كانت قيمة أخرى (مثل MISSION_IN_PROGRESS أو غيرها) وكان الموظف حاضراً بالفعل ولم ينصرف،
+    // فالإجراء الحتمي للبصمة هو الانصراف CHECK_OUT لتفادي أي حضور مكرر.
     final action = value.suggestedAction == 'CHECK_OUT'
         ? 'CHECK_OUT'
-        : 'CHECK_IN';
+        : (value.suggestedAction == 'CHECK_IN'
+            ? 'CHECK_IN'
+            : ((value.todayCheckInAt != null && value.todayCheckOutAt == null)
+                ? 'CHECK_OUT'
+                : 'CHECK_IN'));
     final isSecondSessionCheckIn = value.isSplitShift &&
         action == 'CHECK_IN' &&
         value.todayCheckOutAt != null;
@@ -242,18 +249,21 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
           startTime: mission.startTime,
           working: _working,
           onStart: () => _startMission(mission.requestId),
+          onCancel: () => _cancelMissionFlow(mission.requestId),
         );
       } else if (mission.execStatus == 'in_progress') {
         missionCard = _MissionInProgressCard(
           startedAt: mission.startedAt,
           working: _working,
           onEnd: () => _endMissionFlow(mission),
+          onCancel: () => _cancelMissionFlow(mission.requestId),
         );
       } else if (mission.execStatus == 'pending') {
         missionCard = _MissionPendingCard(
           type: mission.type,
           working: _working,
           onStart: () => _startMission(mission.requestId),
+          onCancel: () => _cancelMissionFlow(mission.requestId),
         );
       }
     }
@@ -328,12 +338,16 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
         ],
 
         // ── بطاقة الإجراء الرئيسية ──
-        if (dayCompleted)
+        if (dayCompleted) ...[
+          if (value.todayCheckInAt != null)
+            _PenaltyCompensateBanner(state: value, checkInAt: value.todayCheckInAt),
           _DayCompletedCard(
             checkIn: value.todayCheckInAt,
             checkOut: value.todayCheckOutAt,
-          )
-        else
+          ),
+        ] else ...[
+          if (value.todayCheckInAt != null)
+            _PenaltyCompensateBanner(state: value, checkInAt: value.todayCheckInAt),
           _PunchCard(
             actionLabel: actionLabel,
             actionIcon: actionIcon,
@@ -346,6 +360,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
             onPunch: () => _punch(action),
             currentShift: currentShift,
           ),
+        ],
         const SizedBox(height: 14),
 
         // ── بطاقة حالة اليوم ──
@@ -459,27 +474,132 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
     // (من زر ثانٍ أو إعادة محاولة عند الاستئناف) — تجنّب إرسال حضور مكرر.
     if (_working) return;
     if (!skipDialog) {
+      final shiftInfo = ref.read(myWorkShiftInfoProvider).asData?.value;
+      final availableShifts = shiftInfo?.availableShifts ?? [];
+      final currentShift = shiftInfo?.currentShift;
+      String? chosenShiftId = currentShift?.id ?? (availableShifts.isNotEmpty ? availableShifts.first.id : null);
+
       final confirmed = await showDialog<bool>(
         context: context,
-        builder: (context) => AlertDialog(
-          title: Text(
-            action == 'CHECK_IN'
-                ? 'تأكيد تسجيل الحضور'
-                : 'تأكيد تسجيل الانصراف',
-          ),
-          content: const Text(
-            'سيتم قراءة موقعك الحالي وطلب بصمة أو نقش الجهاز للتحقق.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('إلغاء'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('متابعة'),
-            ),
-          ],
+        builder: (dialogCtx) => StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            final scheme = Theme.of(ctx).colorScheme;
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: Row(
+                children: [
+                  Icon(
+                    action == 'CHECK_IN'
+                        ? Icons.fingerprint_rounded
+                        : Icons.logout_rounded,
+                    color: scheme.primary,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    action == 'CHECK_IN'
+                        ? 'تأكيد تسجيل الحضور'
+                        : 'تأكيد تسجيل الانصراف',
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
+                  ),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (action == 'CHECK_IN' && availableShifts.isNotEmpty) ...[
+                      Text(
+                        'فترة العمل (الوردية) المعتمدة:',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: scheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: scheme.outlineVariant.withValues(alpha: 0.4),
+                          ),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: chosenShiftId != null &&
+                                    availableShifts.any((s) => s.id == chosenShiftId)
+                                ? chosenShiftId
+                                : (availableShifts.isNotEmpty ? availableShifts.first.id : null),
+                            isExpanded: true,
+                            icon: Icon(Icons.keyboard_arrow_down_rounded, color: scheme.primary),
+                            items: availableShifts.map((shift) {
+                              return DropdownMenuItem<String>(
+                                value: shift.id,
+                                child: Text(
+                                  '${shift.name} (${shift.formattedRange})',
+                                  style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              if (val != null) {
+                                setDialogState(() => chosenShiftId = val);
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '⚡ يتم اعتماد الوردية المختارة فوراً دون الحاجة لموافقة المدير وتسجيل حضورك عليها مباشرة.',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: scheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Divider(height: 20),
+                    ],
+                    const Text(
+                      'سيتم قراءة موقعك الحالي والتحقق الحي لتسجيل البصمة.',
+                      style: TextStyle(fontSize: 12.5),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogCtx, false),
+                  child: const Text('إلغاء'),
+                ),
+                FilledButton.icon(
+                  onPressed: () async {
+                    if (action == 'CHECK_IN' &&
+                        chosenShiftId != null &&
+                        chosenShiftId != currentShift?.id) {
+                      try {
+                        await ref
+                            .read(mobileCommandsProvider)
+                            .adoptMyWorkShift(shiftId: chosenShiftId!);
+                      } catch (_) {}
+                    }
+                    if (dialogCtx.mounted) {
+                      Navigator.pop(dialogCtx, true);
+                    }
+                  },
+                  icon: const Icon(Icons.check_rounded, size: 18),
+                  label: const Text('متابعة وتسجيل'),
+                ),
+              ],
+            );
+          },
         ),
       );
       if (confirmed != true) return;
@@ -514,16 +634,117 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
 
       // punchAttendanceLocal() already invalidates the relevant providers.
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              action == 'CHECK_IN'
-                  ? 'تم تسجيل الحضور بنجاح ✓'
-                  : 'تم تسجيل الانصراف بنجاح ✓',
+        if (action == 'CHECK_OUT' && result['penaltyWaived'] == true) {
+          final waivedAmount = result['waivedAmount'];
+          final checkIn = result['checkIn'];
+          final checkOut = result['checkOut'];
+          final msg = result['message'] as String? ??
+              'تم استيفاء 8 ساعات عمل كاملة — تم إلغاء خصم غرامة التأخير ($waivedAmount ج.م) بنجاح 🎉';
+          showDialog<void>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: const Row(
+                children: [
+                  Icon(
+                    Icons.celebration_rounded,
+                    color: AppColors.statusSuccess,
+                    size: 28,
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'إلغاء غرامة التأخير 🎉',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    ),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    msg,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.statusSuccess.withValues(alpha: .08),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.statusSuccess.withValues(alpha: .3),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (checkIn != null)
+                          Text(
+                            '⏰ وقت الحضور: $checkIn',
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        if (checkOut != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            '🚪 وقت الانصراف: $checkOut',
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        ],
+                        const SizedBox(height: 4),
+                        const Text(
+                          '⏱️ إجمالي العمل: 8 ساعات كاملة (تم استيفاء وقت العمل المقرر)',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                FilledButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('الحمد لله'),
+                ),
+              ],
             ),
-            backgroundColor: AppColors.statusSuccess,
-          ),
-        );
+          );
+        } else if (action == 'CHECK_OUT' && result['penaltyRemaining'] == true) {
+          final penaltyAmount = result['penaltyAmount'];
+          final remainingMins = result['remainingMinutes'];
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'تنبيه: تم تسجيل الانصراف قبل إتمام 8 ساعات عمل (متبقي $remainingMins دقيقة) — غرامة التأخير ($penaltyAmount ج.م) تظل مستحقة السداد.',
+              ),
+              backgroundColor: AppColors.statusWarning,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                action == 'CHECK_IN'
+                    ? 'تم تسجيل الحضور بنجاح ✓'
+                    : 'تم تسجيل الانصراف بنجاح ✓',
+              ),
+              backgroundColor: AppColors.statusSuccess,
+            ),
+          );
+        }
       }
     } on OfflineQueuedException {
       if (mounted) {
@@ -759,8 +980,9 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
     }
   }
 
-  /// إنهاء المأمورية مع تقرير إلزامي — بعده يعود زر الانصراف تلقائيًا
-  /// أو يكتمل اليوم إن تجاوز الوقت نهاية الدوام (انصراف تلقائي).
+  /// إنهاء المأمورية مع تقرير إلزامي:
+  /// 1) إنهاء المأمورية والعودة للعمل (استمرار الدوام) دون تسجيل انصراف.
+  /// 2) أو إنهاء المأمورية مع الانصراف من العمل (من برة برة) مع أخذ موقع GPS مباشر.
   Future<void> _endMissionFlow(MissionToday mission) async {
     final reportController = TextEditingController();
     final outcomeController = TextEditingController();
@@ -780,7 +1002,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Text(
-                'سجّل تقرير إنجاز المهمة، ثم اختر ما إذا كنت تريد تسجيل بصمة انصراف أم استمرار الدوام.',
+                'سجّل تقرير إنجاز المهمة، ثم اختر ما إذا كنت ستعود للجمعية لمتابعة عملك، أم أن المأمورية امتدت لنهاية اليوم وتريد الانصراف من موقعك بالخارج.',
                 style: TextStyle(fontSize: 13, height: 1.4),
               ),
               const SizedBox(height: 12),
@@ -804,6 +1026,23 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
                 ),
               ),
               const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: () {
+                  if (reportController.text.trim().length < 3) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('يرجى إدخال تقرير لا يقل عن 3 أحرف.')),
+                    );
+                    return;
+                  }
+                  Navigator.pop(dialogContext, false);
+                },
+                icon: const Icon(Icons.business_rounded),
+                label: const Text('إنهاء والعودة للجمعية (استمرار الدوام)'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+              const SizedBox(height: 10),
               FilledButton.icon(
                 onPressed: () {
                   if (reportController.text.trim().length < 3) {
@@ -815,27 +1054,10 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
                   Navigator.pop(dialogContext, true);
                 },
                 icon: const Icon(Icons.logout_rounded),
-                label: const Text('إنهاء المأمورية وبصمة انصراف'),
+                label: const Text('إنهاء مع الانصراف من العمل (من برّة برّة)'),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.statusSuccess,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: () {
-                  if (reportController.text.trim().length < 3) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('يرجى إدخال تقرير لا يقل عن 3 أحرف.')),
-                    );
-                    return;
-                  }
-                  Navigator.pop(dialogContext, false);
-                },
-                icon: const Icon(Icons.task_alt_rounded),
-                label: const Text('إنهاء فقط (استمرار الدوام)'),
-                style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
@@ -857,6 +1079,25 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
     if (result == null || !mounted) return;
     if (_working) return;
     setState(() => _working = true);
+
+    Position? position;
+    if (result == true) {
+      try {
+        position = await LocationService.current();
+      } catch (locErr) {
+        if (mounted) {
+          setState(() => _working = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('الانصراف من الخارج يتطلب تفعيل الـ GPS وأخذ موقع مباشر: ${humanizeError(locErr)}'),
+              backgroundColor: AppColors.statusDanger,
+            ),
+          );
+        }
+        return;
+      }
+    }
+
     try {
       await ref
           .read(mobileCommandsProvider)
@@ -865,15 +1106,20 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
             report: reportText,
             outcome: outcomeText.isEmpty ? null : outcomeText,
             withCheckout: result,
+            latitude: position?.latitude,
+            longitude: position?.longitude,
+            accuracy: position?.accuracy,
+            isMock: position?.isMocked ?? false,
           );
       ref.invalidate(attendanceStateProvider);
+      ref.invalidate(employeeHomeProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               result
-                  ? 'تم إنهاء المأمورية وتسجيل بصمة انصراف بنجاح.'
-                  : 'تم إنهاء المأمورية فقط واستمرار الدوام بنجاح.',
+                  ? 'تم إنهاء المأمورية وتسجيل بصمة انصراف ميدانية بنجاح.'
+                  : 'تم إنهاء المأمورية بنجاح — دوامك مستمر بالجمعية.',
             ),
             backgroundColor: AppColors.statusSuccess,
           ),
@@ -884,6 +1130,88 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
+      }
+    } finally {
+      if (mounted) setState(() => _working = false);
+    }
+  }
+
+  /// إلغاء المأمورية والعودة للوضع الطبيعي للحضور مع إمكانية الانصراف
+  Future<void> _cancelMissionFlow(String requestId) async {
+    final reasonController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.cancel_outlined, color: AppColors.statusDanger),
+            const SizedBox(width: 8),
+            const Text('إلغاء المأمورية'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'هل أنت متأكد من رغبتك في إلغاء هذه المأمورية؟ سيتم إلغاؤها فوراً وإعادتك لوضع الحضور الطبيعي لتتمكن من تسجيل الانصراف أو مواصلة عملك بالجمعية.',
+              style: TextStyle(fontSize: 13, height: 1.4),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonController,
+              decoration: const InputDecoration(
+                labelText: 'سبب الإلغاء (اختياري)',
+                hintText: 'مثال: تم إلغاء المهمة، لم أخرج…',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('تراجع'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.statusDanger,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('تأكيد الإلغاء'),
+          ),
+        ],
+      ),
+    );
+
+    final reason = reasonController.text.trim();
+    reasonController.dispose();
+
+    if (confirmed != true || !mounted) return;
+    if (_working) return;
+    setState(() => _working = true);
+
+    try {
+      await ref.read(mobileCommandsProvider).cancelMission(
+        requestId: requestId,
+        reason: reason.isEmpty ? null : reason,
+      );
+      ref.invalidate(attendanceStateProvider);
+      ref.invalidate(employeeHomeProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم إلغاء المأمورية بنجاح. يمكنك الآن تسجيل الانصراف أو مواصلة عملك.'),
+            backgroundColor: AppColors.statusSuccess,
+          ),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تعذر إلغاء المأمورية: ${humanizeError(error)}')),
+        );
       }
     } finally {
       if (mounted) setState(() => _working = false);
@@ -1090,12 +1418,14 @@ class _MissionStartCard extends StatelessWidget {
     required this.startTime,
     required this.working,
     required this.onStart,
+    this.onCancel,
   });
 
   final String type;
   final String? startTime;
   final bool working;
   final VoidCallback onStart;
+  final VoidCallback? onCancel;
 
   String get _typeLabel => switch (type) {
     'convoy' => 'تكليف قافلة',
@@ -1146,25 +1476,45 @@ class _MissionStartCard extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.all(16),
-            child: SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: working ? null : onStart,
-                icon: working
-                    ? const SizedBox.square(
-                        dimension: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.play_arrow_rounded),
-                label: const Text('بدء المأمورية الآن'),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  textStyle: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
+            child: Column(
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: working ? null : onStart,
+                    icon: working
+                        ? const SizedBox.square(
+                            dimension: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.play_arrow_rounded),
+                    label: const Text('بدء المأمورية الآن'),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      textStyle: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                if (onCancel != null) ...[
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: working ? null : onCancel,
+                      icon: const Icon(Icons.cancel_outlined, size: 18),
+                      label: const Text('إلغاء المأمورية'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.statusDanger,
+                        side: BorderSide(color: AppColors.statusDanger.withValues(alpha: 0.5)),
+                        padding: const EdgeInsets.symmetric(vertical: 11),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ],
@@ -1178,11 +1528,13 @@ class _MissionPendingCard extends StatelessWidget {
     required this.type,
     this.working = false,
     this.onStart,
+    this.onCancel,
   });
 
   final String type;
   final bool working;
   final VoidCallback? onStart;
+  final VoidCallback? onCancel;
 
   String get _typeLabel => switch (type) {
     'convoy' => 'تكليف قافلة',
@@ -1248,25 +1600,42 @@ class _MissionPendingCard extends StatelessWidget {
                 ),
               ],
             ),
-            if (onStart != null) ...[
+            if (onStart != null || onCancel != null) ...[
               const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: working ? null : onStart,
-                  icon: working
-                      ? const SizedBox.square(
-                          dimension: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.play_arrow_rounded),
-                  label: const Text('بدء المأمورية الآن'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.statusWarning,
-                    foregroundColor: Colors.black87,
+              if (onStart != null)
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: working ? null : onStart,
+                    icon: working
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.play_arrow_rounded),
+                    label: const Text('بدء المأمورية الآن'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.statusWarning,
+                      foregroundColor: Colors.black87,
+                    ),
                   ),
                 ),
-              ),
+              if (onCancel != null) ...[
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: working ? null : onCancel,
+                    icon: const Icon(Icons.cancel_outlined, size: 18),
+                    label: const Text('إلغاء المأمورية'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.statusDanger,
+                      side: BorderSide(color: AppColors.statusDanger.withValues(alpha: 0.5)),
+                      padding: const EdgeInsets.symmetric(vertical: 11),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ],
         ),
@@ -1280,11 +1649,13 @@ class _MissionInProgressCard extends StatelessWidget {
     required this.startedAt,
     required this.working,
     required this.onEnd,
+    this.onCancel,
   });
 
   final DateTime? startedAt;
   final bool working;
   final VoidCallback onEnd;
+  final VoidCallback? onCancel;
 
   @override
   Widget build(BuildContext context) {
@@ -1309,7 +1680,7 @@ class _MissionInProgressCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'تم بدء المأمورية',
+                  'المأمورية جارية الآن',
                   style: TextStyle(
                     color: scheme.onTertiaryContainer,
                     fontSize: 20,
@@ -1319,8 +1690,8 @@ class _MissionInProgressCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   startedLabel == null
-                      ? 'بانتظار الانتهاء — عند العودة إلى مقر الجمعية أنهِ المهمة.'
-                      : 'بدأت الساعة $startedLabel — بانتظار الانتهاء عند العودة لمقر الجمعية.',
+                      ? 'يمكنك إنهاء المهمة والعودة للعمل، أو إنهاؤها مع الانصراف إذا انتهى دوامك.'
+                      : 'بدأت الساعة $startedLabel — يمكنك إنهاؤها والعودة للعمل أو إنهائها مع الانصراف.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: scheme.onTertiaryContainer.withValues(alpha: 0.85),
@@ -1332,25 +1703,45 @@ class _MissionInProgressCard extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.all(16),
-            child: SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: working ? null : onEnd,
-                icon: working
-                    ? const SizedBox.square(
-                        dimension: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.task_alt_rounded),
-                label: const Text('إنهاء المأمورية والعودة للمقر'),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  textStyle: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
+            child: Column(
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: working ? null : onEnd,
+                    icon: working
+                        ? const SizedBox.square(
+                            dimension: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.task_alt_rounded),
+                    label: const Text('إنهاء المأمورية'),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      textStyle: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                if (onCancel != null) ...[
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: working ? null : onCancel,
+                      icon: const Icon(Icons.cancel_outlined, size: 18),
+                      label: const Text('إلغاء المأمورية'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.statusDanger,
+                        side: BorderSide(color: AppColors.statusDanger.withValues(alpha: 0.5)),
+                        padding: const EdgeInsets.symmetric(vertical: 11),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ],
@@ -1460,6 +1851,19 @@ class _TodayStatusCard extends StatelessWidget {
     final formatter = DateFormat('h:mm a', 'ar');
     final scheme = Theme.of(context).colorScheme;
     final hasEvent = state.lastEventType != null;
+    final liveDurationMins = state.workMinutes > 0
+        ? state.workMinutes
+        : (state.todayCheckInAt != null
+            ? (state.todayCheckOutAt != null
+                ? state.todayCheckOutAt!.difference(state.todayCheckInAt!).inMinutes
+                : DateTime.now().difference(state.todayCheckInAt!).inMinutes)
+            : 0);
+    final isEightHoursFulfilled = liveDurationMins >= 480;
+    final effectiveTodayStatus = (isEightHoursFulfilled &&
+            (state.todayStatus == 'late' ||
+                (state.todayStatus == 'missing_checkout' && state.todayCheckOutAt != null)))
+        ? 'present'
+        : (state.todayStatus ?? 'not_recorded');
     final hasStatus =
         state.todayStatus != null &&
         state.todayStatus != '—' &&
@@ -1481,7 +1885,7 @@ class _TodayStatusCard extends StatelessWidget {
                 ),
                 const Spacer(),
                 if (hasStatus)
-                  MobileStatusPill(state.todayStatus!)
+                  MobileStatusPill(effectiveTodayStatus)
                 else if (state.missionToday != null)
                   MobileStatusPill(state.missionToday!.type)
                 else
@@ -1548,6 +1952,8 @@ class _TodayStatusCard extends StatelessWidget {
                                     startTime: currentShift!.activeStartTime,
                                     graceInMinutes: currentShift!.graceInMinutes,
                                     todayCheckInAt: state.todayCheckInAt,
+                                    todayCheckOutAt: state.todayCheckOutAt,
+                                    workMinutes: state.workMinutes,
                                     hasPermit: currentShift!.hasTodayPermit,
                                     permitMinutes: currentShift!.todayPermit?.permitMinutes,
                                     originalStartTime: currentShift!.startTime,
@@ -1652,6 +2058,119 @@ class _TodayStatusCard extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+            ],
+
+            // صندوق الوقت الإضافي واستيفاء ساعات العمل (8 ساعات)
+            if (state.todayCheckInAt != null && liveDurationMins >= 480) ...[
+              Builder(
+                builder: (context) {
+                  final overtimeMins = state.overtimeMinutes > 0
+                      ? state.overtimeMinutes
+                      : (liveDurationMins > 480 ? liveDurationMins - 480 : 0);
+                  final otHours = overtimeMins ~/ 60;
+                  final otRemainingMins = overtimeMins % 60;
+                  final totalWorkHours = liveDurationMins ~/ 60;
+                  final totalWorkRemainingMins = liveDurationMins % 60;
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: overtimeMins > 0
+                          ? const Color(0xFF10B981).withValues(alpha: 0.12)
+                          : scheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: overtimeMins > 0
+                            ? const Color(0xFF10B981).withValues(alpha: 0.45)
+                            : scheme.primary.withValues(alpha: 0.3),
+                        width: 1.2,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: overtimeMins > 0
+                                ? const Color(0xFF10B981).withValues(alpha: 0.22)
+                                : scheme.primary.withValues(alpha: 0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            overtimeMins > 0 ? Icons.more_time_rounded : Icons.verified_rounded,
+                            color: overtimeMins > 0 ? const Color(0xFF059669) : scheme.primary,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                               Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      overtimeMins > 0
+                                          ? 'وقت إضافي: $overtimeMins دقيقة'
+                                          : 'تم استيفاء 8 ساعات عمل كاملة ✓',
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w800,
+                                        color: overtimeMins > 0
+                                            ? const Color(0xFF047857)
+                                            : scheme.primary,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: overtimeMins > 0
+                                          ? const Color(0xFF10B981).withValues(alpha: 0.25)
+                                          : scheme.primary.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      overtimeMins > 0
+                                          ? '+$overtimeMins د إضافي'
+                                          : 'مكتمل 100%',
+                                      style: TextStyle(
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.w800,
+                                        color: overtimeMins > 0
+                                            ? const Color(0xFF047857)
+                                            : scheme.primary,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                overtimeMins > 0
+                                    ? (otHours > 0
+                                        ? 'إجمالي الدوام: $totalWorkHours س و$totalWorkRemainingMins د (إضافي: $overtimeMins دقيقة = $otHours س و$otRemainingMins د) · زال التأخير تماماً'
+                                        : 'إجمالي الدوام: $totalWorkHours س و$totalWorkRemainingMins د (إضافي: $overtimeMins دقيقة) · زال التأخير تماماً')
+                                    : 'إجمالي الدوام: 8 ساعات كاملة · تم تعويض ساعات التأخير بنجاح وزالت أي خصومات',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: scheme.onSurfaceVariant,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ],
 
@@ -2977,6 +3496,8 @@ _ShiftDisciplineMetric _computeShiftDisciplineMetric({
   required String startTime,
   required int graceInMinutes,
   required DateTime? todayCheckInAt,
+  DateTime? todayCheckOutAt,
+  int? workMinutes,
   bool hasPermit = false,
   int? permitMinutes,
   String? originalStartTime,
@@ -2993,6 +3514,33 @@ _ShiftDisciplineMetric _computeShiftDisciplineMetric({
 
   if (todayCheckInAt != null) {
     final checkIn = todayCheckInAt.toLocal();
+
+    // فحص ما إذا كان الموظف قد استوفى 8 ساعات عمل (480 دقيقة)
+    final totalWorkMins = (workMinutes != null && workMinutes > 0)
+        ? workMinutes
+        : (todayCheckOutAt != null
+            ? todayCheckOutAt.difference(checkIn).inMinutes
+            : current.difference(checkIn).inMinutes);
+
+    if (totalWorkMins >= 480) {
+      final overtimeMins = totalWorkMins > 480 ? totalWorkMins - 480 : 0;
+      return _ShiftDisciplineMetric(
+        statusTitle: overtimeMins > 0
+            ? 'تم استيفاء 8 ساعات عمل وزيادة $overtimeMins دقيقة وقت إضافي ✓'
+            : 'تم استيفاء ساعات العمل الرسمية كاملة (8 ساعات) ✓',
+        statusSubtitle: overtimeMins > 0
+            ? 'أتم الموظف الـ 8 ساعات وزاد $overtimeMins دقيقة وقت إضافي · زال التأخير ويُصرف الإضافي'
+            : 'أتم الموظف 8 ساعات عمل كاملة وعوّض أي تأخير سابق · لا يُطبق أي خصم',
+        badgeLabel: overtimeMins > 0
+            ? 'مستوفٍ +$overtimeMins د إضافي ✓'
+            : 'مستوفٍ لـ 8 ساعات ✓',
+        color: AppColors.statusSuccess,
+        icon: Icons.check_circle_rounded,
+        isDeductionRisk: false,
+        lateMinutes: 0,
+        consumedGraceMinutes: 0,
+      );
+    }
     if (checkIn.isBefore(todayStart) || checkIn.isAtSameMomentAs(todayStart)) {
       return _ShiftDisciplineMetric(
         statusTitle: hasPermit ? 'حضور منضبط مع الإذن المعتمد ✓' : 'حضور مبكر ومنضبط تماماً ✓',
@@ -3428,7 +3976,7 @@ Future<void> showWorkShiftSelectionSheet(BuildContext context, WidgetRef ref) as
                             ),
                           ),
                           Text(
-                            'اختر الفترة الأنسب لجدولك اليومي للاعتماد من الإدارة',
+                            'اختر الفترة الأنسب لجدولك اليومي — يتم الاعتماد والتطبيق فوراً',
                             style: TextStyle(
                               fontSize: 12,
                               color: scheme.onSurfaceVariant,
@@ -3776,9 +4324,8 @@ Future<void> showWorkShiftSelectionSheet(BuildContext context, WidgetRef ref) as
                       : () async {
                           setModalState(() => submitting = true);
                           try {
-                            await ref.read(mobileCommandsProvider).requestShiftChange(
+                            await ref.read(mobileCommandsProvider).adoptMyWorkShift(
                                   shiftId: selectedShiftId!,
-                                  reason: reasonController.text.trim(),
                                 );
                             ref.invalidate(myWorkShiftInfoProvider);
                             ref.invalidate(attendanceStateProvider);
@@ -3786,7 +4333,7 @@ Future<void> showWorkShiftSelectionSheet(BuildContext context, WidgetRef ref) as
                               Navigator.pop(ctx);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('تم إرسال طلب تغيير فترة العمل للاعتماد بنجاح'),
+                                  content: Text('تم اعتماد وتثبيت فترة العمل الجديدة فورياً بنجاح ✓'),
                                   backgroundColor: AppColors.statusSuccess,
                                 ),
                               );
@@ -3808,13 +4355,13 @@ Future<void> showWorkShiftSelectionSheet(BuildContext context, WidgetRef ref) as
                           dimension: 18,
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
-                      : const Icon(Icons.check_circle_outline_rounded),
+                      : const Icon(Icons.check_circle_rounded),
                   label: Text(
                     submitting
-                        ? 'جارٍ إرسال الطلب...'
+                        ? 'جارٍ تثبيت الوردية...'
                         : (selectedShiftId == current?.id
                             ? 'هذه هي فترتك الحالية بالفعل'
-                            : 'إرسال طلب تغيير الوردية للاعتماد'),
+                            : 'اعتماد وتثبيت الوردية فوراً'),
                     style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
                   ),
                 ),
@@ -4431,3 +4978,285 @@ class _QuickCorrectionActionChip extends StatelessWidget {
     );
   }
 }
+
+class _PenaltyCompensateBanner extends ConsumerWidget {
+  const _PenaltyCompensateBanner({required this.state, this.checkInAt});
+
+  final AttendanceState state;
+  final DateTime? checkInAt;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final penalties =
+        ref.watch(myInstantPenaltiesProvider).asData?.value ?? const [];
+    final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+    // 1) فحص غرامة ملغاة اليوم لاستيفاء 8 ساعات
+    final waivedToday = penalties
+        .where(
+          (p) =>
+              p.workDate == todayStr &&
+              p.status == 'cancelled' &&
+              (p.cancelledReason?.contains('8 ساعات') ?? false),
+        )
+        .firstOrNull;
+
+    if (waivedToday != null) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.statusSuccess.withValues(alpha: .12),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.statusSuccess.withValues(alpha: .4),
+            width: 1.2,
+          ),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.verified_rounded,
+              color: AppColors.statusSuccess,
+              size: 26,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'تم إسقاط غرامة التأخير اليوم بنجاح 🎉',
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.statusSuccess,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'تم إلغاء الخصم كاملاً لاستيفائك 8 ساعات عمل كاملة تعويضاً عن التأخير الصباحي.',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      height: 1.35,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // 2) فحص الغرامة الفورية المسجلة لليوم (إن وجدت)
+    final activePen = penalties
+        .where(
+          (p) =>
+              p.workDate == todayStr &&
+              (p.status == 'pending_payment' ||
+                  p.status == 'doubled' ||
+                  p.status == 'suspended'),
+        )
+        .firstOrNull;
+
+    final hasLateFlag = state.todayStatus == 'late' ||
+        state.lateMinutes > 0 ||
+        state.estimatedLatePenaltyAmount > 0 ||
+        state.isCompensationEligible ||
+        activePen != null;
+
+    if (!hasLateFlag) return const SizedBox.shrink();
+
+    final effectiveCheckIn = state.todayCheckInAt ?? checkInAt ?? DateTime.now();
+    final checkInStr = state.todayCheckInTime ??
+        DateFormat('h:mm a', 'ar').format(effectiveCheckIn.toLocal());
+    final targetCheckout = state.targetCheckoutAt ??
+        effectiveCheckIn.add(const Duration(hours: 8));
+    final targetStr = state.targetCheckoutTime ??
+        DateFormat('h:mm a', 'ar').format(targetCheckout.toLocal());
+
+    final penaltyAmount = activePen?.currentAmount ?? state.estimatedLatePenaltyAmount;
+    final lateMins = activePen?.lateMinutes ?? state.lateMinutes;
+
+    final now = DateTime.now();
+    final remainingMins = state.compensationRemainingMinutes > 0
+        ? state.compensationRemainingMinutes
+        : targetCheckout.difference(now).inMinutes;
+    final reached = state.isCompensationCompleted ||
+        remainingMins <= 0 ||
+        state.workMinutes >= 480;
+    final overtimeMins = state.overtimeMinutes > 0
+        ? state.overtimeMinutes
+        : (reached ? now.difference(targetCheckout).inMinutes : 0);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: reached
+            ? AppColors.statusSuccess.withValues(alpha: .12)
+            : const Color(0xFFFFF7ED),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: reached
+              ? AppColors.statusSuccess.withValues(alpha: .4)
+              : const Color(0xFFFDBA74),
+          width: 1.3,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: reached
+                ? AppColors.statusSuccess.withValues(alpha: .06)
+                : const Color(0xFFEA580C).withValues(alpha: .08),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: reached
+                      ? AppColors.statusSuccess.withValues(alpha: .18)
+                      : const Color(0xFFF97316).withValues(alpha: .18),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  reached ? Icons.verified_user_rounded : Icons.lightbulb_rounded,
+                  color: reached
+                      ? AppColors.statusSuccess
+                      : const Color(0xFFEA580C),
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      reached
+                          ? 'أتممت 8 ساعات عمل — سجّل انصرافك لإسقاط الغرامة 🔔'
+                          : 'اقتراح ذكي لإسقاط غرامة التأخير 💡',
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.bold,
+                        color: reached
+                            ? AppColors.statusSuccess
+                            : const Color(0xFFC2410C),
+                      ),
+                    ),
+                    if (!reached && lateMins > 0) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        'تأخير $lateMins دقيقة • الخصم المقرر: ${penaltyAmount.toStringAsFixed(0)} ج.م',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF9A3412),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            reached
+                ? 'لقد استوفيت وقت العمل المقرر (8 ساعات كاملة). يرجى تسجيل بصمة الانصراف الآن لتأكيد تواجدك بمقر العمل وإسقاط الغرامة تلقائياً دون أي خصم.'
+                : 'حضرت اليوم في تمام الساعة $checkInStr. يتوجب عليك خصم بقيمة ${penaltyAmount.toStringAsFixed(0)} ج.م لتأخرك، ولكن إذا استكملت 8 ساعات عمل حتى الساعة $targetStr وسجلت بصمة الانصراف بمقر العمل، فسيتم تلقائياً إلغاء الغرامة وإسقاط الخصم كاملاً!',
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.45,
+              fontWeight: FontWeight.w500,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          if (!reached) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFEDD5),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFED7AA)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.access_time_filled_rounded,
+                    size: 18,
+                    color: Color(0xFFEA580C),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'موعد الانصراف المقترح: $targetStr',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF9A3412),
+                      ),
+                    ),
+                  ),
+                  Text(
+                    remainingMins > 0
+                        ? 'متبقٍ ${remainingMins ~/ 60} س و ${remainingMins % 60} د'
+                        : 'دقائق معدودة',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFFC2410C),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          if (overtimeMins > 0) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0D9488).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: const Color(0xFF0D9488).withValues(alpha: 0.35),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.more_time_rounded,
+                    size: 16,
+                    color: Color(0xFF0D9488),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'الوقت الإضافي حتى الآن: +$overtimeMins دقيقة (${(overtimeMins / 60).floor()} س و ${overtimeMins % 60} د)',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF0D9488),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+

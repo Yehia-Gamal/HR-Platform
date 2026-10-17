@@ -4,6 +4,7 @@ import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart
 import 'package:ahla_shabab_management_os/core/sharing/whatsapp_share_service.dart';
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
+import 'package:ahla_shabab_management_os/features/mobile_data/location_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/employee_profile_page.dart';
@@ -13,6 +14,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/request_decision
 import 'package:ahla_shabab_management_os/features/mobile_pages/request_display.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -74,6 +76,20 @@ class _RequestScreen extends ConsumerWidget {
         request.status == 'pending' &&
         !isMine;
 
+    const delegateRoles = {
+      'admin',
+      'super-admin',
+      'executive',
+      'executive-director',
+      'hr-manager',
+      'hr-specialist',
+      'operations-manager-1',
+    };
+    final canDelegate = !isClinicStaff &&
+        !isMine &&
+        request.status == 'pending' &&
+        (access?.roles.any(delegateRoles.contains) ?? false);
+
     // فتح تلقائي لورقة القرار عند القدوم من زر إشعار — مرة واحدة،
     // وبشرط أن يكون المستخدم مخوّلاً والطلب ما زال معلقاً.
     final auto = switch (initialAction) {
@@ -115,10 +131,12 @@ class _RequestScreen extends ConsumerWidget {
           ),
         ],
       ),
-      bottomNavigationBar: canDecide
+      bottomNavigationBar: (canDecide || canDelegate)
           ? _DecisionBar(
               request: request,
               awaitingMe: request.awaitingMe ?? true,
+              canDecide: canDecide,
+              canDelegate: canDelegate,
               currentStage: currentStage,
             )
           : null,
@@ -150,7 +168,11 @@ class _RequestScreen extends ConsumerWidget {
             ],
             const SizedBox(height: 12),
             _JourneyCard(request: request),
-            if (isMine && request.canCancel && request.status == 'pending') ...[
+            if (isMine &&
+                ((request.canCancel && request.status == 'pending') ||
+                    (isFieldAssignmentType(request.type) &&
+                        (request.status == 'pending' || request.status == 'approved') &&
+                        request.missionExecution?.status != 'completed'))) ...[
               const SizedBox(height: 14),
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
@@ -161,8 +183,12 @@ class _RequestScreen extends ConsumerWidget {
                   minimumSize: const Size.fromHeight(48),
                 ),
                 onPressed: () => _openWithdraw(context, ref, request),
-                icon: const Icon(Icons.undo_rounded),
-                label: const Text('سحب الطلب قبل صدور القرار'),
+                icon: Icon(isFieldAssignmentType(request.type)
+                    ? Icons.cancel_outlined
+                    : Icons.undo_rounded),
+                label: Text(isFieldAssignmentType(request.type)
+                    ? 'إلغاء المأمورية'
+                    : 'سحب الطلب قبل صدور القرار'),
               ),
             ],
             // 0452: صاحب الطلب يعدّل الطلب المرفوض/المُعاد ويعيد رفعه
@@ -318,11 +344,15 @@ class _DecisionBar extends ConsumerWidget {
   const _DecisionBar({
     required this.request,
     required this.awaitingMe,
+    required this.canDecide,
+    required this.canDelegate,
     required this.currentStage,
   });
 
   final MobileRequestDetail request;
   final bool awaitingMe;
+  final bool canDecide;
+  final bool canDelegate;
   final String? currentStage;
 
   @override
@@ -340,73 +370,113 @@ class _DecisionBar extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                awaitingMe
-                    ? 'الطلب بانتظار قرارك'
-                    : 'الطلب الآن عند ${currentStage ?? 'مرحلة أخرى'} — ويمكنك البت فيه بصلاحيتك',
+                canDecide
+                    ? (awaitingMe
+                        ? 'الطلب بانتظار قرارك'
+                        : 'الطلب الآن عند ${currentStage ?? 'مرحلة أخرى'} — ويمكنك البت فيه بصلاحيتك')
+                    : 'القرار في هذه المرحلة لغيرك — ويمكنك تسريعه وتفويضه لأبو عمار',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: awaitingMe
+                  color: awaitingMe && canDecide
                       ? AppColors.statusInfo
                       : scheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: FilledButton.icon(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.statusSuccess,
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size.fromHeight(48),
-                      ),
-                      onPressed: () =>
-                          _openDecision(context, ref, request, 'approve'),
-                      icon: const Icon(Icons.check_rounded),
-                      label: const Text('اعتماد'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 2,
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: requestReturnColor,
-                        side: BorderSide(
-                          color: requestReturnColor.withValues(alpha: .5),
+              if (canDecide)
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.statusSuccess,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size.fromHeight(48),
                         ),
-                        minimumSize: const Size.fromHeight(48),
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        onPressed: () =>
+                            _openDecision(context, ref, request, 'approve'),
+                        icon: const Icon(Icons.check_rounded),
+                        label: const Text('اعتماد'),
                       ),
-                      onPressed: () =>
-                          _openDecision(context, ref, request, 'return'),
-                      icon: const Icon(Icons.undo_rounded, size: 19),
-                      label: const Text('إرجاع'),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 2,
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.statusDanger,
-                        side: BorderSide(
-                          color: AppColors.statusDanger.withValues(alpha: .5),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: requestReturnColor,
+                          side: BorderSide(
+                            color: requestReturnColor.withValues(alpha: .5),
+                          ),
+                          minimumSize: const Size.fromHeight(48),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
                         ),
-                        minimumSize: const Size.fromHeight(48),
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        onPressed: () =>
+                            _openDecision(context, ref, request, 'return'),
+                        icon: const Icon(Icons.undo_rounded, size: 19),
+                        label: const Text('إرجاع'),
                       ),
-                      onPressed: () =>
-                          _openDecision(context, ref, request, 'reject'),
-                      icon: const Icon(Icons.close_rounded, size: 19),
-                      label: const Text('رفض'),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.statusDanger,
+                          side: BorderSide(
+                            color: AppColors.statusDanger.withValues(alpha: .5),
+                          ),
+                          minimumSize: const Size.fromHeight(48),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                        ),
+                        onPressed: () =>
+                            _openDecision(context, ref, request, 'reject'),
+                        icon: const Icon(Icons.close_rounded, size: 19),
+                        label: const Text('رفض'),
+                      ),
+                    ),
+                  ],
+                ),
+              if (canDelegate) ...[
+                if (canDecide) const SizedBox(height: 8),
+                FilledButton.tonalIcon(
+                  style: FilledButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    backgroundColor:
+                        const Color(0xFFD97706).withValues(alpha: .15),
+                    foregroundColor: const Color(0xFFB45309),
+                    minimumSize: const Size.fromHeight(40),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                ],
-              ),
+                  icon: const Icon(Icons.bolt_rounded, size: 18),
+                  label: const Text(
+                    'تسريع وتفويض لأبو عمار (مدير التشغيل 1)',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 12,
+                    ),
+                  ),
+                  onPressed: () async {
+                    final done = await showRequestDelegateSheet(
+                      context,
+                      ref,
+                      requestId: request.id,
+                      number: request.number,
+                      type: request.type,
+                      employeeName: request.employeeName,
+                    );
+                    if (done) {
+                      ref.invalidate(mobileRequestDetailProvider(request.id));
+                      ref.invalidate(mobileRequestsProvider);
+                    }
+                  },
+                ),
+              ],
             ],
           ),
         ),
@@ -1492,6 +1562,24 @@ class _MissionExecutionCard extends ConsumerWidget {
         );
     if (result == null || !context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
+
+    Position? position;
+    if (result.withCheckout) {
+      try {
+        position = await LocationService.current();
+      } catch (locErr) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              'الانصراف من الخارج يتطلب تفعيل الـ GPS وأخذ موقع مباشر: ${humanizeError(locErr)}',
+            ),
+            backgroundColor: AppColors.statusDanger,
+          ),
+        );
+        return;
+      }
+    }
+
     try {
       await ref
           .read(mobileCommandsProvider)
@@ -1500,13 +1588,17 @@ class _MissionExecutionCard extends ConsumerWidget {
             report: result.report,
             outcome: result.outcome,
             withCheckout: result.withCheckout,
+            latitude: position?.latitude,
+            longitude: position?.longitude,
+            accuracy: position?.accuracy,
+            isMock: position?.isMocked ?? false,
           );
       messenger.showSnackBar(
         SnackBar(
           backgroundColor: AppColors.statusSuccess,
           content: Text(
             result.withCheckout
-                ? 'تم إنهاء $_noun وتسجيل انصرافك.'
+                ? 'تم إنهاء $_noun وتسجيل انصرافك الميداني بنجاح.'
                 : 'تم إنهاء $_noun — دوامك مستمر.',
           ),
         ),

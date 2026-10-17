@@ -593,33 +593,36 @@ class _TimedLoadingPageState extends State<_TimedLoadingPage> {
                       ),
                       const SizedBox(height: 18),
                       // شارة كسب الحسنات
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF10B981).withValues(alpha: .12),
-                          borderRadius: BorderRadius.circular(99),
-                          border: Border.all(
-                            color: const Color(0xFF10B981).withValues(alpha: .28),
-                          ),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.auto_awesome_rounded,
-                              size: 13,
-                              color: Color(0xFF10B981),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981).withValues(alpha: .12),
+                            borderRadius: BorderRadius.circular(99),
+                            border: Border.all(
+                              color: const Color(0xFF10B981).withValues(alpha: .28),
                             ),
-                            SizedBox(width: 6),
-                            Text(
-                              'ذكر واستغفار لكسب الحسنات',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.auto_awesome_rounded,
+                                size: 13,
                                 color: Color(0xFF10B981),
                               ),
-                            ),
-                          ],
+                              SizedBox(width: 6),
+                              Text(
+                                'ذكر واستغفار لكسب الحسنات',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF10B981),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),

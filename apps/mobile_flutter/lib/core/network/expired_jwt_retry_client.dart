@@ -46,14 +46,17 @@ class ExpiredJwtRetryClient extends http.BaseClient {
     // نسخة احتياطية قبل الإرسال: الطلب نفسه لا يُرسل مرتين.
     final body = retryable ? request.bodyBytes : null;
     final response = await _inner.send(request);
-    if (!retryable || response.statusCode != 401) return response;
+    if (!retryable || (response.statusCode != 401 && response.statusCode != 500)) return response;
 
     final bytes = await response.stream.toBytes();
-    if (!_isExpiredJwt(bytes)) return _rebuild(response, bytes);
-
+    final isExpired = _isExpiredJwt(bytes);
     final usedToken = _bearer(request.headers);
     final current = currentAccessToken();
-    final token = current != null && current != usedToken
+    final tokenAlreadyRefreshed = current != null && current != usedToken;
+
+    if (!isExpired && !tokenAlreadyRefreshed) return _rebuild(response, bytes);
+
+    final token = tokenAlreadyRefreshed
         ? current
         : await refreshAccessToken().catchError((Object _) => null);
     if (token == null || token == usedToken) return _rebuild(response, bytes);
@@ -72,7 +75,9 @@ class ExpiredJwtRetryClient extends http.BaseClient {
     final text = utf8.decode(bytes, allowMalformed: true);
     return text.contains('PGRST303') ||
         text.contains('JWT expired') ||
-        text.contains('"exp" claim timestamp check failed');
+        text.contains('"exp" claim timestamp check failed') ||
+        text.contains('jwt malformed') ||
+        text.contains('invalid JWT');
   }
 
   static String? _bearer(Map<String, String> headers) {

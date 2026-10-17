@@ -175,6 +175,8 @@ export const instantPenaltySchema = z
     receiptSubmittedAt: isoDate.optional(),
     receiptReferenceNumber: z.string().nullable().optional(),
     cancelledReason: z.string().nullable().optional(),
+    awaitingCheckoutConfirmation: z.boolean().optional(),
+    elapsedMinutesToday: z.number().int().optional(),
   })
   .passthrough();
 export type InstantPenalty = z.infer<typeof instantPenaltySchema>;

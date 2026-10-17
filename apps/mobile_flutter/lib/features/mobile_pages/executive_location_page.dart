@@ -1,11 +1,13 @@
 import 'dart:async';
 
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
+import 'package:ahla_shabab_management_os/core/widgets/phone_display.dart';
 import 'package:ahla_shabab_management_os/core/formatting/arabic_text.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/executive_location_employee_file_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
+import 'package:ahla_shabab_management_os/shared/hierarchy_sort.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -67,35 +69,152 @@ class _LocationDirectoryTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final query = ref.watch(locationDirectoryProvider(search.text.trim()));
     final bottomPad = MediaQuery.of(context).padding.bottom;
+    final allItems = query.value ?? const <LocationDirectoryEmployee>[];
+    // استبعاد تيم الطاقم الطبي للعيادات قطيعاً من طلب المواقع
+    final eligibleItems = allItems
+        .where((e) => !isClinicGirl(
+              name: e.name,
+              jobTitle: e.jobTitle,
+              department: e.department,
+            ))
+        .toList(growable: false);
+    // الترتيب بالهيكل الإداري المعتمد
+    final sortedItems = sortByHierarchy<LocationDirectoryEmployee>(
+      eligibleItems,
+      (e) => e.jobTitle ?? '',
+      (e) => e.name,
+      getDepartment: (e) => e.department ?? '',
+    );
     return RefreshIndicator(
       onRefresh: () async => ref.invalidate(locationDirectoryProvider),
       child: ListView(
-        padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomPad),
+        padding: EdgeInsets.fromLTRB(16, 12, 16, 16 + bottomPad),
         children: [
-          Text(
-            'اطلب موقعاً حديثاً من أي موظف في الجمعية فوراً.',
-            style: Theme.of(context).textTheme.bodyMedium,
+          // لوحة التتبع الميداني اللحظي مع زر الطلب الجماعي
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: scheme.outlineVariant.withValues(alpha: 0.35),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: scheme.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.satellite_alt_rounded,
+                    color: scheme.primary,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'التتبع الميداني اللحظي',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13.5,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'طلب موقع فوري من عموم الميدان',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: () => _confirmBroadcast(context, ref),
+                  icon: const Icon(Icons.campaign_rounded, size: 16),
+                  label: const Text(
+                    'طلب من الجميع',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 12),
-          // بث جماعي: طلب موقع فوري من كل الموظفين دفعة واحدة.
-          FilledButton.icon(
-            onPressed: () => _confirmBroadcast(context, ref),
-            icon: const Icon(Icons.campaign_rounded),
-            label: const Text('طلب موقع من الجميع'),
-          ),
-          const SizedBox(height: 16),
-          MobileFilterBar(
-            searchHint: 'بحث باسم الموظف أو الكود',
+          TextField(
             controller: search,
-            onSearchChanged: (_) => onDebounce(),
-            options: const [],
-            selected: '',
-            onSelected: (_) {},
-            resultLabel: arEmployees(query.value?.length ?? 0),
+            onChanged: (_) => onDebounce(),
+            textInputAction: TextInputAction.search,
+            decoration: InputDecoration(
+              hintText: 'ابحث باسم الموظف أو القسم أو الكود',
+              prefixIcon: const Icon(Icons.search_rounded),
+              suffixIcon: search.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () {
+                        search.clear();
+                        onDebounce();
+                      },
+                    )
+                  : null,
+              filled: true,
+              fillColor: scheme.surfaceContainerLow,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                arEmployees(sortedItems.length),
+                style: theme.textTheme.labelMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+              if (query.isRefreshing)
+                const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
           query.when(
             loading: () => const Center(
               child: Padding(
@@ -131,7 +250,7 @@ class _LocationDirectoryTab extends ConsumerWidget {
                 ),
               ),
             ),
-            data: (items) => items.isEmpty
+            data: (_) => sortedItems.isEmpty
                 ? Padding(
                     padding: const EdgeInsets.all(30),
                     child: Center(
@@ -156,7 +275,7 @@ class _LocationDirectoryTab extends ConsumerWidget {
                     ),
                   )
                 : Column(
-                    children: items
+                    children: sortedItems
                         .map(
                           (employee) => Padding(
                             padding: const EdgeInsets.only(bottom: 10),
@@ -184,7 +303,7 @@ class _LocationDirectoryTab extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'سيُرسل طلب موقع فوري إلى كل الموظفين النشطين ضمن نطاق صلاحيتك والذين لا يملكون طلباً معلقاً.',
+              'سيُرسل طلب موقع فوري إلى كل الموظفين النشطين (باستثناء الطاقم الطبي للعيادات) ضمن نطاق صلاحيتك والذين لا يملكون طلباً معلقاً.',
             ),
             const SizedBox(height: 14),
             TextField(
@@ -282,11 +401,32 @@ class _EmployeeLocationCardState extends ConsumerState<_EmployeeLocationCard> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final bool inCooldown = _lastRequestedAt != null;
     final int cooldownRemaining = inCooldown
         ? 30 - DateTime.now().difference(_lastRequestedAt!).inSeconds
         : 0;
+
+    final rawCode = widget.employee.employeeCode;
+    final cleanCode = (rawCode != null && rawCode.isNotEmpty)
+        ? PhoneDisplay.stripCountryCode(rawCode)
+        : null;
+    final dept = widget.employee.department;
+    final metaParts = [
+      if (dept != null && dept.trim().isNotEmpty) dept.trim(),
+      if (cleanCode != null && cleanCode.trim().isNotEmpty) 'كود: $cleanCode',
+    ];
+
     return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 10),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: scheme.outlineVariant.withValues(alpha: 0.35),
+        ),
+      ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => Navigator.push(
@@ -300,16 +440,18 @@ class _EmployeeLocationCardState extends ConsumerState<_EmployeeLocationCard> {
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Employee row: Avatar + Name & Role + Status / Chevron
               Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   AppAvatar(
                     name: widget.employee.name,
                     photoUrl: widget.employee.photoUrl,
-                    radius: 22,
+                    radius: 23,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -318,72 +460,167 @@ class _EmployeeLocationCardState extends ConsumerState<_EmployeeLocationCard> {
                       children: [
                         Text(
                           widget.employee.name,
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w900),
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 15,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        Text(
-                          [
-                            widget.employee.employeeCode,
-                            widget.employee.jobTitle,
-                            widget.employee.department,
-                          ].whereType<String>().join(' · '),
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
+                        if (widget.employee.jobTitle != null &&
+                            widget.employee.jobTitle!.trim().isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            widget.employee.jobTitle!.trim(),
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                              color: scheme.primary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                        if (metaParts.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            metaParts.join(' · '),
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: scheme.onSurfaceVariant,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ],
                     ),
                   ),
+                  const SizedBox(width: 8),
                   if (widget.employee.activeRequestStatus != null)
-                    MobileStatusPill(widget.employee.activeRequestStatus!),
+                    MobileStatusPill(widget.employee.activeRequestStatus!)
+                  else
+                    Icon(
+                      Icons.chevron_left_rounded,
+                      color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
+                      size: 22,
+                    ),
                 ],
               ),
+
+              // Location preview box (if recorded)
               if (widget.employee.lastRecordedAt != null) ...[
-                const Divider(height: 26),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'آخر موقع: ${DateFormat('d MMM - h:mm a', 'ar').format(widget.employee.lastRecordedAt!.toLocal())}',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                          Text(
-                            'دقة ${widget.employee.lastAccuracy?.round() ?? 0} متر',
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
-                          ),
-                        ],
-                      ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 9,
+                  ),
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: scheme.outlineVariant.withValues(alpha: 0.3),
                     ),
-                    // زر فتح خريطة Google Maps لموقع الموظف مباشرة
-                    if (widget.employee.lastLatitude != null &&
-                        widget.employee.lastLongitude != null)
-                      FilledButton.tonalIcon(
-                        onPressed: () => launchUrl(
-                          Uri.parse(
-                            'https://maps.google.com/?q=${widget.employee.lastLatitude},${widget.employee.lastLongitude}',
-                          ),
-                          mode: LaunchMode.externalApplication,
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(7),
+                        decoration: BoxDecoration(
+                          color: scheme.primary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        icon: const Icon(Icons.map_rounded, size: 18),
-                        label: const Text('افتح الخريطة'),
+                        child: Icon(
+                          Icons.location_on_rounded,
+                          size: 17,
+                          color: scheme.primary,
+                        ),
                       ),
-                  ],
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'آخر رصد: ${DateFormat('d MMMM · h:mm a', 'ar').format(widget.employee.lastRecordedAt!.toLocal())}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'الدقة: ${widget.employee.lastAccuracy?.round() ?? 0} متر',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: scheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (widget.employee.lastLatitude != null &&
+                          widget.employee.lastLongitude != null)
+                        FilledButton.tonalIcon(
+                          onPressed: () => launchUrl(
+                            Uri.parse(
+                              'https://maps.google.com/?q=${widget.employee.lastLatitude},${widget.employee.lastLongitude}',
+                            ),
+                            mode: LaunchMode.externalApplication,
+                          ),
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          icon: const Icon(Icons.map_rounded, size: 15),
+                          label: const Text(
+                            'الخريطة',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ],
+
+              // Request location action
               const SizedBox(height: 12),
-              FilledButton.icon(
-                onPressed: inCooldown ? null : () => _sendRequest(context, ref),
-                icon: const Icon(Icons.location_on_rounded),
-                label: Text(
-                  inCooldown
-                      ? 'انتظر $cooldownRemaining ثانية'
-                      : 'طلب موقع فوري',
+              SizedBox(
+                height: 38,
+                child: FilledButton.tonalIcon(
+                  onPressed:
+                      inCooldown ? null : () => _sendRequest(context, ref),
+                  icon: Icon(
+                    inCooldown
+                        ? Icons.hourglass_top_rounded
+                        : Icons.my_location_rounded,
+                    size: 17,
+                  ),
+                  label: Text(
+                    inCooldown
+                        ? 'يرجى الانتظار ($cooldownRemaining ث)'
+                        : 'طلب موقع فوري',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                  ),
+                  style: FilledButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
                 ),
               ),
             ],

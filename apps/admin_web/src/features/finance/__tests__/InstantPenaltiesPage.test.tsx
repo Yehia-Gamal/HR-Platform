@@ -68,6 +68,19 @@ vi.mock('../useInstantPenalties', () => ({
     error: null,
     mutateAsync: vi.fn(),
   }),
+  useDailyOvertimeSummary: () => ({
+    data: {
+      date: '2026-10-12',
+      totalOvertimeMinutes: 0,
+      totalOvertimeHours: 0,
+      totalOvertimeFormatted: '0 دقيقة',
+      employeesCount: 0,
+      employees: [],
+    },
+    isLoading: false,
+    isError: false,
+    error: null,
+  }),
 }));
 
 vi.mock('../../employees/useEmployees', () => ({

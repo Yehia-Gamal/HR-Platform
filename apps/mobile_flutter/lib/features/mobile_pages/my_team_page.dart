@@ -9,6 +9,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.d
 import 'package:ahla_shabab_management_os/features/mobile_pages/monthly_attendance_statement_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/people_hub_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/team_requests_page.dart';
+import 'package:ahla_shabab_management_os/shared/hierarchy_sort.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -215,7 +216,12 @@ class _TeamMembersViewState extends ConsumerState<_TeamMembersView>
             ),
           ),
           data: (data) {
-            final filtered = _applyFilters(data);
+            final filtered = sortByHierarchy<MobileTeamMember>(
+              _applyFilters(data),
+              (m) => m.jobTitle ?? '',
+              (m) => m.name,
+              getDepartment: (m) => m.department ?? '',
+            );
             if (data.isEmpty) {
               return ListView(
                 padding: const EdgeInsets.fromLTRB(16, 40, 16, 32),
@@ -476,6 +482,12 @@ class _MemberCard extends StatelessWidget {
                                 context,
                                 icon: Icons.access_time_rounded,
                                 text: 'تأخير ${member.lateMinutes} د',
+                              ),
+                            if (member.overtimeMinutes > 0)
+                              _metaChip(
+                                context,
+                                icon: Icons.more_time_rounded,
+                                text: '+${member.overtimeMinutes} د إضافي',
                               ),
                             if (time != null)
                               _metaChip(

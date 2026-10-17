@@ -172,7 +172,7 @@ void main() {
 
       // التحقق من تعبئة سبب التغيير وظهور زر الإرسال النشط
       expect(find.text('مواعيد المواصلات'), findsOneWidget);
-      expect(find.text('إرسال طلب تغيير الوردية للاعتماد'), findsOneWidget);
+      expect(find.text('اعتماد وتثبيت الوردية فوراً'), findsOneWidget);
 
       // إغلاق النافذة
       await tester.tap(find.byIcon(Icons.close_rounded));
@@ -346,6 +346,7 @@ void main() {
         tester.view.resetDevicePixelRatio();
       });
 
+      final now = DateTime.now();
       final mockAttendanceState = AttendanceState(
         attendanceRequired: true,
         selfPunchEnabled: true,
@@ -358,8 +359,9 @@ void main() {
         lastEventStatus: null,
         todayStatus: 'present',
         localDeviceStatus: 'active',
-        todayCheckInAt: DateTime(2026, 10, 5, 10, 5), // within 15m grace!
+        todayCheckInAt: DateTime(now.year, now.month, now.day, 10, 5), // within 15m grace!
         todayCheckOutAt: null,
+        workMinutes: 60,
       );
 
       final mockShiftInfo = MobileWorkShiftInfo(

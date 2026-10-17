@@ -152,7 +152,11 @@ class MobileCommands {
     required String requestId,
     required String report,
     String? outcome,
-    bool withCheckout = true,
+    bool withCheckout = false,
+    double? latitude,
+    double? longitude,
+    double? accuracy,
+    bool isMock = false,
   }) async {
     await _withTimeout(
       ref
@@ -164,11 +168,37 @@ class MobileCommands {
               'p_report': report,
               'p_outcome': outcome,
               'p_with_checkout': withCheckout,
+              'p_lat': latitude,
+              'p_lng': longitude,
+              'p_accuracy': accuracy,
+              'p_is_mock': isMock,
             },
           ),
     );
     ref.invalidate(mobileRequestsProvider);
     ref.invalidate(mobileRequestDetailProvider(requestId));
+    ref.invalidate(employeeHomeProvider);
+    ref.invalidate(attendanceStateProvider);
+  }
+
+  Future<void> cancelMission({
+    required String requestId,
+    String? reason,
+  }) async {
+    await _withTimeout(
+      ref
+          .read(supabaseProvider)
+          .rpc<dynamic>(
+            'cancel_my_mission',
+            params: {
+              'p_request_id': requestId,
+              'p_reason': reason?.trim(),
+            },
+          ),
+    );
+    ref.invalidate(mobileRequestsProvider);
+    ref.invalidate(mobileRequestDetailProvider(requestId));
+    ref.invalidate(mobileActionCenterProvider);
     ref.invalidate(employeeHomeProvider);
     ref.invalidate(attendanceStateProvider);
   }
@@ -260,6 +290,25 @@ class MobileCommands {
       'p_decision': decision,
       'p_comment': comment,
     });
+    ref.invalidate(mobileRequestsProvider);
+    ref.invalidate(mobileActionCenterProvider);
+    ref.invalidate(managerDashboardProvider);
+    ref.invalidate(executiveDashboardProvider);
+  }
+
+  /// تفويض وتسريع الطلب فوراً لمدير التشغيل (أبو عمار) دون انتظار مهلة الساعة.
+  Future<void> delegateRequestToAbuAmmar(
+    String id, {
+    String? comment,
+  }) async {
+    await _rpcQueued(
+      'delegate_request_to_abu_ammar',
+      'delegate_request_to_abu_ammar',
+      {
+        'p_request_id': id,
+        'p_comment': comment,
+      },
+    );
     ref.invalidate(mobileRequestsProvider);
     ref.invalidate(mobileActionCenterProvider);
     ref.invalidate(managerDashboardProvider);
@@ -941,6 +990,8 @@ class MobileCommands {
       ref.invalidate(attendanceStateProvider);
       ref.invalidate(myAttendanceHistoryProvider);
       ref.invalidate(employeeHomeProvider);
+      ref.invalidate(myInstantPenaltiesProvider);
+      ref.invalidate(teamInstantPenaltiesProvider);
       return data;
     } catch (error) {
       if (_isConnectivityError(error)) {
@@ -1350,6 +1401,24 @@ extension MobileSelfServiceCommands on MobileCommands {
         params: {
           'p_shift_id': shiftId,
           'p_reason': reason?.trim(),
+        },
+      ),
+    );
+    ref.invalidate(myWorkShiftInfoProvider);
+    ref.invalidate(attendanceStateProvider);
+    ref.invalidate(mobileRequestsProvider);
+    ref.invalidate(employeeHomeProvider);
+  }
+
+  /// اعتماد وتثبيت فترة العمل (الوردية) فورياً للموظف دون الحاجة لموافقة المدير
+  Future<void> adoptMyWorkShift({
+    required String shiftId,
+  }) async {
+    await _withTimeout(
+      ref.read(supabaseProvider).rpc<dynamic>(
+        'adopt_my_work_shift',
+        params: {
+          'p_shift_id': shiftId,
         },
       ),
     );

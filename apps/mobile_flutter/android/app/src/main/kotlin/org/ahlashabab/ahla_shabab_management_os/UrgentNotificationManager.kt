@@ -17,12 +17,15 @@ object UrgentNotificationManager {
     private const val CHANNEL_DESCRIPTION =
         "إشعارات طلب الموقع الفوري — صوت عالي متكرر واهتزاز وشاشة كاملة"
 
-    const val GENERAL_CHANNEL_ID = "general_notifications_v2"
+    const val GENERAL_CHANNEL_ID = "general_notifications_v4"
     private const val GENERAL_CHANNEL_NAME = "الإشعارات والتنبيهات العامة"
     private const val GENERAL_CHANNEL_DESCRIPTION =
         "إشعارات القرارات، طلبات الموافقة، الغرامات الفورية، والإعلانات الإدارية"
 
     private val LEGACY_CHANNEL_IDS = listOf(
+        "general_notifications_v3",
+        "general_notifications_v2",
+        "general_notifications",
         "urgent_location_v5",
         "urgent_location_v4",
         "urgent_location_v3",
@@ -66,9 +69,10 @@ object UrgentNotificationManager {
             manager.createNotificationChannel(urgentChannel)
         }
 
-        // 2. إنشاء قناة الإشعارات والتنبيهات العامة (صوت النظام القياسي)
+        // 2. إنشاء قناة الإشعارات والتنبيهات العامة (صوت النظام القياسي واهتزاز واضح)
         val existingGeneral = manager.getNotificationChannel(GENERAL_CHANNEL_ID)
-        if (existingGeneral == null) {
+        if (existingGeneral == null || existingGeneral.importance < NotificationManager.IMPORTANCE_HIGH) {
+            if (existingGeneral != null) manager.deleteNotificationChannel(GENERAL_CHANNEL_ID)
             val generalSound = android.media.RingtoneManager.getDefaultUri(
                 android.media.RingtoneManager.TYPE_NOTIFICATION,
             )
@@ -83,6 +87,7 @@ object UrgentNotificationManager {
             ).apply {
                 description = GENERAL_CHANNEL_DESCRIPTION
                 enableVibration(true)
+                vibrationPattern = longArrayOf(0, 300, 200, 300)
                 setSound(generalSound, generalAudioAttributes)
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
                 setShowBadge(true)

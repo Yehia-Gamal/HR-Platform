@@ -16,8 +16,13 @@ const DEV_ORIGINS = [
 
 export function corsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("Origin") ?? "";
-  const allowed = new Set([...ALLOWED, ...(DEV ? DEV_ORIGINS : [])]);
-  const allow = allowed.has(origin) ? origin : (ALLOWED[0] ?? "");
+  const isLocalhost =
+    origin.startsWith("http://localhost:") ||
+    origin.startsWith("http://127.0.0.1:") ||
+    origin.startsWith("https://localhost:") ||
+    origin.startsWith("https://127.0.0.1:");
+  const allowed = new Set([...ALLOWED, ...DEV_ORIGINS]);
+  const allow = (allowed.has(origin) || isLocalhost) ? origin : (ALLOWED[0] ?? "*");
   return {
     "Access-Control-Allow-Origin": allow,
     "Vary": "Origin",

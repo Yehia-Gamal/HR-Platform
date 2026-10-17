@@ -5,11 +5,13 @@ import 'package:ahla_shabab_management_os/core/widgets/phone_display.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/admin_attendance_day_edit_sheet.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/kpi_evaluation_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/monthly_attendance_statement_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/today_status_style.dart';
 import 'package:ahla_shabab_management_os/shared/access_context.dart';
+import 'package:ahla_shabab_management_os/shared/hierarchy_sort.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' show DateFormat;
@@ -35,10 +37,27 @@ class EmployeeProfilePage extends ConsumerWidget {
     final profile = ref.watch(employee360Provider(employeeId));
     final me = ref.watch(accessContextProvider).value;
     final theme = Theme.of(context);
+    final isHr = _isHrAdminUser(me);
+
     return Scaffold(
       appBar: AppBar(
         title: Text(employeeName ?? 'ملف الموظف'),
         actions: [
+          if (isHr)
+            IconButton(
+              tooltip: 'تعديل حالة اليوم / إضافة راحة أسبوعية',
+              onPressed: () {
+                final emp = profile.value;
+                AdminAttendanceDayEditSheet.show(
+                  context,
+                  employeeId: employeeId,
+                  employeeName: emp?.fullNameAr ?? employeeName ?? '',
+                  initialDate: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+                  onSaved: () => ref.invalidate(employee360Provider(employeeId)),
+                );
+              },
+              icon: const Icon(Icons.edit_calendar_rounded),
+            ),
           IconButton(
             tooltip: 'تحديث',
             onPressed: () => ref.invalidate(employee360Provider(employeeId)),
@@ -80,12 +99,19 @@ class EmployeeProfilePage extends ConsumerWidget {
             data: (emp) => _ProfileBody(
               employee: emp,
               detailed: _canSeeDetails(emp, me),
+              isHrAdmin: isHr,
+              onRefresh: () => ref.invalidate(employee360Provider(employeeId)),
             ),
           ),
         ),
       ),
     );
   }
+}
+
+bool _isHrAdminUser(AccessContext? me) {
+  if (me == null) return false;
+  return me.canAdminEditAttendanceDays;
 }
 
 /// الخادم (0631) يحدد النطاق؛ مع خادم أقدم نقدّره من أدوار المستخدم.
@@ -114,10 +140,17 @@ bool _canSeeDetails(Employee360 employee, AccessContext? me) {
 }
 
 class _ProfileBody extends StatelessWidget {
-  const _ProfileBody({required this.employee, required this.detailed});
+  const _ProfileBody({
+    required this.employee,
+    required this.detailed,
+    this.isHrAdmin = false,
+    this.onRefresh,
+  });
 
   final Employee360 employee;
   final bool detailed;
+  final bool isHrAdmin;
+  final VoidCallback? onRefresh;
 
   @override
   Widget build(BuildContext context) {
@@ -142,20 +175,154 @@ class _ProfileBody extends StatelessWidget {
       ],
     ].where((row) => _hasText(row.$2)).toList(growable: false);
     final kpi = employee.latestKpi;
+    final isExecutive = employee.id == '7b0740fa-66ba-4616-8674-3dbd8e14109e' ||
+        getHierarchyRank(name: employee.fullNameAr, jobTitle: employee.jobTitle) == 1 ||
+        employee.fullNameAr.contains('محمد يوسف') ||
+        (employee.jobTitle?.contains('المدير التنفيذي') ?? false) ||
+        (employee.position?.contains('المدير التنفيذي') ?? false);
+    final isExempt = isExecutive || employee.todayStatus?.status == 'exempt';
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       children: [
         _HeroCard(employee: employee, detailed: detailed, code: code),
         const SizedBox(height: 12),
-        if (detailed)
-          TodayStatusSection(
-            todayStatus: employee.todayStatus,
-            title: 'تفاصيل حضور اليوم',
-            showStatusPill: false,
-          ),
+        if (detailed) ...[
+          if (isExecutive)
+            Card(
+              elevation: 0,
+              margin: const EdgeInsets.only(bottom: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(
+                  color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: .5),
+                  width: 1.2,
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: .12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.verified_user_rounded,
+                        color: Theme.of(context).colorScheme.primary,
+                        size: 26,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'الإدارة العليا التنفيذية',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 15,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'معفى من تسجيل الحضور والانصراف بقرار الإدارة العليا',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            TodayStatusSection(
+              todayStatus: employee.todayStatus,
+              title: 'تفاصيل حضور اليوم',
+              showStatusPill: false,
+            ),
+          if (isHrAdmin && !isExempt) ...[
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.25),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.admin_panel_settings_rounded,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'إدارة وتعديل دوام الموظف (HR)',
+                          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                        ),
+                        Text(
+                          'تعديل حالة اليوم، الساعات، أو إضافة راحة أسبوعية',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton.tonalIcon(
+                    style: FilledButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: () {
+                      AdminAttendanceDayEditSheet.show(
+                        context,
+                        employeeId: employee.id,
+                        employeeName: employee.fullNameAr,
+                        initialDate: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+                        onSaved: onRefresh,
+                      );
+                    },
+                    icon: const Icon(Icons.edit_calendar_rounded, size: 16),
+                    label: const Text(
+                      'تعديل اليوم',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
         _OrgTreeCard(employee: employee),
-        if (detailed)
+        if (detailed && !isExempt)
           _MonthlyAttendanceCard(
             employeeId: employee.id,
             employeeName: employee.fullNameAr,
@@ -223,7 +390,7 @@ class _ProfileBody extends StatelessWidget {
               ],
             ],
           ),
-          if (kpi != null)
+          if (kpi != null && !isExecutive)
             _SectionCard(
               title: 'آخر تقييم KPI',
               icon: Icons.insights_rounded,
@@ -947,25 +1114,28 @@ class _MonthlyAttendanceCardState
             );
           },
         ),
-        const SizedBox(height: 12),
-        FilledButton.tonalIcon(
-          style: FilledButton.styleFrom(
-            minimumSize: const Size.fromHeight(46),
-          ),
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => MonthlyAttendanceStatementPage(
-                employeeId: widget.employeeId,
-                employeeName: widget.employeeName,
-                initialYear: _selected.year,
-                initialMonth: _selected.month,
+        if (statement.asData != null &&
+            !statement.asData!.value.summary.isAttendanceExempt) ...[
+          const SizedBox(height: 12),
+          FilledButton.tonalIcon(
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(46),
+            ),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => MonthlyAttendanceStatementPage(
+                  employeeId: widget.employeeId,
+                  employeeName: widget.employeeName,
+                  initialYear: _selected.year,
+                  initialMonth: _selected.month,
+                ),
               ),
             ),
+            icon: const Icon(Icons.receipt_long_rounded),
+            label: Text('كشف ${monthName(_selected)} بالتفصيل'),
           ),
-          icon: const Icon(Icons.receipt_long_rounded),
-          label: Text('كشف ${monthName(_selected)} بالتفصيل'),
-        ),
+        ],
       ],
     );
   }
@@ -1350,6 +1520,10 @@ class _DisplayStatus {
   }) {
     var status = ts?.status ?? 'not_recorded';
     final hasCheckout = ts?.checkOutAt != null;
+    final workMins = ts?.workMinutes ?? 0;
+    if (workMins >= 480 && status == 'late') {
+      status = 'present';
+    }
     if (!detailed && status == 'late') {
       status = hasCheckout ? 'checked_out' : 'present';
     }
@@ -1418,6 +1592,7 @@ class TodayStatusSection extends StatelessWidget {
     final checkOut = ts?.checkOutAt;
     final lateMins = ts?.lateMinutes ?? 0;
     final workMins = ts?.workMinutes ?? 0;
+    final overtimeMins = ts?.overtimeMinutes ?? (workMins > 480 ? workMins - 480 : 0);
     final activity = humanizeIsoDates(ts?.activityTitle?.trim() ?? '');
     final offsiteKind = switch (status) {
       'mission' => 'مأمورية',
@@ -1470,15 +1645,27 @@ class TodayStatusSection extends StatelessWidget {
       tiles = [
         _StatTile(value: _fmtTime(checkIn), label: 'وقت الحضور'),
         _StatTile(value: _fmtTime(checkOut), label: 'وقت الانصراف'),
-        if (lateMins > 0)
+        if (lateMins > 0 && workMins < 480)
           _StatTile(
             value: _fmtMinutes(lateMins),
             label: 'مدة التأخير',
             color: AppColors.statusWarning,
+          )
+        else if (lateMins > 0 && workMins >= 480)
+          const _StatTile(
+            value: 'عُوّض بالدوام ✓',
+            label: 'التأخير الصباحي',
+            color: Color(0xFF059669),
+          ),
+        if (overtimeMins > 0)
+          _StatTile(
+            value: '+$overtimeMins د',
+            label: 'وقت إضافي',
+            color: const Color(0xFF059669),
           ),
         if (checkOut != null && workMins > 0)
           _StatTile(value: _fmtHours(workMins), label: 'ساعات العمل')
-        else if (checkIn != null && checkOut == null && lateMins == 0)
+        else if (checkIn != null && checkOut == null && (lateMins == 0 || workMins >= 480))
           const _StatTile(value: 'قيد العمل', label: 'الحالة')
         else if (checkIn == null && due != null)
           _StatTile(value: due, label: 'موعد الحضور'),

@@ -115,7 +115,7 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                   .where(
                     (r) =>
                         r.status == 'pending' &&
-                        (r.awaitingMe ?? r.canDecide ?? false),
+                        (r.awaitingMe == true || r.canDecide == true),
                   )
                   .length;
           return ListView(

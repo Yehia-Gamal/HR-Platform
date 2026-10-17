@@ -56,6 +56,28 @@ export function useRequestDecision() {
   });
 }
 
+/** تفويض وتسريع الطلب فوراً لأبو عمار (محمد عبدالباسط - مدير العمليات 1) بموجب ميجريشن 0687 */
+export function useDelegateRequestToAbuAmmar() {
+  const auth = useAuth();
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ requestId, comment }: { requestId: string; comment?: string }) => {
+      if (auth.isMock) return { id: requestId, delegated: true };
+      return rpc('delegate_request_to_abu_ammar', {
+        p_request_id: requestId,
+        p_comment: comment || 'تفويض وتسريع فوري لأبو عمار',
+      });
+    },
+    meta: { successMessage: 'تم تفويض وتسريع الطلب لأبو عمار بنجاح' },
+    onSuccess: () =>
+      Promise.all([
+        client.invalidateQueries({ queryKey: ['requests'] }),
+        client.invalidateQueries({ queryKey: ['request-detail'] }),
+        client.invalidateQueries({ queryKey: ['action-center'] }),
+      ]),
+  });
+}
+
 /** تفاصيل طلب واحد: مسار الطلب وسياق القرار للمعتمِد (get_mobile_request_detail — 0646/0651). */
 export function useRequestDetail(requestId: string | null) {
   const auth = useAuth();

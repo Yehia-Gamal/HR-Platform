@@ -16,6 +16,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_requests_
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_tasks_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/my_instant_penalties_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/passkey_devices_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/weekly_executive_summary_page.dart';
 import 'package:flutter/material.dart';
 
 /// مسار مباشر فوري لجميع أنواع الإشعارات المعروفة في التطبيق.
@@ -55,12 +56,15 @@ Widget? getDirectActionPage({
         highlightId:
             actionId.isEmpty || actionId == 'default' ? null : actionId,
       ),
+    'weekly_executive_summary' =>
+      WeeklyExecutiveSummaryPage(
+        periodId:
+            actionId.isEmpty || actionId == 'default' ? null : actionId,
+      ),
     'daily_report' ||
     'daily_reports' ||
     'daily_report_like' ||
-    'daily_report_comment' ||
-    'report' ||
-    'reports' =>
+    'daily_report_comment' =>
       const MobileDailyReportsPage(),
     'live_location_request' ||
     'live_location' ||
@@ -204,10 +208,14 @@ Widget mobilePageForActionTarget(
             ? null
             : target.recordId,
       ),
+    'weekly_executive_summary' =>
+      WeeklyExecutiveSummaryPage(
+        periodId: target.recordId.isEmpty || target.recordId == 'default'
+            ? null
+            : target.recordId,
+      ),
     'daily_report' ||
-    'daily_reports' ||
-    'report' ||
-    'reports' =>
+    'daily_reports' =>
       const MobileDailyReportsPage(),
     'device' ||
     'employee_device' ||

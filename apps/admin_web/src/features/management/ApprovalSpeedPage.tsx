@@ -2,10 +2,8 @@ import React, { useMemo, useState } from 'react';
 import {
   Clock,
   CheckCircle2,
-  XCircle,
   AlertTriangle,
   TrendingUp,
-  UserCheck,
   Search,
   Calendar,
   Download,
@@ -15,7 +13,8 @@ import {
   MessageCircle,
 } from 'lucide-react';
 import { shareApproverNudge } from '../../core/whatsappShare';
-import { useApprovalSpeedReport, ApproverSpeedItem } from './useApprovalSpeedReport';
+import { useApprovalSpeedReport } from './useApprovalSpeedReport';
+import type { ApproverSpeedItem } from './useApprovalSpeedReport';
 
 const REQUEST_TYPE_LABELS: Record<string, string> = {
   mission: 'مأمورية عمل',
@@ -404,7 +403,7 @@ export function ApprovalSpeedPage() {
             <div className="space-y-3">
               {byRequestType.map((item) => {
                 const label = REQUEST_TYPE_LABELS[item.request_type] || item.request_type;
-                const badge = getSpeedBadge(item.avg_hours);
+                const _badge = getSpeedBadge(item.avg_hours);
                 return (
                   <div
                     key={item.request_type}

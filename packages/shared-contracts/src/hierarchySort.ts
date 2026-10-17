@@ -1,59 +1,152 @@
 // ترتيب الموظفين حسب الهيكل الإداري — يُستخدم في ويب وموبايل
-// الترتيب: المدير التنفيذي → السكرتير التنفيذي → أوبريشن 1 → أوبريشن 2 → باقي المديرين → باقي الموظفين
+// الترتيب: المدير التنفيذي (الشيخ محمد يوسف) → السكرتير التنفيذي (يحيى السبع) → أوبريشن 1 (أبو عمار) → أوبريشن 2 (ياسر) → باقي المديرين → باقي الموظفين → تيم البنات بتوع الطاقم الطبي
 
-/** منطق ترتيب الهيكل الإداري — يُعيّن رقماً ترتيبياً لكل مسمى وظيفي. */
-function hierarchyRank(jobTitle: string | null | undefined): number {
-  if (!jobTitle) return 1000;
-  const t = jobTitle.trim().toLowerCase();
+export interface HierarchySortable {
+  name?: string | null;
+  fullNameAr?: string | null;
+  jobTitle?: string | null;
+  department?: string | null;
+  departmentName?: string | null;
+  employeeCode?: string | null;
+}
 
-  // 1 — المدير التنفيذي
-  if (t.includes('مدير تنفيذي') || t === 'ceo' || t.includes('chief executive')) return 1;
+/**
+ * منطق ترتيب الهيكل الإداري — يُعيّن رقماً ترتيبياً لكل موظف:
+ * 1 — الشيخ محمد يوسف (على رأس الهيكل الإداري)
+ * 2 — يحيى السبع (السكرتير التنفيذي)
+ * 3 — أبو عمار (محمد عبدالباسط - أوبريشن 1)
+ * 4 — ياسر (ياسر فتحي نور الدين - أوبريشن 2)
+ * 5 — باقي المديرين (بما فيهم مديرا العيادات مصطفى أحمد ويوسف رسمي)
+ * 6 — باقي الموظفين
+ * 7 — تيم البنات بتوع الطاقم الطبي (آخر شيء خالص)
+ */
+export function getHierarchyRank(item: HierarchySortable): number {
+  const name = (item.fullNameAr || item.name || '').trim();
+  const title = (item.jobTitle || '').trim().toLowerCase();
+  const dept = (item.departmentName || item.department || '').trim().toLowerCase();
 
-  // 2 — السكرتير التنفيذي
-  if (t.includes('سكرتير تنفيذي') || t.includes('المساعد التنفيذي') || t.includes('executive secretary') || t.includes('executive assistant')) return 2;
+  // 1 — الشيخ محمد يوسف (على رأس الهيكل الإداري)
+  const isSheikhMohamed =
+    name.includes('الشيخ محمد') ||
+    name.includes('ألشيخ محمد') ||
+    name === 'محمد يوسف' ||
+    name.startsWith('محمد يوسف ') ||
+    title.includes('مدير تنفيذي') ||
+    (title.includes('مدير') && title.includes('تنفيذي')) ||
+    title === 'ceo' ||
+    title.includes('chief executive');
+  if (isSheikhMohamed) {
+    return 1;
+  }
 
-  // 3 — أوبريشن 1 (مدير العمليات الأول / رئيسي)
+  // 2 — يحيى السبع (السكرتير التنفيذي)
   if (
-    (t.includes('أوبريشن') && (t.includes('أول') || t.includes('رئيسي'))) ||
-    (t.includes('operations') && (t.includes('1') || t.includes('head') || t.includes('lead') || t.includes('senior'))) ||
-    (t.includes('مدير عمليات') && (t.includes('أول') || t.includes('رئيسي')))
-  ) return 3;
+    name.includes('يحيى') ||
+    name.includes('يحيي') ||
+    name.includes('السبع') ||
+    title.includes('سكرتير') ||
+    title.includes('المساعد التنفيذي') ||
+    title.includes('executive secretary') ||
+    title.includes('executive assistant')
+  ) {
+    return 2;
+  }
 
-  // 4 — أوبريشن 2 (مدير العمليات الثاني / مساعد)
+  // 3 — أبو عمار (محمد عبدالباسط - مدير تشغيل / أوبريشن 1)
+  const isAbuAmmar =
+    name.includes('ابو عمار') ||
+    name.includes('أبو عمار') ||
+    name.startsWith('محمد عبدالباسط') ||
+    name.startsWith('محمد عبد الباسط') ||
+    ((title.includes('أوبريشن') || title.includes('تشغيل') || title.includes('operations')) &&
+      (title.includes('1') || title.includes('أول') || title.includes('رئيسي')));
+
+  if (isAbuAmmar) {
+    return 3;
+  }
+
+  // 4 — ياسر (ياسر فتحي نور الدين - مدير تشغيل / أوبريشن 2)
   if (
-    (t.includes('أوبريشن') && (t.includes('ثاني') || t.includes('مساعد'))) ||
-    (t.includes('operations') && (t.includes('2') || t.includes('assistant') || t.includes('junior'))) ||
-    (t.includes('مدير عمليات') && (t.includes('ثاني') || t.includes('مساعد')))
-  ) return 4;
+    name.includes('ياسر') ||
+    ((title.includes('أوبريشن') || title.includes('تشغيل') || title.includes('operations')) &&
+      (title.includes('2') || title.includes('ثاني') || title.includes('مساعد')))
+  ) {
+    return 4;
+  }
 
-  // 5 — أي مدير (مدير عام، مدير إداري،مدير مالي، etc.)
-  if (t.includes('مدير') || t.includes('manager') || t.includes('head') || t.includes('lead') || t.includes('director')) return 5;
+  // هل هو من مديري العيادات (مصطفى أحمد كمال الدين، يوسف رسمي شعبان)؟
+  const isMedicalManager =
+    name.includes('مصطفي أحمد') ||
+    name.includes('مصطفى أحمد') ||
+    name.includes('يوسف رسمي') ||
+    title.includes('مدير مجمع') ||
+    (dept.includes('عياد') && title.includes('مدير'));
 
-  // 6 — نائب المدير / وكيل
-  if (t.includes('نائب') || t.includes('وكيل') || t.includes('deputy') || t.includes('vice')) return 6;
+  // 7 — تيم البنات بتوع الطاقم الطبي (آخر شيء خالص)
+  if (!isMedicalManager) {
+    if (
+      dept.includes('عياد') ||
+      title.includes('تمريض') ||
+      title.includes('معمل') ||
+      title.includes('دكتورة المعمل') ||
+      title.includes('استقبال') ||
+      name.includes('رحاب مجدي') ||
+      name.includes('ساميه') ||
+      name.includes('سامية') ||
+      name.includes('سمر احمد') ||
+      name.includes('سمر أحمد') ||
+      name.includes('سميرة سعيد') ||
+      name.includes('سميره سعيد') ||
+      name.includes('شروق عبد العليم') ||
+      name.includes('شروق عبدالعليم')
+    ) {
+      return 7;
+    }
+  }
 
-  // 7 — أخصائي أول / مستشار
-  if (t.includes('أول') || t.includes('senior') || t.includes('consultant') || t.includes('مستشار')) return 7;
+  // 5 — باقي المديرين (يشمل مديري العيادات مصطفى أحمد ويوسف رسمي، وباقي مديري الجمعية)
+  if (
+    title.includes('مدير') ||
+    title.includes('manager') ||
+    title.includes('head') ||
+    title.includes('lead') ||
+    title.includes('director') ||
+    title.includes('رئيس') ||
+    title.includes('نائب') ||
+    title.includes('وكيل') ||
+    isMedicalManager
+  ) {
+    return 5;
+  }
 
-  // 8 — باقي الموظفين
-  return 8;
+  // 6 — باقي الموظفين
+  return 6;
+}
+
+/**
+ * فحص هل الموظف من تيم البنات بتوع الطاقم الطبي
+ */
+export function isClinicGirl(item: HierarchySortable): boolean {
+  return getHierarchyRank(item) === 7;
 }
 
 /**
  * دالة مقارنة ترتيب حسب الهيكل الإداري — تُمرَّر إلى Array.sort()
- * المخرج: رقم سالب/صفر/موجب مثل compareFn القياسية.
  */
-export function hierarchyCompare(a: { jobTitle?: string | null }, b: { jobTitle?: string | null }): number {
-  const ra = hierarchyRank(a.jobTitle);
-  const rb = hierarchyRank(b.jobTitle);
+export function hierarchyCompare(a: HierarchySortable, b: HierarchySortable): number {
+  const ra = getHierarchyRank(a);
+  const rb = getHierarchyRank(b);
   if (ra !== rb) return ra - rb;
-  // داخل نفس المستوى — ترتيب أبجدي عربي
-  return (a.jobTitle ?? '').localeCompare(b.jobTitle ?? '', 'ar');
+  // داخل نفس المستوى — ترتيب أبجدي عربي بالاسم
+  const nameA = (a.fullNameAr || a.name || '').trim();
+  const nameB = (b.fullNameAr || b.name || '').trim();
+  return nameA.localeCompare(nameB, 'ar');
 }
 
 /**
- * ترتيب مصفوفة موظفين حسب الهيكل الإداري (يُعدّل المصفوفة الأصلية + يُعيدها).
+ * ترتيب مصفوفة موظفين حسب الهيكل الإداري (يُعيد مصفوفة مرتبة جديدة).
  */
-export function sortByHierarchy<T extends { jobTitle?: string | null }>(items: T[]): T[] {
+export function sortByHierarchy<T extends HierarchySortable>(items: T[]): T[] {
   return [...items].sort(hierarchyCompare);
 }
+

@@ -5,7 +5,7 @@ import {
   type WorkAssignment,
   type AttendanceOperationsCatalog,
 } from '@ahla/shared-contracts';
-import { CalendarDays, Check, CheckCircle2, Clock, Clock3, CornerUpLeft, FileX, Inbox, ListChecks, MapPin, RefreshCw, RotateCcw, Truck, X } from 'lucide-react';
+import { CalendarDays, Check, CheckCircle2, Clock, Clock3, CornerUpLeft, FileX, Forward, Inbox, ListChecks, MapPin, RefreshCw, RotateCcw, Truck, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { useUrlState } from '../../core/useUrlState';
@@ -21,7 +21,7 @@ import { ListSkeleton, MetricSkeletonRow } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { useToast } from '../../ui/Toast';
 import { UserAvatar } from '../../ui/UserAvatar';
-import { useBulkApprove, useMyLeaveBalances, useRequestDecision, useRequestDetail, useRequests, useWorkAssignments, type Decision } from './useRequests';
+import { useBulkApprove, useDelegateRequestToAbuAmmar, useMyLeaveBalances, useRequestDecision, useRequestDetail, useRequests, useWorkAssignments, type Decision } from './useRequests';
 import { DecisionInsights, RequestJourney } from './RequestJourney';
 import { RequestSlaBadge, RequestWhatsAppShareButton } from './RequestSlaBadge';
 import { useAttendanceOperations, useAttendanceOperationsCommands } from '../advanced/useAdvancedOperations';
@@ -67,9 +67,9 @@ function isPhoneLikeCode(code: string | null | undefined): boolean {
 
 const currentMonth = cairoMonthIso();
 
-/** بانتظار قراري: علم الخادم (0646) — ولا يبتّ أحد في طلبه. */
+/** بانتظار قراري: علم الخادم (0646/0682) — ولا يبتّ أحد في طلبه. */
 function isAwaitingMe(item: RequestSummary): boolean {
-  return item.status === 'pending' && !item.isMine && (item.awaitingMe ?? item.canDecide ?? false);
+  return item.status === 'pending' && !item.isMine && (item.awaitingMe === true || item.canDecide === true);
 }
 
 /** شارة المرحلة الحالية للطلب مع لونها */
@@ -135,6 +135,12 @@ export function RequestsPage() {
   const [picked, setPicked] = useState<Set<string>>(() => new Set());
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkComment, setBulkComment] = useState('');
+  const delegateMutation = useDelegateRequestToAbuAmmar();
+  const canDelegateToAbuAmmar =
+    auth.access != null &&
+    auth.access.roles.some((r) =>
+      ['admin', 'super-admin', 'executive', 'executive-director', 'general-manager', 'hr-manager', 'hr-specialist'].includes(r),
+    );
   const canDecide =
     auth.access != null &&
     (hasPermission(auth.access, 'requests.request.approve') ||
@@ -876,12 +882,62 @@ export function RequestsPage() {
                     رفض مع السبب
                   </button>
                 </div>
+                {canDelegateToAbuAmmar && selected.status === 'pending' && !selected.isMine && (
+                  <div className="mt-3 pt-3 border-t border-[var(--border)]">
+                    <button
+                      type="button"
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-sky-500/30 bg-sky-500/10 px-4 py-2.5 text-xs font-bold text-sky-600 dark:text-sky-400 hover:bg-sky-500/20 transition disabled:opacity-50"
+                      disabled={delegateMutation.isPending || decision.isPending}
+                      onClick={() => {
+                        if (window.confirm('هل تريد تفويض وتسريع هذا الطلب فوراً لأبو عمار (مدير العمليات 1) للبت فيه؟')) {
+                          delegateMutation.mutate(
+                            { requestId: selected.id, comment: comment.trim() || undefined },
+                            {
+                              onSuccess: () => {
+                                toast({ message: 'تم تفويض وتسريع الطلب لأبو عمار بنجاح', tone: 'success' });
+                                setSelected(null);
+                              },
+                            },
+                          );
+                        }
+                      }}
+                    >
+                      <Forward className="size-4" />
+                      <span>{delegateMutation.isPending ? 'جارٍ التفويض…' : 'تسريع وتفويض لأبو عمار (مدير العمليات 1)'}</span>
+                    </button>
+                  </div>
+                )}
               </>
             ) : (
-              <div className="mt-5 text-center p-3 rounded-xl bg-[var(--surface-muted)] text-sm muted">
-                {selected.isMine
-                  ? 'هذا طلبك — يبتّ فيه المعتمِد في مرحلته.'
-                  : `القرار في هذه المرحلة${selected.activeStepName ? ` (${selected.activeStepName})` : ''} لغيرك.`}
+              <div className="mt-5 space-y-3">
+                <div className="text-center p-3 rounded-xl bg-[var(--surface-muted)] text-sm muted">
+                  {selected.isMine
+                    ? 'هذا طلبك — يبتّ فيه المعتمِد في مرحلته.'
+                    : `القرار في هذه المرحلة${selected.activeStepName ? ` (${selected.activeStepName})` : ''} لغيرك.`}
+                </div>
+                {canDelegateToAbuAmmar && selected.status === 'pending' && !selected.isMine && (
+                  <button
+                    type="button"
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-sky-500/30 bg-sky-500/10 px-4 py-2.5 text-xs font-bold text-sky-600 dark:text-sky-400 hover:bg-sky-500/20 transition disabled:opacity-50"
+                    disabled={delegateMutation.isPending || decision.isPending}
+                    onClick={() => {
+                      if (window.confirm('هل تريد تفويض وتسريع هذا الطلب فوراً لأبو عمار (مدير العمليات 1) للبت فيه؟')) {
+                        delegateMutation.mutate(
+                          { requestId: selected.id, comment: comment.trim() || undefined },
+                          {
+                            onSuccess: () => {
+                              toast({ message: 'تم تفويض وتسريع الطلب لأبو عمار بنجاح', tone: 'success' });
+                              setSelected(null);
+                            },
+                          },
+                        );
+                      }
+                    }}
+                  >
+                    <Forward className="size-4" />
+                    <span>{delegateMutation.isPending ? 'جارٍ التفويض…' : 'تسريع وتفويض لأبو عمار (مدير العمليات 1)'}</span>
+                  </button>
+                )}
               </div>
             )
           ) : (

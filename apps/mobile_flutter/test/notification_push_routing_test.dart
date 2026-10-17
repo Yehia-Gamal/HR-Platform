@@ -80,6 +80,7 @@ void main() {
     expect(canonicalNotificationEntityType('project_submitted'), 'association_project');
     expect(canonicalNotificationEntityType('disputes'), 'dispute');
     expect(canonicalNotificationEntityType('tasks'), 'task');
+    expect(canonicalNotificationEntityType('weekly_executive_summary'), 'weekly_executive_summary');
   });
 
   test('روابط الحضور والتقارير بدون معرف UUID تُحل بنجاح', () {
@@ -89,7 +90,7 @@ void main() {
     );
     expect(
       resolveRouteFromDeepLink('ahlashabab://action/reports/attendance?start=2026-09-13'),
-      '/action/daily_report/default?start=2026-09-13',
+      '/action/weekly_executive_summary/default?start=2026-09-13',
     );
   });
 

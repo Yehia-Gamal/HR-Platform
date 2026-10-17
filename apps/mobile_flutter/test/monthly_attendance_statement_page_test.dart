@@ -100,6 +100,7 @@ void main() {
       WidgetTester tester,
       MonthlyAttendanceStatement statement, {
       String? employeeId,
+      List<String>? roles,
     }) async {
       // شاشة هاتف طويلة: ورقة اليوم وإجراءاتها تُبنى كاملة دون تمرير داخلي.
       tester.view.physicalSize = const Size(1080, 2400);
@@ -112,8 +113,8 @@ void main() {
               (ref) async => AccessContext.fromJson({
                 'userId': 'user-me',
                 'employeeId': 'emp-me',
-                'displayName': 'مدير مباشر',
-                'roles': ['direct-manager'],
+                'displayName': roles?.contains('hr-specialist') == true ? 'مسؤول موارد بشرية' : 'مدير مباشر',
+                'roles': roles ?? ['direct-manager'],
               }),
             ),
             myMonthlyStatementProvider.overrideWith((ref, params) async => statement),
@@ -162,7 +163,12 @@ void main() {
 
     testWidgets('الموارد البشرية على كشف موظف: التعديل الإداري وحده', (tester) async {
       final semantics = tester.ensureSemantics();
-      await pumpStatement(tester, statementOf('emp-report', canEditDays: true), employeeId: 'emp-report');
+      await pumpStatement(
+        tester,
+        statementOf('emp-report', canEditDays: true),
+        employeeId: 'emp-report',
+        roles: ['hr-specialist'],
+      );
 
       await openDay(tester);
       expect(find.text('تعديل اليوم إدارياً (حالة اليوم وساعات العمل)'), findsOneWidget);

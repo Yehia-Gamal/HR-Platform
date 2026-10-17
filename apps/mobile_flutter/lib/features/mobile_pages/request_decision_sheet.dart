@@ -120,6 +120,56 @@ Future<bool> showRequestDecisionSheet(
   return true;
 }
 
+/// يفتح ورقة تفويض الطلب وتسريعه فوراً لمدير التشغيل (أبو عمار).
+Future<bool> showRequestDelegateSheet(
+  BuildContext context,
+  WidgetRef ref, {
+  required String requestId,
+  required int number,
+  required String type,
+  required String employeeName,
+}) async {
+  const config = RequestSheetConfig(
+    title: 'تفويض وتسريع فوري لمدير التشغيل',
+    icon: Icons.bolt_rounded,
+    color: Color(0xFFD97706),
+    explanation:
+        'سيتم تجاوز مهلة الساعة فوراً وتصعيد الطلب مباشرة إلى مدير التشغيل (أبو عمار) ليقبله في حينه دون أي انتظار.',
+    inputLabel: 'ملاحظة للمدير (اختياري)',
+    required: false,
+    suggestions: [
+      'برجاء الاعتماد العاجل لحاجة العمل',
+      'حالة طارئة تتطلب سرعة البت',
+      'تم التنسيق ومُفوض لأبو عمار للبت الفوري',
+    ],
+    confirmLabel: 'تأكيد التفويض الآن',
+    successMessage: 'تم تفويض الطلب وتسريعه لمدير التشغيل (أبو عمار) بنجاح.',
+  );
+  final messenger = ScaffoldMessenger.of(context);
+  final commands = ref.read(mobileCommandsProvider);
+  final done = await showModalBottomSheet<bool>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    builder: (_) => RequestActionSheet(
+      config: config,
+      subject: '${requestTypeLabel(type)} · طلب رقم $number · $employeeName',
+      onSubmit: (note) => commands.delegateRequestToAbuAmmar(
+        requestId,
+        comment: note.isEmpty ? null : note,
+      ),
+    ),
+  );
+  if (done != true) return false;
+  messenger.showSnackBar(
+    SnackBar(
+      backgroundColor: config.color,
+      content: Text(config.successMessage),
+    ),
+  );
+  return true;
+}
+
 /// ورقة إجراء بملاحظة/سبب: تملك متحكّم النص (يُتلف مع الورقة لا قبل حركة
 /// إغلاقها)، وتعرض الخطأ داخلها بدل إغلاقها.
 class RequestActionSheet extends StatefulWidget {
