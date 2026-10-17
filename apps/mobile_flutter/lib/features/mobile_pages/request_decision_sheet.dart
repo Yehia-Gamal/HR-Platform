@@ -120,7 +120,7 @@ Future<bool> showRequestDecisionSheet(
   return true;
 }
 
-/// يفتح ورقة تفويض الطلب وتسريعه فوراً لمدير التشغيل (أبو عمار).
+/// تفويض الطلب وتسريعه فوراً ومباشرة لمدير التشغيل (أبو عمار) دون أي نوافذ أو صفحات إضافية.
 Future<bool> showRequestDelegateSheet(
   BuildContext context,
   WidgetRef ref, {
@@ -129,45 +129,72 @@ Future<bool> showRequestDelegateSheet(
   required String type,
   required String employeeName,
 }) async {
-  const config = RequestSheetConfig(
-    title: 'تفويض وتسريع فوري لمدير التشغيل',
-    icon: Icons.bolt_rounded,
-    color: Color(0xFFD97706),
-    explanation:
-        'سيتم تجاوز مهلة الساعة فوراً وتصعيد الطلب مباشرة إلى مدير التشغيل (أبو عمار) ليقبله في حينه دون أي انتظار.',
-    inputLabel: 'ملاحظة للمدير (اختياري)',
-    required: false,
-    suggestions: [
-      'برجاء الاعتماد العاجل لحاجة العمل',
-      'حالة طارئة تتطلب سرعة البت',
-      'تم التنسيق ومُفوض لأبو عمار للبت الفوري',
-    ],
-    confirmLabel: 'تأكيد التفويض الآن',
-    successMessage: 'تم تفويض الطلب وتسريعه لمدير التشغيل (أبو عمار) بنجاح.',
-  );
   final messenger = ScaffoldMessenger.of(context);
   final commands = ref.read(mobileCommandsProvider);
-  final done = await showModalBottomSheet<bool>(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
-    builder: (_) => RequestActionSheet(
-      config: config,
-      subject: '${requestTypeLabel(type)} · طلب رقم $number · $employeeName',
-      onSubmit: (note) => commands.delegateRequestToAbuAmmar(
-        requestId,
-        comment: note.isEmpty ? null : note,
+
+  messenger.hideCurrentSnackBar();
+  messenger.showSnackBar(
+    SnackBar(
+      duration: const Duration(milliseconds: 1500),
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: const Color(0xFF1E293B),
+      content: Row(
+        children: [
+          const SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: Color(0xFFD97706),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'جاري تفويض طلب $employeeName مباشرة لمدير التشغيل...',
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     ),
   );
-  if (done != true) return false;
-  messenger.showSnackBar(
-    SnackBar(
-      backgroundColor: config.color,
-      content: Text(config.successMessage),
-    ),
-  );
-  return true;
+
+  try {
+    await commands.delegateRequestToAbuAmmar(requestId);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      const SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Color(0xFFD97706),
+        duration: Duration(seconds: 3),
+        content: Row(
+          children: [
+            Icon(Icons.bolt_rounded, color: Colors.white, size: 20),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'تم التفويض الفوري لمدير التشغيل (أبو عمار) بنجاح ⚡',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    return true;
+  } catch (e) {
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: AppColors.statusDanger,
+        content: Text('تعذر التفويض المباشر: $e'),
+      ),
+    );
+    return false;
+  }
 }
 
 /// ورقة إجراء بملاحظة/سبب: تملك متحكّم النص (يُتلف مع الورقة لا قبل حركة
