@@ -24,14 +24,11 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_kpi_page.
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_notifications_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_official_feed_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_profile_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_requests_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/association_projects/association_projects_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/honor_board_sheet.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_attendance_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_self_service_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/monthly_attendance_statement_page.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/people_hub_page.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/weekly_executive_summary_page.dart';
 import 'package:ahla_shabab_management_os/shared/access_context.dart';
 import 'package:ahla_shabab_management_os/shared/hierarchy_sort.dart';
 import 'package:flutter/material.dart';
@@ -41,7 +38,7 @@ import 'package:intl/intl.dart';
 // تبويبات المساحة التنفيذية — كل تبويب صفحة واحدة بلا شريط علوي خاص ولا
 // تبويبات متداخلة؛ التنقل الرئيسي من الشريط السفلي في [ExecutiveWorkspace].
 
-const _pagePadding = EdgeInsets.fromLTRB(16, 12, 16, 28);
+const _pagePadding = EdgeInsets.fromLTRB(16, 12, 16, 110);
 
 Color _rateColor(int pct) => pct >= 85
     ? AppColors.statusSuccess
@@ -799,7 +796,7 @@ class _PeopleDirectoryState extends ConsumerState<_PeopleDirectory> {
       onRefresh: () async =>
           ref.invalidate(mobileExecutivePeopleProvider(_query)),
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
         children: [
           TextField(
             controller: _search,
@@ -969,18 +966,18 @@ class ExecutiveMoreTab extends ConsumerWidget {
       padding: _pagePadding,
       children: [
         _MoreSection(
-          title: 'القرارات والتواصل',
+          title: 'القرارات والتواصل والتوجيه',
           entries: [
             _MoreEntry(
               icon: Icons.campaign_outlined,
-              title: 'نشر قرار أو تعميم',
+              title: 'نشر قرار أو تعميم رسمي',
               subtitle: 'يصل فورًا كإشعار لكل الموظفين المعنيين.',
               onTap: () => push(const ExecutiveAnnouncementPage()),
             ),
             _MoreEntry(
               icon: Icons.feed_outlined,
-              title: 'القرارات والتعاميم المنشورة',
-              subtitle: 'السجل الرسمي لكل ما نُشر.',
+              title: 'سجل القرارات والتعاميم المنشورة',
+              subtitle: 'السجل الرسمي المعتمد لكل ما نُشر في الجمعية.',
               onTap: () => push(const MobileOfficialFeedPage(canPublish: true)),
             ),
             _MoreEntry(
@@ -993,7 +990,7 @@ class ExecutiveMoreTab extends ConsumerWidget {
           ],
         ),
         _MoreSection(
-          title: 'التقارير والمتابعة',
+          title: 'التقارير التنفيذية والرقابة الميدانية',
           entries: [
             _MoreEntry(
               icon: Icons.auto_awesome_outlined,
@@ -1002,8 +999,14 @@ class ExecutiveMoreTab extends ConsumerWidget {
               onTap: () => push(const ExecutiveBriefPage()),
             ),
             _MoreEntry(
+              icon: Icons.date_range_rounded,
+              title: 'الملخص الأسبوعي للحضور التنفيذي',
+              subtitle: 'تحليل الأداء الأسبوعي ونسب الانضباط والغياب.',
+              onTap: () => push(const WeeklyExecutiveSummaryPage()),
+            ),
+            _MoreEntry(
               icon: Icons.insights_rounded,
-              title: 'التقارير التنفيذية',
+              title: 'التقارير التنفيذية الشاملة',
               subtitle: 'مركز القيادة التشغيلية والطلبات الميدانية.',
               onTap: () => pushMobileSubpage(
                 context,
@@ -1014,7 +1017,7 @@ class ExecutiveMoreTab extends ConsumerWidget {
             _MoreEntry(
               icon: Icons.newspaper_outlined,
               title: 'تقارير الموظفين اليومية',
-              subtitle: 'ما أنجزه الموظفون يومًا بيوم.',
+              subtitle: 'ما أنجزه الموظفون يومًا بيوم في مختلف الإدارات.',
               onTap: () => push(const DailyReportsFeedPage()),
             ),
             _MoreEntry(
@@ -1025,7 +1028,7 @@ class ExecutiveMoreTab extends ConsumerWidget {
             ),
             _MoreEntry(
               icon: Icons.fact_check_outlined,
-              title: 'مؤشرات الأداء KPI',
+              title: 'مؤشرات الأداء المؤسسي KPI',
               subtitle: 'التقييمات الشهرية ومراحل اعتمادها.',
               onTap: () => pushMobileSubpage(
                 context,
@@ -1033,11 +1036,6 @@ class ExecutiveMoreTab extends ConsumerWidget {
                 MobileKpiPage(access: access, employeeOnly: false),
               ),
             ),
-          ],
-        ),
-        _MoreSection(
-          title: 'الموظفون والمشاريع والطلبات',
-          entries: [
             _MoreEntry(
               icon: Icons.directions_bus_rounded,
               title: 'رادار القوافل والميدان ومحطات الوصول',
@@ -1046,14 +1044,14 @@ class ExecutiveMoreTab extends ConsumerWidget {
             ),
             _MoreEntry(
               icon: Icons.folder_special_outlined,
-              title: 'مشاريع الجمعية',
+              title: 'مشاريع الجمعية ومتابعة خطط العمل',
               subtitle: 'متابعة مشاريع الإدارات وخطوات العمل والمهام.',
               onTap: () => push(const AssociationProjectsPage()),
             ),
             _MoreEntry(
               icon: Icons.military_tech_outlined,
               title: 'لوحة الشرف والتكريم',
-              subtitle: 'الموظفون المتميزون في الانضباط والحضور لهذا الشهر.',
+              subtitle: 'الموظفون المتميزون في الانضباط والعطاء لهذا الشهر.',
               onTap: () => showModalBottomSheet(
                 context: context,
                 isScrollControlled: true,
@@ -1061,50 +1059,22 @@ class ExecutiveMoreTab extends ConsumerWidget {
                 builder: (_) => const HonorBoardSheet(),
               ),
             ),
-            _MoreEntry(
-              icon: Icons.account_tree_outlined,
-              title: 'الموظفون والهيكل التنظيمي',
-              subtitle: 'الملفات والأقسام والتسلسل الإداري.',
-              onTap: () => push(const PeopleHubPage()),
-            ),
-            _MoreEntry(
-              icon: Icons.assignment_outlined,
-              title: 'كل الطلبات',
-              subtitle: 'متابعة الطلبات وحالاتها.',
-              onTap: () => pushMobileSubpage(
-                context,
-                'كل الطلبات',
-                const MobileRequestsPage(showAllByDefault: true),
-              ),
-            ),
           ],
         ),
         _MoreSection(
-          title: 'الحساب والخدمات الشخصية',
+          title: 'الحساب والإعدادات التنفيذية',
           entries: [
             _MoreEntry(
               icon: Icons.account_circle_outlined,
-              title: 'حسابي وملفي',
-              subtitle: 'بياناتك وكلمة المرور والإعدادات.',
+              title: 'حسابي وملفي الشخصي',
+              subtitle: 'بياناتك وكلمة المرور وتفضيلات التطبيق.',
               onTap: () => push(const MobileProfilePage()),
             ),
             _MoreEntry(
-              icon: Icons.fingerprint_rounded,
-              title: 'تسجيل البصمة الذكية',
-              subtitle: 'إثبات الحضور والانصراف عبر الموقع والشبكة.',
-              onTap: () => push(const MobileAttendancePage()),
-            ),
-            _MoreEntry(
               icon: Icons.edit_calendar_outlined,
-              title: 'الخدمة الذاتية وتقديم طلب',
-              subtitle: 'طلب إجازة أو إذن أو مأمورية ومتابعة الأرصدة.',
+              title: 'الخدمة الذاتية وتقديم طلب خاص',
+              subtitle: 'طلب إجازة أو مأمورية خاصة ومتابعة الأرصدة.',
               onTap: () => push(const MobileSelfServicePage()),
-            ),
-            _MoreEntry(
-              icon: Icons.calendar_month_outlined,
-              title: 'بيان الحضور الشهري',
-              subtitle: 'سجل الحضور والانصراف وساعات الدوام للشهر.',
-              onTap: () => push(const MonthlyAttendanceStatementPage()),
             ),
             _MoreEntry(
               icon: Icons.logout_rounded,

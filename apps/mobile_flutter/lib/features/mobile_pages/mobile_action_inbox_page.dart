@@ -114,7 +114,7 @@ class MobileActionInboxPage extends ConsumerWidget {
           }
 
           return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 110),
             children: [
               if (toDecide.isNotEmpty || kpis.isNotEmpty)
                 Wrap(
