@@ -680,19 +680,8 @@ class ExecutiveApprovalsTab extends StatelessWidget {
   const ExecutiveApprovalsTab({super.key});
 
   @override
-  Widget build(BuildContext context) => const Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      Padding(
-        padding: EdgeInsets.fromLTRB(16, 14, 16, 0),
-        child: MobileSectionHeader(
-          title: 'الاعتمادات والإجراءات',
-          subtitle: 'طلبات وإجراءات تنتظر قرارك — الأعجل أولًا.',
-        ),
-      ),
-      Expanded(child: MobileActionInboxPage()),
-    ],
-  );
+  Widget build(BuildContext context) =>
+      const MobileActionInboxPage(showHeader: true);
 }
 
 // ═══════════════════════════════════════════════════════════════

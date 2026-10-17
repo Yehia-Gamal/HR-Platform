@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-17T12:11:09.763Z",
+  "generatedAt": "2026-10-17T12:48:32.723Z",
   "files": [
     {
       "path": "_v23_discovery\\CURRENT_ARCHITECTURE.md",
@@ -210,6 +210,46 @@
       "path": ".prettierrc",
       "size": 133,
       "sha256": "3fedf9935cfb8b953d0b029534f9598848b3042ab91d281a28b934f736e89762"
+    },
+    {
+      "path": ".temp\\flutter_tools.40e8ff06\\flutter_tool.8042e47f\\app.dill",
+      "size": 87510240,
+      "sha256": "4a669178063c8888cdec132a934605e655e4512c0093fe7e9142fe035dc984f9"
+    },
+    {
+      "path": ".temp\\flutter_tools.40e8ff06\\flutter_tool.8042e47f\\app.dill.json",
+      "size": 258701,
+      "sha256": "2a18d6c894835966bbd2e8d6da08117538f6c11d0574c3ef20ffb433ae1ed001"
+    },
+    {
+      "path": ".temp\\flutter_tools.40e8ff06\\flutter_tool.8042e47f\\app.dill.map",
+      "size": 10175261,
+      "sha256": "62da6971504a8a598583167cf99119a058da3740d4857687e869d82e3828a3e5"
+    },
+    {
+      "path": ".temp\\flutter_tools.40e8ff06\\flutter_tool.8042e47f\\app.dill.metadata",
+      "size": 1270127,
+      "sha256": "9ed0f321a4b30dd7b8d0d738f58bb6c5c9abd814aaa7c74b2cf3fed4576b17a9"
+    },
+    {
+      "path": ".temp\\flutter_tools.40e8ff06\\flutter_tool.8042e47f\\app.dill.sources",
+      "size": 117950024,
+      "sha256": "3c6d9b007a80626b0335eede185d6e94e8157c874ab1337a70971370942b570e"
+    },
+    {
+      "path": ".temp\\flutter_tools.40e8ff06\\flutter_tools.cc84d9f\\web_entrypoint.dart",
+      "size": 793,
+      "sha256": "b80c395c2ec9febaed2cf0fb427246a490218700f015d7827369d390913748bb"
+    },
+    {
+      "path": ".temp\\flutter_tools.40e8ff06\\flutter_tools.cc84d9f\\web_plugin_registrant.dart",
+      "size": 1827,
+      "sha256": "6eeee78f6cf62e3fcf487bfdbe56c1059e553729e3b13938c918e222236cdb2f"
+    },
+    {
+      "path": ".temp\\native-platform2743492620136799170dir\\gradle-fileevents.dll",
+      "size": 441856,
+      "sha256": "562445e56b031aeed20367981cc836d065b5fdd9124685c0396f67316ea6b322"
     },
     {
       "path": ".temp\\native-platform312387890947148842dir\\gradle-fileevents.dll",
@@ -9648,13 +9688,13 @@
     },
     {
       "path": "apps\\mobile_flutter\\android\\.gradle\\8.12\\executionHistory\\executionHistory.bin",
-      "size": 46075056,
-      "sha256": "349ee20d221e1da1fc86ca5a959cfa589e631d67cec10e65b921c1ee7ed82f40"
+      "size": 47289637,
+      "sha256": "b1b223b75aad149dbff5149e627c7042c698614d699142af94b0ee0c38c5dae1"
     },
     {
       "path": "apps\\mobile_flutter\\android\\.gradle\\8.12\\executionHistory\\executionHistory.lock",
       "size": 17,
-      "sha256": "cde6a300c19bf62798da973e48e55b51d6614dcb6209ec81c62ec136f2026564"
+      "sha256": "d843076d594ebe077cbd13b108fadeb3a0a71c33c2d6fe306d8283b7b9095751"
     },
     {
       "path": "apps\\mobile_flutter\\android\\.gradle\\8.12\\fileChanges\\last-build.bin",
@@ -9663,18 +9703,18 @@
     },
     {
       "path": "apps\\mobile_flutter\\android\\.gradle\\8.12\\fileHashes\\fileHashes.bin",
-      "size": 1967423,
-      "sha256": "980740bd3604a6167ac9a8d5083939d581aadaf29b9f1897a7ea29d62a514429"
+      "size": 1967473,
+      "sha256": "9c5f49e203b083e2d687ab71938400969320505958bf519803ad5d6715bbf387"
     },
     {
       "path": "apps\\mobile_flutter\\android\\.gradle\\8.12\\fileHashes\\fileHashes.lock",
       "size": 17,
-      "sha256": "28095fc428d3d303a93ba1ce840432ffbfe81d173a376e14257a0ccc9c177cc6"
+      "sha256": "7fb97cd39706c33fd197e63cfb7913a071ddbebca3f1cc02613dd6a5d2a2eb45"
     },
     {
       "path": "apps\\mobile_flutter\\android\\.gradle\\8.12\\fileHashes\\resourceHashesCache.bin",
-      "size": 72219,
-      "sha256": "94b1d25774f434d3a0139ec003858e3103a0ca0f8ad76ee5c8d8e37372ce6a20"
+      "size": 72253,
+      "sha256": "f2a91247de67890f4710ee39d8e333422f10bf7e590f13544d5c033bd53e072b"
     },
     {
       "path": "apps\\mobile_flutter\\android\\.gradle\\8.12\\gc.properties",
@@ -9684,7 +9724,7 @@
     {
       "path": "apps\\mobile_flutter\\android\\.gradle\\buildOutputCleanup\\buildOutputCleanup.lock",
       "size": 17,
-      "sha256": "91bc50d1f0c4f57baba64c10e5df072e3a13e50a6561803669db9db6a042a31f"
+      "sha256": "26c48c88f6639845cf54b150428a942959707ae1f943f5434bfaea545b243f56"
     },
     {
       "path": "apps\\mobile_flutter\\android\\.gradle\\buildOutputCleanup\\cache.properties",
@@ -9699,7 +9739,7 @@
     {
       "path": "apps\\mobile_flutter\\android\\.gradle\\file-system.probe",
       "size": 8,
-      "sha256": "9b1dbe200f02477efbf72b4ac48926769613d6a54818c04aa8d513b48d1f89bc"
+      "sha256": "48ddbe3c38b0cd771fef6c8271a27d86b8004a4a43d5666b5f9241326b13b674"
     },
     {
       "path": "apps\\mobile_flutter\\android\\.gradle\\noVersion\\buildLogic.lock",
@@ -10433,8 +10473,8 @@
     },
     {
       "path": "apps\\mobile_flutter\\lib\\core\\widgets\\brand_logo.dart",
-      "size": 3120,
-      "sha256": "3088f9fdf27b0a283fd588a6e502d1aa7cc96d145344a10d6c30670fadc771e0"
+      "size": 3269,
+      "sha256": "0fa50c2a7fad449401593e94c6c7ea5b32827b256086a2b494240dbfe285c06f"
     },
     {
       "path": "apps\\mobile_flutter\\lib\\core\\widgets\\connectivity_banner.dart",
@@ -10543,8 +10583,8 @@
     },
     {
       "path": "apps\\mobile_flutter\\lib\\features\\mobile_data\\mobile_models.dart",
-      "size": 150303,
-      "sha256": "345e6644419f9a7875198c52853181bc6b3ed145530ef12b601c6a89ef16fcd9"
+      "size": 150944,
+      "sha256": "ef6b07fb1d35d7a41fda07a45589b92f776a51e437cb5f1272c4f57e64bd5da3"
     },
     {
       "path": "apps\\mobile_flutter\\lib\\features\\mobile_data\\mobile_operations_models.dart",
@@ -10723,8 +10763,8 @@
     },
     {
       "path": "apps\\mobile_flutter\\lib\\features\\mobile_pages\\mobile_action_inbox_page.dart",
-      "size": 28582,
-      "sha256": "c838630232759a7124792ac12d5b557f0d6fd28f91055a5a2eeb065180d6ee31"
+      "size": 31599,
+      "sha256": "635bff7fbbe795efdd4c6ccce950dc5f1085ce9b90be0b9aaa099853162260a0"
     },
     {
       "path": "apps\\mobile_flutter\\lib\\features\\mobile_pages\\mobile_action_router.dart",
@@ -10918,8 +10958,8 @@
     },
     {
       "path": "apps\\mobile_flutter\\lib\\features\\workspaces\\executive_tabs.dart",
-      "size": 47341,
-      "sha256": "d63ce9b92ba6fba4637fb58f4ad8e03b8ff7ee0c849cce63e9916a43cf6431ac"
+      "size": 46964,
+      "sha256": "558f48bb7c3e4f601be8d870788fcbac3f9877eaa8cb9b54e20e3b9011abaae9"
     },
     {
       "path": "apps\\mobile_flutter\\lib\\features\\workspaces\\executive_workspace.dart",
@@ -18302,6 +18342,11 @@
       "sha256": "b140bdb2f663f823a7c820eb73fecd21b4f092e4652c1a79712d81412b8c5dc2"
     },
     {
+      "path": "scratch\\check_inbox_sheikh.py",
+      "size": 2822,
+      "sha256": "7f681704ad976fe06cab4fd8fd9f1c25686b326e4b1cb8c23b5b5d3715b8f041"
+    },
+    {
       "path": "scratch\\check_mission_cols.py",
       "size": 382,
       "sha256": "03291e92ff4528f1ad8618f07ef1fce6b3247230865c28e66879949b326693ab"
@@ -18335,6 +18380,11 @@
       "path": "scratch\\check_pending_migrations.py",
       "size": 1010,
       "sha256": "0e53200e7fbabd3caa958e01c6cdd37ba8befbaaedb47596ca8c5c1d23692922"
+    },
+    {
+      "path": "scratch\\check_photos.py",
+      "size": 5034,
+      "sha256": "d23a96bb2d0949dbf63eb3a65ca797244d3b7efe4fe8170be2644bbc30e0621d"
     },
     {
       "path": "scratch\\check_plpgsql_0662.py",
@@ -23015,6 +23065,11 @@
       "path": "supabase\\migrations\\0690_anti_duplicate_notifications_and_late_arrival_names.sql",
       "size": 17457,
       "sha256": "c3c9bbeadfb8b305840b450dcf7058a32dab7a7c515b931eb6ca7024dbd09217"
+    },
+    {
+      "path": "supabase\\migrations\\0691_action_center_rich_employee_info.sql",
+      "size": 5959,
+      "sha256": "c3f5ebf1d10461621852bcd3bb105b22b00e233f6bcdf308aa7e3a11f887d7a0"
     },
     {
       "path": "supabase\\migrations\\README.md",

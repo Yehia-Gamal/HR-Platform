@@ -73,35 +73,38 @@ class BrandLogoMark extends StatelessWidget {
   final double size;
 
   @override
-  Widget build(BuildContext context) => Container(
-    width: size,
-    height: size,
-    padding: EdgeInsets.all(size * .055),
-    decoration: BoxDecoration(
-      color: inverse
-          ? Colors.white.withValues(alpha: .09)
-          : Colors.white.withValues(alpha: .94),
-      borderRadius: BorderRadius.circular(size * .29),
-      border: Border.all(
-        color: inverse
-            ? Colors.white.withValues(alpha: .18)
-            : Theme.of(context).colorScheme.outlineVariant,
-      ),
-      boxShadow: [
-        BoxShadow(
-          color: AppColors.brandPrimaryStrong.withValues(alpha: .13),
-          blurRadius: 18,
-          offset: const Offset(0, 7),
+  Widget build(BuildContext context) {
+    final isDark = inverse || Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      width: size,
+      height: size,
+      padding: EdgeInsets.all(size * .08),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withValues(alpha: .10)
+            : Colors.white.withValues(alpha: .94),
+        borderRadius: BorderRadius.circular(size * .29),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: .18)
+              : Theme.of(context).colorScheme.outlineVariant,
         ),
-      ],
-    ),
-    child: Image.asset(
-      inverse
-          ? 'assets/brand/association-logo-white.png'
-          : 'assets/brand/association-logo-blue.png',
-      fit: BoxFit.contain,
-      filterQuality: FilterQuality.high,
-      excludeFromSemantics: true,
-    ),
-  );
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.brandPrimaryStrong.withValues(alpha: .13),
+            blurRadius: 18,
+            offset: const Offset(0, 7),
+          ),
+        ],
+      ),
+      child: Image.asset(
+        isDark
+            ? 'assets/brand/association-logo-white.png'
+            : 'assets/brand/association-logo-blue.png',
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.high,
+        excludeFromSemantics: true,
+      ),
+    );
+  }
 }

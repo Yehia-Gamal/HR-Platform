@@ -802,6 +802,12 @@ class MobileActionItem {
     required this.priority,
     required this.status,
     required this.dueAt,
+    this.employeeName,
+    this.photoUrl,
+    this.requestType,
+    this.requestNumber,
+    this.requestTitle,
+    this.requestReason,
   });
   factory MobileActionItem.fromJson(Map<String, dynamic> json) =>
       MobileActionItem(
@@ -814,6 +820,12 @@ class MobileActionItem {
         dueAt: json['dueAt'] == null
             ? null
             : DateTime.parse(json['dueAt'] as String),
+        employeeName: json['employeeName'] as String?,
+        photoUrl: json['photoUrl'] as String?,
+        requestType: json['requestType'] as String?,
+        requestNumber: (json['requestNumber'] as num?)?.toInt(),
+        requestTitle: json['requestTitle'] as String?,
+        requestReason: json['requestReason'] as String?,
       );
   final String id;
   final String kind;
@@ -822,6 +834,12 @@ class MobileActionItem {
   final String priority;
   final String status;
   final DateTime? dueAt;
+  final String? employeeName;
+  final String? photoUrl;
+  final String? requestType;
+  final int? requestNumber;
+  final String? requestTitle;
+  final String? requestReason;
 
   // مفتاح mobileActionTargetProvider (family): بدون مساواة قيمية يُنشأ مزوّد
   // جديد في كل إعادة بناء (مثل كل حدث من onAuthStateChange عند الإقلاع)

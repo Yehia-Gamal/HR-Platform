@@ -10,6 +10,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_action_ro
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_request_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/request_decision_sheet.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/request_display.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,7 +18,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// صندوق الإجراءات: ما ينتظر قرارك (طلبات، تقييمات، قرارات للاطلاع) ثم
 /// طلباتك قيد المراجعة للمتابعة — الأحدث أولًا داخل كل قسم.
 class MobileActionInboxPage extends ConsumerWidget {
-  const MobileActionInboxPage({super.key});
+  const MobileActionInboxPage({this.showHeader = true, super.key});
+
+  final bool showHeader;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -116,6 +119,14 @@ class MobileActionInboxPage extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 110),
             children: [
+              if (showHeader)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 12),
+                  child: MobileSectionHeader(
+                    title: 'الاعتمادات والإجراءات',
+                    subtitle: 'طلبات وإجراءات تنتظر قرارك — الأعجل أولًا.',
+                  ),
+                ),
               if (toDecide.isNotEmpty || kpis.isNotEmpty)
                 Wrap(
                   spacing: 6,
@@ -311,26 +322,50 @@ class _RequestActionCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final r = entry.request;
-    final type = r?.type ?? '';
-    final color = r == null ? AppColors.brandPrimary : requestTypeColor(type);
+    final item = entry.item;
+    final type = r?.type ?? item.requestType ?? '';
+    final color = requestTypeColor(type);
     final due = requestDueStatus(entry.dueAt);
     final stage = r?.activeStepName == null
         ? null
         : requestStageName(r!.activeStepName, roleSlug: r.activeStepRole);
-    final headline = r == null
-        ? entry.item.title
-        : isMine
-        ? '${requestTypeLabel(type)} · طلب رقم #${r.number}'
-        : '${requestTypeLabel(type)} · ${r.employeeName} (#${r.number})';
-    final title = r?.title?.trim();
-    final reason = r?.reason?.trim();
-    final second = r == null
-        ? entry.item.subtitle
-        : (title != null && title.isNotEmpty && title != requestTypeLabel(type))
-        ? (reason != null && reason.isNotEmpty && reason != title
-            ? '$title — $reason'
-            : title)
-        : requestBriefLine(type, r.payload);
+
+    final empName = r?.employeeName ??
+        item.employeeName ??
+        (item.subtitle != null && !item.subtitle!.startsWith('+')
+            ? item.subtitle!
+            : '');
+    final photo = r?.employeePhotoUrl ?? item.photoUrl;
+    final reqNum = r?.number ?? item.requestNumber;
+    final numStr = reqNum != null && reqNum > 0 ? ' (#$reqNum)' : '';
+    final typeLabel = requestTypeLabel(type);
+
+    final headline = isMine
+        ? (numStr.isNotEmpty
+            ? '$typeLabel · طلب رقم $numStr'
+            : '$typeLabel · طلبك')
+        : (empName.isNotEmpty
+            ? '$typeLabel · $empName$numStr'
+            : (item.title.isNotEmpty ? item.title : '$typeLabel$numStr'));
+
+    final statusSubtitle = r != null
+        ? 'طلب #${r.number} · قُدِّم ${arAgo(r.createdAt)}'
+        : (reqNum != null && reqNum > 0
+            ? 'طلب #$reqNum · ${_workflowLabel(item.status)}'
+            : _workflowLabel(item.status));
+
+    final reqTitle = r?.title?.trim() ??
+        item.requestTitle?.trim() ??
+        (item.title != empName ? item.title.trim() : null);
+    final reqReason = r?.reason?.trim() ?? item.requestReason?.trim();
+    final second =
+        (reqTitle != null && reqTitle.isNotEmpty && reqTitle != typeLabel)
+            ? (reqReason != null && reqReason.isNotEmpty && reqReason != reqTitle
+                ? '$reqTitle — $reqReason'
+                : reqTitle)
+            : (reqReason != null && reqReason.isNotEmpty
+                ? reqReason
+                : (r != null ? requestBriefLine(type, r.payload) : null));
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -364,8 +399,8 @@ class _RequestActionCard extends ConsumerWidget {
                     clipBehavior: Clip.none,
                     children: [
                       AppAvatar(
-                        name: r?.employeeName ?? entry.item.title,
-                        photoUrl: r?.employeePhotoUrl,
+                        name: empName.isNotEmpty ? empName : item.title,
+                        photoUrl: photo,
                         radius: 22,
                       ),
                       Positioned(
@@ -382,7 +417,7 @@ class _RequestActionCard extends ConsumerWidget {
                             ),
                           ),
                           child: Icon(
-                            r == null
+                            r == null && type.isEmpty
                                 ? Icons.approval_outlined
                                 : requestTypeIcon(type),
                             size: 11,
@@ -408,9 +443,7 @@ class _RequestActionCard extends ConsumerWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          r == null
-                              ? _workflowLabel(entry.item.status)
-                              : 'طلب #${r.number} · قُدِّم ${arAgo(r.createdAt)}',
+                          statusSubtitle,
                           style: TextStyle(
                             fontSize: 11.5,
                             color: scheme.onSurfaceVariant,
@@ -442,16 +475,28 @@ class _RequestActionCard extends ConsumerWidget {
                     color: scheme.surfaceContainerHighest.withValues(alpha: .35),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Text(
-                    second.trim(),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      height: 1.4,
-                      color: scheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline_rounded,
+                        size: 15,
+                        color: scheme.onSurfaceVariant.withValues(alpha: .7),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          second.trim(),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            height: 1.4,
+                            color: scheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -503,9 +548,10 @@ class _RequestActionCard extends ConsumerWidget {
               ),
 
               // ── أزرار الإجراء السريع بكامل عرض البطاقة ──
-              if ((r?.awaitingMe == true || r?.canDecide == true) &&
-                  !isMine &&
-                  entry.id != null) ...[
+              if (!isMine &&
+                  entry.id != null &&
+                  ((r?.awaitingMe == true || r?.canDecide == true) ||
+                      r == null)) ...[
                 const SizedBox(height: 12),
                 Divider(
                   height: 1,
@@ -548,9 +594,9 @@ class _RequestActionCard extends ConsumerWidget {
                             context,
                             ref,
                             requestId: entry.id!,
-                            number: r?.number ?? 0,
-                            type: r?.type ?? '',
-                            employeeName: r?.employeeName ?? '',
+                            number: reqNum ?? 0,
+                            type: type,
+                            employeeName: empName,
                             decision: 'approve',
                           );
                           if (done) {
@@ -592,9 +638,9 @@ class _RequestActionCard extends ConsumerWidget {
                             context,
                             ref,
                             requestId: entry.id!,
-                            number: r?.number ?? 0,
-                            type: r?.type ?? '',
-                            employeeName: r?.employeeName ?? '',
+                            number: reqNum ?? 0,
+                            type: type,
+                            employeeName: empName,
                             decision: 'reject',
                           );
                           if (done) {
@@ -635,9 +681,9 @@ class _RequestActionCard extends ConsumerWidget {
                             context,
                             ref,
                             requestId: entry.id!,
-                            number: r?.number ?? 0,
-                            type: r?.type ?? '',
-                            employeeName: r?.employeeName ?? '',
+                            number: reqNum ?? 0,
+                            type: type,
+                            employeeName: empName,
                           );
                           if (done) {
                             ref.invalidate(mobileActionCenterProvider);
@@ -680,6 +726,9 @@ class _GenericActionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final due = requestDueStatus(item.dueAt);
+    final hasPhoto = item.photoUrl != null && item.photoUrl!.isNotEmpty;
+    final empName = item.employeeName ?? item.title;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       clipBehavior: Clip.antiAlias,
@@ -690,11 +739,17 @@ class _GenericActionCard extends StatelessWidget {
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
-        leading: CircleAvatar(
-          radius: 21,
-          backgroundColor: color.withValues(alpha: .12),
-          child: Icon(icon, color: color, size: 21),
-        ),
+        leading: hasPhoto || item.employeeName != null
+            ? AppAvatar(
+                name: empName,
+                photoUrl: item.photoUrl,
+                radius: 21,
+              )
+            : CircleAvatar(
+                radius: 21,
+                backgroundColor: color.withValues(alpha: .12),
+                child: Icon(icon, color: color, size: 21),
+              ),
         title: Text(
           title ?? item.title,
           maxLines: 2,
