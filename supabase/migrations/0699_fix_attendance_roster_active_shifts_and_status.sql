@@ -17,6 +17,7 @@ CREATE OR REPLACE FUNCTION public.get_attendance_day_roster(
 RETURNS jsonb
 LANGUAGE plpgsql
 STABLE
+SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare
@@ -288,3 +289,7 @@ begin
   return v_result;
 end;
 $function$;
+
+REVOKE ALL ON FUNCTION public.get_attendance_day_roster(date, text, text, uuid, uuid, uuid, text, text, integer, integer) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_attendance_day_roster(date, text, text, uuid, uuid, uuid, text, text, integer, integer) TO authenticated;
+
