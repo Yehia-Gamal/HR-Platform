@@ -1,14 +1,19 @@
 import {
   ArrowRight,
   ArrowUpDown,
+  Calendar,
   CalendarClock,
   CalendarX2,
+  Camera,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Clock3,
   Loader2,
   MapPin,
   Plane,
   Printer,
+  RotateCcw,
   Search,
   UserCheck,
   UserX,
@@ -62,28 +67,6 @@ const SORT_OPTIONS: { key: AttendanceRosterSort; label: string }[] = [
 
 const PAGE_SIZES = [10, 25, 50, 100];
 
-const STATUS_LABELS: Record<string, string> = {
-  present: 'حاضر',
-  late: 'متأخر',
-  absent: 'غائب',
-  on_leave: 'إجازة',
-  holiday: 'عطلة',
-  weekend: 'عطلة الأسبوع',
-  partial: 'جزئي',
-  pending: 'قيد الانتظار',
-  on_mission: 'مأمورية',
-  mission: 'مأمورية',
-  convoy: 'قافلة',
-  fundraising: 'فاندي',
-  not_recorded: 'لم يسجل بعد',
-  missing_checkout: 'بصمة بلا انصراف',
-};
-
-function _statusLabel(status: string | null): string {
-  if (!status) return '—';
-  return STATUS_LABELS[status] ?? status;
-}
-
 function locationStatusLabel(status: string | null | undefined): string {
   if (!status) return '—';
   const map: Record<string, string> = {
@@ -134,6 +117,10 @@ export function AttendanceDrilldownPage() {
 
   const [searchInput, setSearchInput] = useState(q);
   const [isPrinting, setIsPrinting] = useState(false);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const isToday = dateIso === cairoTodayIso();
 
   const handlePrint = async () => {
     setIsPrinting(true);
@@ -142,6 +129,57 @@ export function AttendanceDrilldownPage() {
     } finally {
       setIsPrinting(false);
     }
+  };
+
+  const handleCaptureScreenshot = async () => {
+    const element = document.getElementById('attendance-roster-view');
+    if (!element) return;
+    setIsCapturing(true);
+    setToastMessage('جاري التقاط الشاشة بجودة فائقة...');
+    try {
+      const h2cModule = await import('html2canvas');
+      const html2canvas = typeof h2cModule.default === 'function' ? h2cModule.default : (h2cModule as any);
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#0b1329',
+        windowWidth: element.scrollWidth,
+      });
+      canvas.toBlob((blob: Blob | null) => {
+        if (!blob) {
+          setToastMessage('تعذر التقاط لقطة الشاشة');
+          setTimeout(() => setToastMessage(null), 3000);
+          return;
+        }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `كشف_حضور_${category}_${dateIso}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 10_000);
+        setToastMessage('تم تنزيل لقطة الشاشة بنجاح ✅');
+        setTimeout(() => setToastMessage(null), 3500);
+      }, 'image/png');
+    } catch (err) {
+      console.error('Failed to capture screenshot', err);
+      setToastMessage('تعذر التقاط لقطة الشاشة.');
+      setTimeout(() => setToastMessage(null), 3000);
+    } finally {
+      setIsCapturing(false);
+    }
+  };
+
+  const handleShiftDate = (offsetDays: number) => {
+    const current = new Date(`${dateIso}T00:00:00`);
+    if (Number.isNaN(current.getTime())) return;
+    current.setDate(current.getDate() + offsetDays);
+    const yyyy = current.getFullYear();
+    const mm = String(current.getMonth() + 1).padStart(2, '0');
+    const dd = String(current.getDate()).padStart(2, '0');
+    updateParams({ date: `${yyyy}-${mm}-${dd}` });
   };
 
   useEffect(() => {
@@ -189,12 +227,9 @@ export function AttendanceDrilldownPage() {
   const total = query.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
-  // الوصول من إشعار حضور → إبراز صف الموظف صاحب الحدث في يوم الحدث.
   const focusedId = useEntityFocus(items.length > 0);
-
   const hrPrefix = useHrPrefix();
   const currentCategory = CATEGORIES.find((c) => c.key === category) ?? CATEGORIES[0];
-
   const isFiltered = Boolean(searchInput.trim() || branch || dept || sort !== 'name' || direction !== 'asc');
 
   function handleClearFilters() {
@@ -204,52 +239,134 @@ export function AttendanceDrilldownPage() {
 
   return (
     <div className="space-y-4">
-      {/* ─── ترويسة الصفحة ─── */}
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <Link to={`${hrPrefix}/attendance`} className="btn-ghost btn-sm" aria-label="العودة إلى لوحة الحضور">
+      {/* ─── إشعار لقطة الشاشة ─── */}
+      {toastMessage ? (
+        <div
+          role="status"
+          className="fixed top-5 start-1/2 -translate-x-1/2 z-50 rounded-xl bg-[var(--surface-overlay,rgba(15,23,42,0.95))] text-white px-4 py-2.5 text-xs font-bold shadow-2xl border border-[var(--border)] backdrop-blur-md flex items-center gap-2 animate-in fade-in slide-in-from-top-2"
+        >
+          {isCapturing ? <Loader2 className="size-4 animate-spin text-[var(--primary)]" /> : null}
+          <span>{toastMessage}</span>
+        </div>
+      ) : null}
+
+      {/* ─── ترويسة الصفحة الاحترافية ─── */}
+      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 p-3.5 sm:p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
+        {/* الجانب الأيمن: زر العودة + عنوان الفئة + محدد التاريخ */}
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            to={`${hrPrefix}/attendance`}
+            className="btn-ghost btn-sm h-9 px-3 rounded-xl border border-[var(--border)] hover:bg-[var(--surface-muted)]"
+            aria-label="العودة إلى لوحة الحضور"
+          >
             <ArrowRight className="size-4" aria-hidden="true" />
             عودة
           </Link>
+
           <div>
             <div className="flex items-center gap-2">
-              <span className="flex size-7 items-center justify-center rounded-lg bg-[var(--primary)]/10 text-[var(--primary)]">
-                <currentCategory.icon className="size-4" aria-hidden="true" />
+              <span className="flex size-8 items-center justify-center rounded-xl bg-[var(--primary)]/10 text-[var(--primary)] border border-[var(--primary)]/20">
+                <currentCategory.icon className="size-4.5" aria-hidden="true" />
               </span>
-              <h1 className="text-lg font-black">قائمة «{currentCategory.label}»</h1>
+              <h1 className="text-base sm:text-lg font-black text-[var(--text)]">قائمة «{currentCategory.label}»</h1>
               {total > 0 ? (
-                <span className="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-xs font-bold text-[var(--text-muted)] border border-[var(--border)]">
+                <span className="rounded-full bg-[var(--primary)]/10 text-[var(--primary)] px-2.5 py-0.5 text-xs font-black border border-[var(--primary)]/20">
                   {total.toLocaleString('ar-EG')}
                 </span>
               ) : null}
             </div>
-            <p className="mt-1 flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
-              <CalendarClock className="size-3.5" aria-hidden="true" />
-              {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'full' }).format(new Date(`${dateIso}T00:00:00`))}
-            </p>
+
+            {/* أدوات التنقل بين التواريخ */}
+            <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
+              <div className="flex items-center rounded-xl border border-[var(--border)] bg-[var(--surface-muted)]/50 p-0.5">
+                <button
+                  type="button"
+                  onClick={() => handleShiftDate(1)}
+                  className="p-1 rounded-lg hover:bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+                  title="اليوم التالي"
+                  aria-label="اليوم التالي"
+                >
+                  <ChevronRight className="size-3.5" />
+                </button>
+                <div className="flex items-center gap-1.5 px-2 font-bold text-[var(--text)]">
+                  <Calendar className="size-3 text-[var(--primary)]" aria-hidden="true" />
+                  <span>{new Intl.DateTimeFormat('ar-EG', { dateStyle: 'full' }).format(new Date(`${dateIso}T00:00:00`))}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleShiftDate(-1)}
+                  className="p-1 rounded-lg hover:bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+                  title="اليوم السابق"
+                  aria-label="اليوم السابق"
+                >
+                  <ChevronLeft className="size-3.5" />
+                </button>
+              </div>
+
+              {/* محدد تاريخ مخصص وزر اليوم */}
+              <input
+                type="date"
+                value={dateIso}
+                onChange={(e) => e.target.value && updateParams({ date: e.target.value })}
+                className="input !h-7 !py-0 !px-2 text-xs font-bold rounded-lg border border-[var(--border)] !w-auto"
+                aria-label="تحديد التاريخ"
+              />
+              {!isToday ? (
+                <button
+                  type="button"
+                  onClick={() => updateParams({ date: cairoTodayIso() })}
+                  className="btn-ghost btn-xs h-7 px-2 text-xs font-bold rounded-lg text-[var(--primary)] hover:bg-[var(--primary)]/10"
+                >
+                  اليوم الحالي
+                </button>
+              ) : null}
+            </div>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+
+        {/* الجانب الأيسر: أزرار التصدير والإجراءات */}
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           <button
-            className="btn-secondary btn-sm"
+            type="button"
+            className="btn-secondary btn-sm h-9 px-3 text-xs font-bold rounded-xl border border-[var(--border)] inline-flex items-center gap-1.5 hover:border-[var(--primary)] transition-all"
+            onClick={() => void handleCaptureScreenshot()}
+            disabled={isCapturing}
+            aria-busy={isCapturing}
+            title="حفظ لقطة شاشة من الكشف كملف صورة PNG عالي الدقة"
+          >
+            {isCapturing ? <Loader2 className="size-4 animate-spin text-[var(--primary)]" /> : <Camera className="size-4 text-[var(--primary)]" />}
+            لقطة شاشة
+          </button>
+
+          <button
+            type="button"
+            className="btn-secondary btn-sm h-9 px-3 text-xs font-bold rounded-xl border border-[var(--border)] inline-flex items-center gap-1.5 hover:border-emerald-500 transition-all"
             onClick={() => void handlePrint()}
             disabled={isPrinting}
             aria-busy={isPrinting}
-            aria-label="تصدير القائمة كـ PDF"
+            title="تصدير كشف حضور رسمي منسق بصيغة PDF"
           >
-            {isPrinting ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Printer className="size-4" aria-hidden="true" />}
-            طباعة / PDF
+            {isPrinting ? <Loader2 className="size-4 animate-spin text-emerald-500" /> : <Printer className="size-4 text-emerald-500" />}
+            تصدير PDF
           </button>
-          <button className="btn-secondary btn-sm" onClick={() => void query.refetch()} disabled={query.isFetching} aria-busy={query.isFetching}>
-            <Loader2 className={`size-4 ${query.isFetching ? 'animate-spin' : ''}`} aria-hidden="true" />
+
+          <button
+            type="button"
+            className="btn-secondary btn-sm h-9 px-3 text-xs font-bold rounded-xl border border-[var(--border)] inline-flex items-center gap-1.5"
+            onClick={() => void query.refetch()}
+            disabled={query.isFetching}
+            aria-busy={query.isFetching}
+            title="تحديث البيانات"
+          >
+            <RotateCcw className={`size-3.5 ${query.isFetching ? 'animate-spin text-[var(--primary)]' : ''}`} aria-hidden="true" />
             تحديث
           </button>
         </div>
       </header>
 
-      {/* ─── تبويبات الفئات داخل لوحة موحدة ─── */}
+      {/* ─── تبويبات الفئات: شريط أفقي أنيق قابل للتمرير ─── */}
       <nav
-        className="flex flex-wrap items-center gap-1.5 p-2 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs"
+        className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-[var(--surface)] border border-[var(--border)] overflow-x-auto no-scrollbar shadow-xs"
         aria-label="فئات الحضور"
       >
         {CATEGORIES.map((c) => {
@@ -260,25 +377,30 @@ export function AttendanceDrilldownPage() {
               key={c.key}
               type="button"
               aria-pressed={active}
-              className={`filter-chip ${active ? 'is-active' : ''}`}
+              className={`min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-bold inline-flex items-center gap-2 whitespace-nowrap transition-all duration-150 shrink-0 ${
+                active
+                  ? 'bg-[var(--primary)] text-white shadow-xs ring-1 ring-[var(--primary)]'
+                  : 'bg-transparent text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-muted)]'
+              }`}
               onClick={() => updateParams({ category: c.key })}
             >
-              <Icon className="size-4" aria-hidden="true" />
-              {c.label}
+              <Icon className="size-3.5" aria-hidden="true" />
+              <span>{c.label}</span>
             </button>
           );
         })}
       </nav>
 
-      <div className="card space-y-3.5 p-3 sm:p-4">
-        {/* ─── شريط التحكم والبحث المدمج في سطر واحد ─── */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
-          {/* حقل البحث بالاسم / الكود */}
-          <div className="relative flex-1 min-w-[220px]">
-            <Search className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
+      {/* ─── بطاقة المحتوى والجدول ─── */}
+      <div id="attendance-roster-view" className="card space-y-4 p-3.5 sm:p-4.5 bg-[var(--surface)]">
+        {/* ─── شريط الفلاتر والبحث المنضبط ─── */}
+        <div className="space-y-2.5">
+          {/* حقل البحث الرئيسي */}
+          <div className="relative w-full">
+            <Search className="pointer-events-none absolute end-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
             <input
               type="search"
-              className="input !h-10 w-full ps-8 pe-9 text-xs font-bold"
+              className="input !h-10.5 w-full ps-9 pe-10 text-xs font-bold rounded-xl"
               placeholder="ابحث بالاسم أو الرقم الوظيفي أو الإدارة..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
@@ -288,7 +410,7 @@ export function AttendanceDrilldownPage() {
               <button
                 type="button"
                 onClick={() => setSearchInput('')}
-                className="absolute start-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)] p-0.5 rounded transition-colors"
+                className="absolute start-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)] p-1 rounded-md transition-colors"
                 aria-label="مسح نص البحث"
               >
                 <X className="size-3.5" aria-hidden="true" />
@@ -296,52 +418,62 @@ export function AttendanceDrilldownPage() {
             ) : null}
           </div>
 
-          {/* الفلاتر المنسدلة والترتيب */}
-          <div className="flex flex-wrap items-center gap-2">
-            <select
-              className="input !w-auto min-w-[130px] !h-10 text-xs font-bold shrink-0"
-              value={branch}
-              onChange={(e) => updateParams({ branch: e.target.value })}
-              aria-label="تصفية حسب الفرع"
-            >
-              <option value="">كل الفروع</option>
-              {(lookups.data?.branches ?? []).map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.label}
-                </option>
-              ))}
-            </select>
+          {/* صف خيارات التصفية والترتيب */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* اختيار الفرع */}
+            <div className="min-w-[160px] flex-1 sm:flex-none">
+              <select
+                className="input !h-9.5 !py-1 !ps-2.5 !pe-7 text-xs font-bold w-full rounded-xl bg-[var(--surface)] text-[var(--text)]"
+                value={branch}
+                onChange={(e) => updateParams({ branch: e.target.value })}
+                aria-label="تصفية حسب الفرع"
+              >
+                <option value="">كل الفروع</option>
+                {(lookups.data?.branches ?? []).map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-            <select
-              className="input !w-auto min-w-[130px] !h-10 text-xs font-bold shrink-0"
-              value={dept}
-              onChange={(e) => updateParams({ dept: e.target.value })}
-              aria-label="تصفية حسب الإدارة"
-            >
-              <option value="">كل الإدارات</option>
-              {(lookups.data?.departments ?? []).map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.label}
-                </option>
-              ))}
-            </select>
+            {/* اختيار الإدارة */}
+            <div className="min-w-[170px] flex-1 sm:flex-none">
+              <select
+                className="input !h-9.5 !py-1 !ps-2.5 !pe-7 text-xs font-bold w-full rounded-xl bg-[var(--surface)] text-[var(--text)]"
+                value={dept}
+                onChange={(e) => updateParams({ dept: e.target.value })}
+                aria-label="تصفية حسب الإدارة"
+              >
+                <option value="">كل الإدارات</option>
+                {(lookups.data?.departments ?? []).map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-            <select
-              className="input !w-auto min-w-[110px] !h-10 text-xs font-bold shrink-0"
-              value={sort}
-              onChange={(e) => updateParams({ sort: e.target.value })}
-              aria-label="ترتيب القائمة"
-            >
-              {SORT_OPTIONS.map((s) => (
-                <option key={s.key} value={s.key}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
+            {/* الترتيب */}
+            <div className="min-w-[130px] flex-1 sm:flex-none">
+              <select
+                className="input !h-9.5 !py-1 !ps-2.5 !pe-7 text-xs font-bold w-full rounded-xl bg-[var(--surface)] text-[var(--text)]"
+                value={sort}
+                onChange={(e) => updateParams({ sort: e.target.value })}
+                aria-label="ترتيب القائمة"
+              >
+                {SORT_OPTIONS.map((s) => (
+                  <option key={s.key} value={s.key}>
+                    ترتيب: {s.label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
+            {/* زر اتجاه الترتيب */}
             <button
               type="button"
-              className="btn-secondary !h-10 px-3 text-xs font-bold shrink-0 inline-flex items-center gap-1.5"
+              className="btn-secondary !h-9.5 px-3.5 text-xs font-bold shrink-0 rounded-xl inline-flex items-center gap-1.5 border border-[var(--border)]"
               onClick={() => updateParams({ dir: direction === 'asc' ? 'desc' : 'asc' })}
               aria-label={`ترتيب ${direction === 'asc' ? 'تنازلي' : 'تصاعدي'}`}
             >
@@ -349,11 +481,12 @@ export function AttendanceDrilldownPage() {
               {direction === 'asc' ? 'تصاعدي ↑' : 'تنازلي ↓'}
             </button>
 
+            {/* زر إلغاء التصفية */}
             {isFiltered ? (
               <button
                 type="button"
                 onClick={handleClearFilters}
-                className="btn-ghost btn-sm !h-10 text-xs text-[var(--text-muted)] hover:text-[var(--danger)] shrink-0 inline-flex items-center gap-1"
+                className="btn-ghost btn-sm !h-9.5 px-3 text-xs text-[var(--danger)] hover:bg-[var(--danger)]/10 shrink-0 inline-flex items-center gap-1.5 rounded-xl transition-colors font-bold"
                 aria-label="إعادة ضبط الفلاتر"
               >
                 <X className="size-3.5" aria-hidden="true" />
@@ -363,6 +496,7 @@ export function AttendanceDrilldownPage() {
           </div>
         </div>
 
+        {/* ─── عرض البيانات أو الحالات البديلة ─── */}
         {query.isError ? (
           <ErrorState title="تعذر تحميل القائمة" description={safeErrorMessage(query.error)} onRetry={() => void query.refetch()} />
         ) : query.isLoading ? (
@@ -379,29 +513,30 @@ export function AttendanceDrilldownPage() {
             description={q ? 'جرّب البحث بكلمات أخرى أو عدّل الفلاتر.' : `لا يوجد موظفون ضمن فئة «${currentCategory.label}» لهذا اليوم.`}
           />
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
+          <div className="overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]">
             <table className="data-table w-full">
-              <thead className="sticky top-0 z-10 bg-[var(--surface-muted)]/90 backdrop-blur-xs">
+              <thead className="sticky top-0 z-10 bg-[var(--surface-muted)]/95 backdrop-blur-xs">
                 <tr>
-                  <th className="min-w-[200px]">الموظف</th>
+                  <th className="min-w-[210px]">الموظف</th>
                   <th>الحالة</th>
-                  <th>الإدارة</th>
+                  <th>الإدارة والفرع</th>
                   <th>التأخير</th>
                   <th>الحضور / الانصراف</th>
                   <th>الموقع</th>
-                  <th>العذر</th>
+                  <th>العذر والبيان</th>
                   <th className="text-end" aria-label="فتح الملف"></th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((item) => (
-                  <Row key={item.employeeId} item={item} focused={focusedId === item.employeeId} />
+                  <Row key={item.employeeId} item={item} focused={focusedId === item.employeeId} isToday={isToday} />
                 ))}
               </tbody>
             </table>
           </div>
         )}
 
+        {/* ─── ترقيم الصفحات ─── */}
         {!query.isError && !query.isLoading && total > 0 ? (
           <Pagination
             currentPage={page}
@@ -417,39 +552,70 @@ export function AttendanceDrilldownPage() {
   );
 }
 
-function Row({ item, focused }: { item: AttendanceRosterItem; focused: boolean }) {
+function Row({ item, focused, isToday }: { item: AttendanceRosterItem; focused: boolean; isToday: boolean }) {
   const hrPrefix = useHrPrefix();
   const hasExcuse = Boolean(item.hasApprovedLeave) || Boolean(item.hasMission);
+  const isWorkingNow = isToday && Boolean(item.firstCheckIn) && !item.lastCheckOut;
+
   return (
     <tr data-focus-id={item.employeeId} className={focused ? 'entity-focus-highlight' : undefined}>
+      {/* 1. الموظف: الصورة والاسم ورقم الهاتف / الكود */}
       <td>
         <div className="flex items-center gap-3">
           <UserAvatar displayName={item.employeeName} photoUrl={item.photoUrl} size="sm" announceName={false} />
           <div className="min-w-0">
             <Link
               to={`${hrPrefix}/employees/${item.employeeId}`}
-              className="font-bold text-sm text-[var(--text)] hover:text-[var(--primary)] hover:underline block truncate"
+              className="font-bold text-xs sm:text-sm text-[var(--text)] hover:text-[var(--primary)] hover:underline block truncate"
             >
               {item.employeeName}
             </Link>
-            <p className="text-xs text-[var(--text-muted)] font-mono">
-              {item.employeeCode ? <bdi dir="ltr">{item.employeeCode}</bdi> : '—'}
-            </p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-[11px] text-[var(--text-muted)] font-mono">
+                {item.employeeCode ? <bdi dir="ltr">{item.employeeCode}</bdi> : '—'}
+              </span>
+              {item.jobTitle ? (
+                <span className="text-[10px] text-[var(--text-secondary)] truncate max-w-[120px]" title={item.jobTitle}>
+                  · {item.jobTitle}
+                </span>
+              ) : null}
+            </div>
           </div>
         </div>
       </td>
+
+      {/* 2. الحالة مع مؤشر العمل الحي */}
       <td>
-        <StatusBadge status={item.status ?? undefined} />
-      </td>
-      <td className="text-xs text-[var(--text-secondary)]">
-        {item.departmentName ? (
-          <span className="truncate max-w-[140px] block" title={item.departmentName}>
-            {item.departmentName}
+        {isWorkingNow && item.status === 'present' ? (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-emerald-500/10 text-emerald-500 border border-emerald-500/25">
+            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+            حاضر (في العمل)
+          </span>
+        ) : isWorkingNow && item.status === 'late' ? (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-amber-500/10 text-amber-500 border border-amber-500/25">
+            <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
+            متأخر (في العمل)
           </span>
         ) : (
-          <span className="text-[var(--text-muted)]">—</span>
+          <StatusBadge status={item.status ?? undefined} />
         )}
       </td>
+
+      {/* 3. الإدارة والفرع */}
+      <td className="text-xs">
+        <div className="min-w-0">
+          <span className="font-bold text-[var(--text-secondary)] block truncate max-w-[150px]" title={item.departmentName ?? undefined}>
+            {item.departmentName ?? '—'}
+          </span>
+          {item.branchName ? (
+            <span className="text-[11px] text-[var(--text-muted)] block truncate max-w-[150px]" title={item.branchName}>
+              {item.branchName}
+            </span>
+          ) : null}
+        </div>
+      </td>
+
+      {/* 4. التأخير */}
       <td>
         {item.lateMinutes != null && item.lateMinutes > 0 ? (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">
@@ -457,22 +623,33 @@ function Row({ item, focused }: { item: AttendanceRosterItem; focused: boolean }
             {formatMinutes(item.lateMinutes)}
           </span>
         ) : (
-          <span className="text-[var(--text-muted)]">—</span>
+          <span className="text-[var(--text-muted)] text-xs">—</span>
         )}
       </td>
+
+      {/* 5. الحضور / الانصراف الذكي */}
       <td className="text-xs">
         {item.firstCheckIn ? (
           <div className="flex items-center gap-1.5 font-medium">
-            <span className="text-[var(--text)]">{formatTime(item.firstCheckIn)}</span>
+            <span className="font-bold text-[var(--text)]">{formatTime(item.firstCheckIn)}</span>
             <span className="text-[var(--text-muted)] text-[10px]">←</span>
-            <span className={item.lastCheckOut ? 'text-[var(--text)]' : 'text-[var(--text-muted)]'}>
-              {formatTime(item.lastCheckOut)}
-            </span>
+            {item.lastCheckOut ? (
+              <span className="font-bold text-[var(--text)]">{formatTime(item.lastCheckOut)}</span>
+            ) : isToday ? (
+              <span className="inline-flex items-center gap-1 font-bold text-emerald-500 text-[11px]">
+                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                على رأس العمل
+              </span>
+            ) : (
+              <span className="text-[var(--text-muted)]">—</span>
+            )}
           </div>
         ) : (
           <span className="text-[var(--text-muted)]">—</span>
         )}
       </td>
+
+      {/* 6. الموقع */}
       <td className="text-xs">
         {item.locationRequestStatus ? (
           <span className="inline-flex items-center gap-1 text-[var(--text-secondary)]">
@@ -483,30 +660,41 @@ function Row({ item, focused }: { item: AttendanceRosterItem; focused: boolean }
           <span className="text-[var(--text-muted)]">—</span>
         )}
       </td>
+
+      {/* 7. العذر والملاحظات */}
       <td className="text-xs">
         {hasExcuse ? (
-          <span className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1">
             {item.hasApprovedLeave ? (
-              <span className="status-pill status-pill--ok" title={`إجازة${item.leaveIsPaid ? ' مدفوعة' : ''}`}>
+              <span
+                className="status-pill status-pill--ok text-[11px] font-bold"
+                title={item.leaveName ? `إجازة: ${item.leaveName}` : 'إجازة معتمدة'}
+              >
                 <CheckCircle2 className="size-3" aria-hidden="true" />
-                إجازة
+                {item.leaveName ?? 'إجازة معتمدة'}
               </span>
             ) : null}
             {item.hasMission ? (
-              <span className="status-pill status-pill--neutral" title="مأمورية معتمدة">
+              <span className="status-pill status-pill--neutral text-[11px] font-bold" title="مأمورية معتمدة">
                 <Plane className="size-3" aria-hidden="true" />
                 مأمورية
               </span>
             ) : null}
+          </div>
+        ) : item.reviewReason ? (
+          <span className="text-amber-500 text-[11px] font-bold flex items-center gap-1" title={item.reviewReason}>
+            ⚠️ {item.reviewReason}
           </span>
         ) : (
           <span className="text-[var(--text-muted)]">—</span>
         )}
       </td>
+
+      {/* 8. فتح الملف */}
       <td className="text-end">
         <Link
           to={`${hrPrefix}/employees/${item.employeeId}`}
-          className="btn-ghost btn-xs whitespace-nowrap text-xs font-bold text-[var(--primary)] hover:bg-[var(--primary)]/10"
+          className="btn-ghost btn-xs whitespace-nowrap text-xs font-bold text-[var(--primary)] hover:bg-[var(--primary)]/10 rounded-lg px-2 py-1"
         >
           فتح الملف
         </Link>

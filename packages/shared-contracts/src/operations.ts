@@ -413,6 +413,7 @@ export const attendanceRosterItemSchema = z.object({
   reviewReason: z.string().nullable().optional(),
   hasApprovedLeave: z.boolean().optional(),
   leaveCode: z.string().nullable().optional(),
+  leaveName: z.string().nullable().optional(),
   leaveIsPaid: z.boolean().nullable().optional(),
   hasMission: z.boolean().optional(),
   locationRequestStatus: z.string().nullable(),

@@ -135,145 +135,232 @@ function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIs
   const categoryLabel = CATEGORY_LABELS[category] ?? category;
   const dateObj = new Date(`${dateIso}T00:00:00`);
   const dateLabel = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'full' }).format(Number.isNaN(dateObj.getTime()) ? new Date() : dateObj);
-  const title = `قائمة الحضور — ${categoryLabel} — ${dateLabel}`;
+  const title = `كشف الحضور الرسمي — ${categoryLabel} — ${dateLabel}`;
+
+  const presentCount = items.filter((i) => i.status === 'present' || i.status === 'late').length;
+  const lateCount = items.filter((i) => i.status === 'late' || (i.lateMinutes != null && i.lateMinutes > 0)).length;
+  const absentCount = items.filter((i) => i.status === 'absent' || i.status === 'unexcused_absent').length;
+  const leaveCount = items.filter((i) => i.hasApprovedLeave || i.hasMission || i.status === 'on_leave' || i.status === 'on_mission').length;
+
   const rows = items
-    .map(
-      (item, i) => `
+    .map((item, i) => {
+      let statusBadgeClass = 'status-badge-neutral';
+      let statusText = STATUS_LABELS_PDF[item.status ?? ''] ?? item.status ?? '—';
+      if (item.status === 'present') {
+        statusBadgeClass = 'status-badge-present';
+        statusText = 'حاضر';
+      } else if (item.status === 'late') {
+        statusBadgeClass = 'status-badge-late';
+        statusText = 'متأخر';
+      } else if (item.status === 'absent' || item.status === 'unexcused_absent') {
+        statusBadgeClass = 'status-badge-absent';
+        statusText = item.status === 'unexcused_absent' ? 'غياب بدون إذن' : 'غائب';
+      } else if (item.status === 'on_leave' || item.hasApprovedLeave) {
+        statusBadgeClass = 'status-badge-leave';
+        statusText = item.leaveName ?? 'إجازة';
+      } else if (item.status === 'on_mission' || item.hasMission) {
+        statusBadgeClass = 'status-badge-mission';
+        statusText = 'مأمورية';
+      }
+
+      let checkOutDisplay = '—';
+      if (item.lastCheckOut) {
+        checkOutDisplay = _fmt(item.lastCheckOut);
+      } else if (item.firstCheckIn) {
+        checkOutDisplay = '<span style="color:#059669;font-weight:700">على رأس العمل</span>';
+      }
+
+      let excuseDisplay = '—';
+      if (item.leaveName) {
+        excuseDisplay = item.leaveName;
+      } else if (item.hasMission) {
+        excuseDisplay = 'مأمورية معتمدة';
+      } else if (item.reviewReason) {
+        excuseDisplay = item.reviewReason;
+      }
+
+      return `
     <tr>
-      <td style="text-align:center;font-variant-numeric:tabular-nums">${i + 1}</td>
-      <td style="font-weight:700">${item.employeeName}</td>
-      <td style="text-align:center;font-variant-numeric:tabular-nums;direction:ltr">${item.employeeCode ?? '—'}</td>
-      <td style="text-align:center">${item.departmentName ?? '—'}</td>
-      <td style="text-align:center">${STATUS_LABELS_PDF[item.status ?? ''] ?? item.status ?? '—'}</td>
-      <td style="text-align:center;font-variant-numeric:tabular-nums;direction:ltr">${_fmt(item.firstCheckIn)}</td>
-      <td style="text-align:center;font-variant-numeric:tabular-nums;direction:ltr">${_fmt(item.lastCheckOut)}</td>
-      <td style="text-align:center;font-variant-numeric:tabular-nums">${item.lateMinutes ? `${item.lateMinutes} د` : '—'}</td>
-    </tr>`,
-    )
+      <td style="text-align:center;font-variant-numeric:tabular-nums;color:#6b7280">${i + 1}</td>
+      <td style="font-weight:700;color:#111827">${item.employeeName}</td>
+      <td style="text-align:center;font-variant-numeric:tabular-nums;direction:ltr;color:#4b5563;font-size:9px">${item.employeeCode ?? '—'}</td>
+      <td style="text-align:center;color:#374151">${item.departmentName ?? '—'}</td>
+      <td style="text-align:center;color:#4b5563;font-size:9px">${item.branchName ?? '—'}</td>
+      <td style="text-align:center"><span class="status-badge ${statusBadgeClass}">${statusText}</span></td>
+      <td style="text-align:center;font-variant-numeric:tabular-nums;direction:ltr;font-weight:600">${_fmt(item.firstCheckIn)}</td>
+      <td style="text-align:center;font-variant-numeric:tabular-nums;direction:ltr">${checkOutDisplay}</td>
+      <td style="text-align:center;font-variant-numeric:tabular-nums">${item.lateMinutes ? `<span style="color:#b45309;font-weight:700">${item.lateMinutes} د</span>` : '—'}</td>
+      <td style="text-align:center;font-size:9px;color:#4b5563">${excuseDisplay}</td>
+    </tr>`;
+    })
     .join('');
+
   return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
 <title>${title}</title>
 <style>
-  @page { size: A4 landscape; margin: 10mm 8mm; }
+  @page { size: A4 landscape; margin: 8mm 6mm; }
   * { box-sizing: border-box; }
   body {
     font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
-    font-size: 11px;
+    font-size: 10px;
     color: #111827;
-    margin: 16px;
-    line-height: 1.5;
+    margin: 12px;
+    line-height: 1.4;
     background: #f8fafc;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
-  .page { max-width: 1100px; margin: 0 auto; background: #fff; padding: 24px; border-radius: 8px; border: 1px solid #e5e7eb; }
-  .header { border-bottom: 3px solid #1a56db; padding-bottom: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
-  .header h1 { font-size: 18px; font-weight: 900; color: #1a56db; margin: 0; }
-  .meta { color: #4b5563; font-size: 11px; font-weight: 600; margin-top: 4px; }
-  table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 10px; }
-  th { background: #1e3a5f; color: #fff; padding: 7px 8px; text-align: center; font-weight: 800; font-size: 9px; }
-  td { padding: 6px 8px; border-bottom: 1px solid #e5e7eb; }
-  tr:nth-child(even) td { background: #fafafa; }
-  .footer { margin-top: 16px; padding-top: 10px; border-top: 2px solid #e2e8f0; display: flex; justify-content: space-between; font-size: 9px; color: #9ca3af; }
+  .page { max-width: 1120px; margin: 0 auto; background: #fff; padding: 20px 24px; border-radius: 8px; border: 1px solid #e2e8f0; }
+  .header { border-bottom: 2px solid #2563eb; padding-bottom: 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-start; }
+  .org-title { font-size: 15px; font-weight: 900; color: #1e3a8a; margin: 0; }
+  .org-sub { font-size: 10px; color: #475569; font-weight: 600; margin-top: 2px; }
+  .doc-title-box { text-align: left; }
+  .doc-main-title { font-size: 14px; font-weight: 800; color: #2563eb; margin: 0; }
+  .doc-meta { font-size: 10px; color: #64748b; font-weight: 600; margin-top: 3px; }
 
-  /* ─── شريط الإجراءات العلوي التفاعلي ─── */
+  /* بطاقات الإحصائيات السريعة */
+  .stats-bar { display: flex; gap: 8px; margin-bottom: 12px; }
+  .stat-card {
+    flex: 1; padding: 6px 10px; border-radius: 6px; background: #f8fafc;
+    border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;
+  }
+  .stat-card.present { border-color: #a7f3d0; background: #ecfdf5; }
+  .stat-card.late { border-color: #fde68a; background: #fffbeb; }
+  .stat-card.absent { border-color: #fecaca; background: #fef2f2; }
+  .stat-card.leave { border-color: #bfdbfe; background: #eff6ff; }
+  .stat-label { font-size: 9px; font-weight: 700; color: #475569; }
+  .stat-value { font-size: 12px; font-weight: 900; color: #0f172a; }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 9.5px; }
+  th { background: #0f172a; color: #ffffff; padding: 6px 6px; text-align: center; font-weight: 800; font-size: 9px; border: 1px solid #1e293b; }
+  td { padding: 5px 6px; border: 1px solid #e2e8f0; vertical-align: middle; }
+  tr:nth-child(even) td { background: #f8fafc; }
+  tr { break-inside: avoid; page-break-inside: avoid; }
+
+  .status-badge {
+    display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 8.5px; font-weight: 800;
+  }
+  .status-badge-present { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+  .status-badge-late { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+  .status-badge-absent { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+  .status-badge-leave { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+  .status-badge-mission { background: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; }
+  .status-badge-neutral { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+
+  /* التوقيعات والذيل */
+  .sign-section {
+    margin-top: 18px; padding-top: 14px; border-top: 1px dashed #cbd5e1;
+    display: flex; justify-content: space-between; align-items: flex-end;
+  }
+  .sign-box { text-align: center; width: 220px; }
+  .sign-box .role { font-size: 10px; font-weight: 800; color: #1e293b; margin-bottom: 28px; }
+  .sign-box .line { border-bottom: 1px solid #94a3b8; width: 100%; margin: 0 auto; }
+
+  .footer { margin-top: 12px; display: flex; justify-content: space-between; font-size: 8.5px; color: #94a3b8; }
+
+  /* شريط الإجراءات للشاشة */
   .action-bar {
-    max-width: 1100px;
-    margin: 0 auto 16px;
-    background: #0f172a;
-    color: #f8fafc;
-    border-radius: 10px;
-    padding: 12px 18px;
-    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);
-    border: 1px solid #334155;
+    max-width: 1120px; margin: 0 auto 12px; background: #0f172a; color: #f8fafc;
+    border-radius: 8px; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center;
   }
-  .action-bar-content {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-  .action-title { font-size: 13px; font-weight: 800; color: #ffffff; }
-  .action-buttons { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .btn-act {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 7px 14px; font-size: 11px; font-weight: 700;
-    font-family: inherit; border-radius: 6px; cursor: pointer; border: none;
-    transition: all 0.2s;
+    padding: 6px 14px; font-size: 11px; font-weight: 700; border-radius: 6px; cursor: pointer; border: none; font-family: inherit;
   }
   .btn-act-pdf { background: #10b981; color: white; }
-  .btn-act-pdf:hover { background: #059669; }
-  .btn-act-print { background: #2563eb; color: white; }
-  .btn-act-print:hover { background: #1d4ed8; }
-  .btn-act-html { background: #334155; color: #f1f5f9; border: 1px solid #475569; }
-  .btn-act-html:hover { background: #475569; color: white; }
-  .btn-act-close { background: transparent; color: #94a3b8; border: 1px solid #334155; }
-  .btn-act-close:hover { color: #f87171; border-color: #ef4444; }
-  .action-tip {
-    margin-top: 8px; padding-top: 6px; border-top: 1px solid #1e293b;
-    font-size: 10px; color: #cbd5e1;
-  }
+  .btn-act-print { background: #2563eb; color: white; margin-inline-start: 6px; }
+  .btn-act-close { background: transparent; color: #94a3b8; border: 1px solid #334155; margin-inline-start: 6px; }
 
   @media print {
     body { margin: 0; background: #fff; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     .no-print, .action-bar { display: none !important; }
-    .page { border: none; padding: 0; }
+    .page { border: none; padding: 0; max-width: 100%; }
   }
 </style>
 </head>
 <body>
 <div class="action-bar no-print">
-  <div class="action-bar-content">
-    <div class="action-title">📄 قائمة «${categoryLabel}» — ${dateLabel}</div>
-    <div class="action-buttons">
-      <button type="button" class="btn-act btn-act-pdf" onclick="saveAsPdf()" title="حفظ كملف PDF على جهازك">
-        📥 تحميل وحفظ كملف PDF
-      </button>
-      <button type="button" class="btn-act btn-act-print" onclick="saveAsPdf()" title="طباعة فورية">
-        🖨️ طباعة
-      </button>
-      <button type="button" class="btn-act btn-act-close" onclick="window.close()" title="إغلاق النافذة">
-        إغلاق
-      </button>
-    </div>
-  </div>
-  <div class="action-tip">
-    💡 لحفظ المستند بصيغة PDF: اضغط على زر «تحميل وحفظ كملف PDF» واختر الوجهة (Save as PDF) ثم اضغط حفظ.
+  <div style="font-size:12px;font-weight:800">📄 كشف «${categoryLabel}» — ${dateLabel} (${items.length} سجل)</div>
+  <div>
+    <button type="button" class="btn-act btn-act-pdf" onclick="saveAsPdf()">📥 حفظ PDF</button>
+    <button type="button" class="btn-act btn-act-print" onclick="window.print()">🖨️ طباعة</button>
+    <button type="button" class="btn-act btn-act-close" onclick="window.close()">إغلاق</button>
   </div>
 </div>
 
 <div class="page">
   <div class="header">
     <div>
-      <h1>قائمة الحضور — ${categoryLabel}</h1>
-      <div class="meta">${dateLabel} &nbsp;·&nbsp; إجمالي الموظفين: ${items.length}</div>
+      <div class="org-title">جمعية خواطر أحلى شباب (المشهرة برقم 7226)</div>
+      <div class="org-sub">منظومة الإدارة المؤسسية — الإدارة العامة للموارد البشرية</div>
     </div>
-    <div style="text-align:left;font-size:12px;font-weight:900;color:#1a56db">منظومة أحلى شباب الإدارية</div>
+    <div class="doc-title-box">
+      <div class="doc-main-title">كشف الحضور اليومي — ${categoryLabel}</div>
+      <div class="doc-meta">${dateLabel} &nbsp;|&nbsp; إجمالي الموظفين: ${items.length}</div>
+    </div>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-card">
+      <span class="stat-label">إجمالي الكشف:</span>
+      <span class="stat-value">${items.length}</span>
+    </div>
+    <div class="stat-card present">
+      <span class="stat-label">حاضرون:</span>
+      <span class="stat-value" style="color:#059669">${presentCount}</span>
+    </div>
+    <div class="stat-card late">
+      <span class="stat-label">متأخرون:</span>
+      <span class="stat-value" style="color:#b45309">${lateCount}</span>
+    </div>
+    <div class="stat-card absent">
+      <span class="stat-label">غياب:</span>
+      <span class="stat-value" style="color:#dc2626">${absentCount}</span>
+    </div>
+    <div class="stat-card leave">
+      <span class="stat-label">إجازات ومأموريات:</span>
+      <span class="stat-value" style="color:#2563eb">${leaveCount}</span>
+    </div>
   </div>
 
   <table>
     <thead>
       <tr>
-        <th style="width:40px">#</th>
+        <th style="width:30px">#</th>
         <th style="width:160px">اسم الموظف</th>
         <th style="width:80px">الكود</th>
-        <th style="width:120px">القسم</th>
-        <th style="width:90px">الحالة</th>
-        <th style="width:80px">أول بصمة</th>
-        <th style="width:80px">آخر بصمة</th>
-        <th style="width:70px">التأخير</th>
+        <th style="width:110px">الإدارة</th>
+        <th style="width:100px">الفرع</th>
+        <th style="width:85px">الحالة</th>
+        <th style="width:65px">الحضور</th>
+        <th style="width:75px">الانصراف</th>
+        <th style="width:55px">التأخير</th>
+        <th style="width:100px">العذر والبيان</th>
       </tr>
     </thead>
     <tbody>${rows}</tbody>
   </table>
 
+  <div class="sign-section">
+    <div class="sign-box">
+      <div class="role">مسؤول الموارد البشرية</div>
+      <div class="line"></div>
+    </div>
+    <div class="sign-box">
+      <div class="role">المراجع المالي والإداري</div>
+      <div class="line"></div>
+    </div>
+    <div class="sign-box">
+      <div class="role">اعتماد المدير التنفيذي</div>
+      <div class="line"></div>
+    </div>
+  </div>
+
   <div class="footer">
-    <span>نظام أحلى شباب الإداري — تقرير فئة «${categoryLabel}»</span>
-    <span>تاريخ الطباعة: ${new Intl.DateTimeFormat('ar-EG', { dateStyle: 'full', timeStyle: 'short' }).format(new Date())}</span>
+    <span>منظومة أحلى شباب الإدارية — كشف حضور رسمي مُصدّر إلكترونياً</span>
+    <span>تاريخ التوليد: ${new Intl.DateTimeFormat('ar-EG', { dateStyle: 'full', timeStyle: 'short' }).format(new Date())}</span>
   </div>
 </div>
 
@@ -282,9 +369,6 @@ function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIs
     window.focus();
     try { window.print(); } catch(e) { console.error(e); }
   }
-  setTimeout(function() {
-    saveAsPdf();
-  }, 400);
 </script>
 </body>
 </html>`;
