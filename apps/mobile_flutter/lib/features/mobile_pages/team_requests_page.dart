@@ -823,6 +823,8 @@ class _TeamRequestCard extends StatelessWidget {
                 spacing: 6,
                 runSpacing: 6,
                 children: [
+                  if (stage != null)
+                    RequestMetaChip(icon: Icons.route_rounded, text: 'عند $stage'),
                   if (r.awaitingMe == true || r.canDecide == true)
                     const RequestMetaChip(
                       icon: Icons.notifications_active_rounded,
@@ -830,8 +832,6 @@ class _TeamRequestCard extends StatelessWidget {
                       color: AppColors.statusInfo,
                       strong: true,
                     ),
-                  if (stage != null && r.awaitingMe != true && r.canDecide != true)
-                    RequestMetaChip(icon: Icons.route_rounded, text: 'عند $stage'),
                   if (due != null)
                     RequestMetaChip(
                       icon: due.overdue

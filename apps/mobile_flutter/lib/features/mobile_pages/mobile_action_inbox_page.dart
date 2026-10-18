@@ -521,14 +521,7 @@ class _RequestActionCard extends ConsumerWidget {
                       dense: true,
                       showDetail: false,
                     ),
-                  if ((r?.awaitingMe == true || r?.canDecide == true) && !isMine)
-                    const RequestMetaChip(
-                      icon: Icons.notifications_active_rounded,
-                      text: 'دورك الآن',
-                      color: AppColors.statusInfo,
-                      strong: true,
-                    )
-                  else if (stage != null)
+                  if (stage != null)
                     RequestMetaChip(
                       icon: Icons.route_rounded,
                       text: 'عند $stage',
@@ -537,6 +530,13 @@ class _RequestActionCard extends ConsumerWidget {
                     RequestMetaChip(
                       icon: Icons.route_rounded,
                       text: _workflowLabel(entry.item.status),
+                    ),
+                  if ((r?.awaitingMe == true || r?.canDecide == true) && !isMine)
+                    const RequestMetaChip(
+                      icon: Icons.notifications_active_rounded,
+                      text: 'دورك الآن',
+                      color: AppColors.statusInfo,
+                      strong: true,
                     ),
                   if (due != null && !due.overdue)
                     RequestMetaChip(

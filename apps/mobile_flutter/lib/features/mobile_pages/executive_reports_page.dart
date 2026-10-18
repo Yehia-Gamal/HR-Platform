@@ -1,9 +1,9 @@
+import 'package:ahla_design_tokens/ahla_design_tokens.dart';
+import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/core/theme/brand_gradients.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_operations_models.dart';
-import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_operations_providers.dart';
-import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -75,12 +75,13 @@ class _ExecutiveReportsPageState extends ConsumerState<ExecutiveReportsPage> {
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 110),
       children: [
+        // ── بطاقة الواجهة الترحيبية الرشيقة ──
         Container(
-          padding: const EdgeInsets.all(21),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(16),
             gradient: LinearGradient(
               begin: Alignment.topRight,
               end: Alignment.bottomLeft,
@@ -89,147 +90,190 @@ class _ExecutiveReportsPageState extends ConsumerState<ExecutiveReportsPage> {
           ),
           child: Row(
             children: [
-              const BrandLogoMark(inverse: true, size: 48),
-              const SizedBox(width: 12),
               Container(
-                width: 56,
-                height: 56,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: .1),
-                  borderRadius: BorderRadius.circular(18),
+                  color: Colors.white.withValues(alpha: .16),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
-                  Icons.analytics_outlined,
+                  Icons.insights_rounded,
                   color: Colors.white,
-                  size: 29,
+                  size: 24,
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     const Text(
                       'صندوق التقارير التنفيذي',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 21,
+                        fontSize: 17,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const SizedBox(height: 5),
+                    const SizedBox(height: 3),
                     Text(
-                      'التقارير الدورية وحالة تجهيزها ومواعيد التسليم القادمة.',
+                      'التقارير الدورية وجدولة التسليم الآلي والمؤشرات الشاملة.',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: .72),
-                        height: 1.45,
-                        fontSize: 12,
+                        color: Colors.white.withValues(alpha: .78),
+                        fontSize: 11.5,
                       ),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: .2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${data.reports.length} تقارير',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
-        const SizedBox(height: 18),
-        MetricGrid(
-          cards: [
-            // كل بطاقة تفتح قائمتها: الحالة داخل تبويب التقارير أو الجدولة.
-            (
-              'مكتملة',
-              completed.toString(),
-              Icons.verified_outlined,
-              () => setState(() {
+        const SizedBox(height: 12),
+
+        // ── بطاقات الإحصاء التفاعلية الرشيقة (شبكة مضغوطة قابلة للفلترة الفورية) ──
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
+          childAspectRatio: 2.3,
+          children: [
+            _ExecutiveReportStatCard(
+              title: 'مكتملة',
+              count: completed,
+              icon: Icons.check_circle_outline_rounded,
+              color: AppColors.statusSuccess,
+              isSelected: section == 0 && filter == 'completed',
+              onTap: () => setState(() {
                 section = 0;
-                filter = 'completed';
+                filter = (filter == 'completed') ? 'all' : 'completed';
               }),
             ),
-            (
-              'قيد التجهيز',
-              active.toString(),
-              Icons.sync_rounded,
-              () => setState(() {
+            _ExecutiveReportStatCard(
+              title: 'قيد التجهيز',
+              count: active,
+              icon: Icons.sync_rounded,
+              color: AppColors.statusInfo,
+              isSelected: section == 0 && filter == 'running',
+              onTap: () => setState(() {
                 section = 0;
-                filter = 'running';
+                filter = (filter == 'running') ? 'all' : 'running';
               }),
             ),
-            (
-              'متعذرة',
-              failed.toString(),
-              Icons.error_outline_rounded,
-              () => setState(() {
+            _ExecutiveReportStatCard(
+              title: 'متعذرة',
+              count: failed,
+              icon: Icons.error_outline_rounded,
+              color: AppColors.statusDanger,
+              isSelected: section == 0 && filter == 'failed',
+              onTap: () => setState(() {
                 section = 0;
-                filter = 'failed';
+                filter = (filter == 'failed') ? 'all' : 'failed';
               }),
             ),
-            (
-              'جداول نشطة',
-              data.reportSchedules
-                  .where((item) => item.active)
-                  .length
-                  .toString(),
-              Icons.schedule_rounded,
-              () => setState(() => section = 1),
+            _ExecutiveReportStatCard(
+              title: 'جداول نشطة',
+              count: data.reportSchedules.where((item) => item.active).length,
+              icon: Icons.calendar_month_outlined,
+              color: AppColors.statusViolet,
+              isSelected: section == 1,
+              onTap: () => setState(() => section = 1),
             ),
           ],
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 12),
+
+        // ── مبدل الأقسام (التقارير / الجدولة) ──
         SegmentedButton<int>(
-          segments: const [
+          style: SegmentedButton.styleFrom(
+            visualDensity: VisualDensity.compact,
+          ),
+          segments: [
             ButtonSegment(
               value: 0,
-              icon: Icon(Icons.inbox_outlined),
-              label: Text('التقارير'),
+              icon: const Icon(Icons.description_outlined, size: 16),
+              label: Text('التقارير (${data.reports.length})'),
             ),
             ButtonSegment(
               value: 1,
-              icon: Icon(Icons.calendar_month_outlined),
-              label: Text('الجدولة'),
+              icon: const Icon(Icons.event_repeat_rounded, size: 16),
+              label: Text('الجدولة والتسليم (${data.reportSchedules.length})'),
             ),
           ],
           selected: {section},
           showSelectedIcon: false,
           onSelectionChanged: (value) => setState(() => section = value.first),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 14),
+
+        // ── المحتوى حسب القسم المختار ──
         if (section == 0) ...[
-          const MobileSectionHeader(
-            title: 'أحدث التقارير',
-            subtitle: 'اختر أي تقرير لعرض الفترة والملخص وحالة الملف.',
-          ),
-          const SizedBox(height: 10),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _filterChip('all', 'الكل'),
-                _filterChip('completed', 'مكتمل'),
-                _filterChip('running', 'جارٍ'),
-                _filterChip('queued', 'بالانتظار'),
-                _filterChip('failed', 'متعذر'),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
+          // شريط التصفية والنتائج السريعة
           Row(
             children: [
               Text(
-                'عدد التقارير: ${filtered.length}',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                filter == 'all'
+                    ? 'أحدث التقارير (${filtered.length})'
+                    : 'تصفية: ${_filterLabel(filter)} (${filtered.length})',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               const Spacer(),
               if (filter != 'all')
                 TextButton.icon(
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
                   onPressed: () => setState(() => filter = 'all'),
-                  icon: const Icon(Icons.clear_rounded, size: 18),
-                  label: const Text('مسح التصفية'),
+                  icon: const Icon(Icons.close_rounded, size: 16),
+                  label: const Text('عرض الكل'),
                 ),
             ],
           ),
+          const SizedBox(height: 8),
+
+          // رقائق التصنيفات السريعة
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _filterChip('all', 'الكل (${data.reports.length})'),
+                _filterChip('completed', 'مكتمل ($completed)'),
+                _filterChip('running', 'قيد التجهيز ($active)'),
+                _filterChip('failed', 'متعذر ($failed)'),
+              ],
+            ),
+          ),
           const SizedBox(height: 12),
+
           if (filtered.isEmpty)
             const _ReportsEmpty(message: 'لا توجد تقارير مطابقة لهذا التصنيف.')
           else
@@ -239,13 +283,14 @@ class _ExecutiveReportsPageState extends ConsumerState<ExecutiveReportsPage> {
                 child: _ReportRunCard(
                   item: report,
                   onTap: () => _showReport(report),
+                  onDownload: () => _downloadReport(context, report),
                 ),
               ),
             ),
         ] else ...[
           const MobileSectionHeader(
             title: 'جدولة التسليم',
-            subtitle: 'المواعيد التالية للتقارير اليومية والأسبوعية والشهرية.',
+            subtitle: 'المواعيد القادمة للتقارير الآلية الدورية.',
           ),
           const SizedBox(height: 10),
           if (data.reportSchedules.isEmpty)
@@ -255,21 +300,52 @@ class _ExecutiveReportsPageState extends ConsumerState<ExecutiveReportsPage> {
               (schedule) => Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    side: BorderSide(
+                      color: scheme.outlineVariant.withValues(alpha: .4),
+                      width: 1.0,
+                    ),
+                  ),
                   child: ListTile(
-                    contentPadding: const EdgeInsets.all(16),
-                    leading: CircleAvatar(
-                      child: schedule.active
-                          ? const Icon(Icons.event_repeat_rounded)
-                          : const SizedBox.shrink(),
+                    contentPadding: const EdgeInsets.all(14),
+                    leading: Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: schedule.active
+                            ? AppColors.statusSuccess.withValues(alpha: .12)
+                            : scheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        schedule.active
+                            ? Icons.event_repeat_rounded
+                            : Icons.pause_circle_outline_rounded,
+                        color: schedule.active
+                            ? AppColors.statusSuccess
+                            : scheme.onSurfaceVariant,
+                      ),
                     ),
                     title: Text(
                       schedule.name,
-                      style: const TextStyle(fontWeight: FontWeight.w900),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 14,
+                      ),
                     ),
-                    subtitle: Text(
-                      schedule.nextRunAt == null
-                          ? '${_scheduleKind(schedule.scheduleKind)} · بلا موعد قادم'
-                          : '${_scheduleKind(schedule.scheduleKind)} · ${DateFormat('d MMM، h:mm a', 'ar').format(schedule.nextRunAt!.toLocal())}',
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        schedule.nextRunAt == null
+                            ? '${_scheduleKind(schedule.scheduleKind)} · بلا موعد قادم'
+                            : '${_scheduleKind(schedule.scheduleKind)} · القادم: ${DateFormat('d MMMM y، h:mm a', 'ar').format(schedule.nextRunAt!.toLocal())}',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
                     ),
                     trailing: MobileStatusPill(
                       schedule.active ? 'active' : 'cancelled',
@@ -284,132 +360,200 @@ class _ExecutiveReportsPageState extends ConsumerState<ExecutiveReportsPage> {
   }
 
   Widget _filterChip(String value, String label) => Padding(
-    padding: const EdgeInsetsDirectional.only(end: 7),
+    padding: const EdgeInsetsDirectional.only(end: 6),
     child: ChoiceChip(
+      visualDensity: VisualDensity.compact,
       label: Text(label),
+      labelStyle: TextStyle(
+        fontSize: 11.5,
+        fontWeight: filter == value ? FontWeight.w800 : FontWeight.w600,
+      ),
       selected: filter == value,
       onSelected: (_) => setState(() => filter = value),
     ),
   );
 
+  static String _filterLabel(String filter) => switch (filter) {
+    'completed' => 'مكتملة',
+    'running' => 'قيد التجهيز',
+    'queued' => 'بالانتظار',
+    'failed' => 'متعذرة',
+    _ => 'الكل',
+  };
+
   void _showReport(ExecutiveReportRun report) => showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
+    showDragHandle: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
     builder: (sheetContext) => SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              report.name,
-              style: Theme.of(
-                sheetContext,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 12),
-            Card(
-              child: Column(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ListTile(
-                    leading: const Icon(Icons.calendar_month_outlined),
-                    title: const Text('الفترة'),
-                    subtitle: Text(_period(report)),
-                  ),
-                  const Divider(indent: 16, endIndent: 16),
-                  ListTile(
-                    leading: const Icon(Icons.schedule_outlined),
-                    title: const Text('تاريخ الإنشاء'),
-                    subtitle: Text(
-                      DateFormat(
-                        'd MMMM y، h:mm a',
-                        'ar',
-                      ).format(report.createdAt.toLocal()),
+                  Expanded(
+                    child: Text(
+                      report.name,
+                      style: Theme.of(sheetContext)
+                          .textTheme
+                          .titleLarge
+                          ?.copyWith(fontWeight: FontWeight.w900),
                     ),
                   ),
-                  if (report.errorDetail != null) ...[
-                    const Divider(indent: 16, endIndent: 16),
-                    ListTile(
-                      leading: const Icon(Icons.error_outline_rounded),
-                      title: const Text('سبب التعذر'),
-                      subtitle: Text(report.errorDetail!),
-                    ),
-                  ],
+                  const SizedBox(width: 8),
+                  MobileStatusPill(report.status),
                 ],
               ),
-            ),
-            if (report.summary.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              const Text(
-                'الملخص التنفيذي',
-                style: TextStyle(fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 8),
-              // 0440+: عرض مُقروء للملخص — تسميات عربية، فكّ تعشيش
-              // الكائنات، وتنسيق التواريخ — بدل أزواج JSON خام.
-              Builder(
-                builder: (sheetContext) {
-                  final rows = _flattenSummary(report.summary);
-                  return Card(
-                    clipBehavior: Clip.antiAlias,
-                    child: Column(
-                      children: [
-                        for (var i = 0; i < rows.length; i++) ...[
-                          if (i > 0)
-                            const Divider(height: 1, indent: 16, endIndent: 16),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 10,
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    rows[i].$1,
-                                    style: Theme.of(sheetContext)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.copyWith(
-                                          color: Theme.of(
-                                            sheetContext,
-                                          ).colorScheme.onSurfaceVariant,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Flexible(
-                                  child: Text(
-                                    rows[i].$2,
-                                    textAlign: TextAlign.end,
-                                    style: Theme.of(sheetContext)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.copyWith(fontWeight: FontWeight.w900),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ],
-            if (report.storagePath != null) ...[
               const SizedBox(height: 14),
-              FilledButton.icon(
-                onPressed: () => _downloadReport(context, report),
-                icon: const Icon(Icons.download_for_offline_outlined),
-                label: const Text('فتح ملف التقرير'),
+              Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: BorderSide(
+                    color: Theme.of(sheetContext)
+                        .colorScheme
+                        .outlineVariant
+                        .withValues(alpha: .4),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.calendar_month_outlined),
+                      title: const Text('الفترة المشمولة'),
+                      subtitle: Text(_period(report)),
+                    ),
+                    const Divider(height: 1, indent: 16, endIndent: 16),
+                    ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.schedule_outlined),
+                      title: const Text('تاريخ ووقت الإنشاء'),
+                      subtitle: Text(
+                        DateFormat(
+                          'd MMMM y، h:mm a',
+                          'ar',
+                        ).format(report.createdAt.toLocal()),
+                      ),
+                    ),
+                    if (report.errorDetail != null) ...[
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      ListTile(
+                        dense: true,
+                        leading: const Icon(
+                          Icons.error_outline_rounded,
+                          color: AppColors.statusDanger,
+                        ),
+                        title: const Text(
+                          'سبب التعذر',
+                          style: TextStyle(color: AppColors.statusDanger),
+                        ),
+                        subtitle: Text(report.errorDetail!),
+                      ),
+                    ],
+                  ],
+                ),
               ),
+              if (report.summary.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                const Text(
+                  'الملخص التنفيذي',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 8),
+                Builder(
+                  builder: (sheetContext) {
+                    final rows = _flattenSummary(report.summary);
+                    return Card(
+                      elevation: 0,
+                      clipBehavior: Clip.antiAlias,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        side: BorderSide(
+                          color: Theme.of(sheetContext)
+                              .colorScheme
+                              .outlineVariant
+                              .withValues(alpha: .4),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          for (var i = 0; i < rows.length; i++) ...[
+                            if (i > 0)
+                              const Divider(
+                                height: 1,
+                                indent: 16,
+                                endIndent: 16,
+                              ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      rows[i].$1,
+                                      style: Theme.of(sheetContext)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            color: Theme.of(sheetContext)
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Flexible(
+                                    child: Text(
+                                      rows[i].$2,
+                                      textAlign: TextAlign.end,
+                                      style: Theme.of(sheetContext)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ],
+              if (report.storagePath != null) ...[
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () => _downloadReport(context, report),
+                  icon: const Icon(Icons.download_for_offline_outlined),
+                  label: const Text('فتح ملف التقرير'),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     ),
@@ -439,7 +583,6 @@ class _ExecutiveReportsPageState extends ConsumerState<ExecutiveReportsPage> {
     }
   }
 
-  /// تسميات عربية لمفاتيح الملخص المعروفة — والمجهول يُعرض كما هو.
   static const Map<String, String> _summaryKeyLabels = {
     'date': 'التاريخ',
     'headcount': 'عدد الموظفين',
@@ -456,7 +599,6 @@ class _ExecutiveReportsPageState extends ConsumerState<ExecutiveReportsPage> {
     'pendingRequests': 'طلبات معلقة',
   };
 
-  /// ترجمة قيم معروفة (أنواع تقارير وأشباهها).
   static const Map<String, String> _summaryValueLabels = {
     'executive_daily': 'تنفيذي يومي',
     'daily': 'يومي',
@@ -464,8 +606,6 @@ class _ExecutiveReportsPageState extends ConsumerState<ExecutiveReportsPage> {
     'monthly': 'شهري',
   };
 
-  /// يفكّ ملخص التقرير إلى صفوف «تسمية ← قيمة» قابلة للقراءة:
-  /// كائن متشعّب → صفوف فرعية، قائمة → عدد، تاريخ ISO → تنسيق عربي.
   static List<(String, String)> _flattenSummary(Map summary) {
     final rows = <(String, String)>[];
     void addRow(String key, Object? value) {
@@ -476,7 +616,6 @@ class _ExecutiveReportsPageState extends ConsumerState<ExecutiveReportsPage> {
       final key = entry.key.toString();
       final value = entry.value;
       if (value is Map && value.isNotEmpty) {
-        // كائن مثل attendance: {late: 0, total: 1, ...} → صف لكل حقل.
         for (final sub in value.entries) {
           addRow(sub.key.toString(), sub.value);
         }
@@ -506,17 +645,6 @@ class _ExecutiveReportsPageState extends ConsumerState<ExecutiveReportsPage> {
     return _summaryValueLabels[text] ?? text;
   }
 
-  static String _period(ExecutiveReportRun report) {
-    if (report.periodStart == null && report.periodEnd == null) {
-      return 'غير محددة';
-    }
-    final formatter = DateFormat('d MMM y', 'ar');
-    return [
-      report.periodStart,
-      report.periodEnd,
-    ].whereType<DateTime>().map(formatter.format).join(' – ');
-  }
-
   static String _scheduleKind(String value) => switch (value) {
     'daily' => 'يومي',
     'weekly' => 'أسبوعي',
@@ -526,41 +654,261 @@ class _ExecutiveReportsPageState extends ConsumerState<ExecutiveReportsPage> {
   };
 }
 
-class _ReportRunCard extends StatelessWidget {
-  const _ReportRunCard({required this.item, required this.onTap});
+String _period(ExecutiveReportRun report) {
+  if (report.periodStart == null && report.periodEnd == null) {
+    return 'فترة دورية';
+  }
+  final formatter = DateFormat('d MMM y', 'ar');
+  if (report.periodStart != null &&
+      report.periodEnd != null &&
+      report.periodStart!.year == report.periodEnd!.year &&
+      report.periodStart!.month == report.periodEnd!.month &&
+      report.periodStart!.day == report.periodEnd!.day) {
+    return formatter.format(report.periodStart!);
+  }
+  return [
+    report.periodStart,
+    report.periodEnd,
+  ].whereType<DateTime>().map(formatter.format).join(' – ');
+}
 
-  final ExecutiveReportRun item;
+/// بطاقة إحصائية مدمجة ورشيقة للتقارير
+class _ExecutiveReportStatCard extends StatelessWidget {
+  const _ExecutiveReportStatCard({
+    required this.title,
+    required this.count,
+    required this.icon,
+    required this.color,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String title;
+  final int count;
+  final IconData icon;
+  final Color color;
+  final bool isSelected;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Card(
-    child: ListTile(
-      contentPadding: const EdgeInsets.all(16),
-      leading: CircleAvatar(child: Icon(_icon(item.reportType))),
-      title: Text(
-        item.name,
-        style: const TextStyle(fontWeight: FontWeight.w900),
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: isSelected
+              ? color
+              : scheme.outlineVariant.withValues(alpha: .4),
+          width: isSelected ? 1.6 : 1.0,
+        ),
       ),
-      subtitle: Text(
-        '${DateFormat('d MMM، h:mm a', 'ar').format(item.createdAt.toLocal())} · ${_label(item.status)}',
+      color: isSelected
+          ? color.withValues(alpha: .12)
+          : scheme.surfaceContainerHighest.withValues(alpha: .35),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: .14),
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: Icon(icon, size: 18, color: color),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$count',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                        color: isSelected ? color : null,
+                        height: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: scheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
-      trailing: Semantics(
-        label: item.storagePath == null ? 'لا يوجد ملف' : 'الملف جاهز للتنزيل',
-        child: item.storagePath == null
-            ? const Icon(Icons.chevron_left_rounded)
-            : const SizedBox.shrink(),
-      ),
-      onTap: onTap,
-    ),
-  );
+    );
+  }
+}
 
-  static String _label(String value) => switch (value) {
-    'queued' => 'بالانتظار',
-    'running' => 'جارٍ التجهيز',
-    'completed' => 'مكتمل',
-    'failed' => 'متعذر',
-    'cancelled' => 'ملغي',
-    _ => value,
+/// بطاقة عرض التقرير المنفذ
+class _ReportRunCard extends StatelessWidget {
+  const _ReportRunCard({
+    required this.item,
+    required this.onTap,
+    required this.onDownload,
+  });
+
+  final ExecutiveReportRun item;
+  final VoidCallback onTap;
+  final VoidCallback onDownload;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final (statusLabel, statusColor) = _statusMeta(item.status);
+    final hasFile = item.storagePath != null;
+
+    return Card(
+      elevation: 0,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(
+          color: scheme.outlineVariant.withValues(alpha: .4),
+          width: 1.0,
+        ),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: .12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  _icon(item.reportType),
+                  size: 22,
+                  color: statusColor,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 13.5,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          _period(item),
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: scheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          '·',
+                          style: TextStyle(color: scheme.outlineVariant),
+                        ),
+                        Text(
+                          DateFormat(
+                            'd MMM، h:mm a',
+                            'ar',
+                          ).format(item.createdAt.toLocal()),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: scheme.onSurfaceVariant.withValues(
+                              alpha: .75,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 2.5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: .1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        statusLabel,
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w800,
+                          color: statusColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (hasFile)
+                IconButton.filledTonal(
+                  style: IconButton.styleFrom(
+                    backgroundColor: scheme.primaryContainer.withValues(
+                      alpha: .6,
+                    ),
+                    foregroundColor: scheme.primary,
+                  ),
+                  icon: const Icon(Icons.download_rounded, size: 20),
+                  tooltip: 'فتح التقرير',
+                  onPressed: onDownload,
+                )
+              else
+                Icon(
+                  Icons.chevron_left_rounded,
+                  color: scheme.onSurfaceVariant.withValues(alpha: .5),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static (String, Color) _statusMeta(String status) => switch (status) {
+    'completed' => ('مكتمل', AppColors.statusSuccess),
+    'running' => ('جارٍ التجهيز', AppColors.statusInfo),
+    'queued' => ('بالانتظار', AppColors.statusWarning),
+    'failed' => ('متعذر', AppColors.statusDanger),
+    'cancelled' => ('ملغي', Colors.grey),
+    _ => (status, AppColors.brandPrimary),
   };
 
   static IconData _icon(String value) {
@@ -582,6 +930,15 @@ class _ReportsEmpty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
+    elevation: 0,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(14),
+      side: BorderSide(
+        color: Theme.of(context).colorScheme.outlineVariant.withValues(
+          alpha: .4,
+        ),
+      ),
+    ),
     child: Padding(
       padding: const EdgeInsets.all(26),
       child: Column(
