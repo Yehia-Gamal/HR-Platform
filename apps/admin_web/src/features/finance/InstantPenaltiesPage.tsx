@@ -465,14 +465,14 @@ export function InstantPenaltiesPage() {
           : 'م';
         return (
           <div className="flex items-center gap-3 min-w-[180px]">
-            <div className="size-9 rounded-full bg-primary/10 border border-primary/20 text-primary flex items-center justify-center font-bold text-xs shrink-0 select-none">
+            <div className="size-9 rounded-full bg-gradient-to-tr from-blue-600 via-indigo-600 to-primary text-white flex items-center justify-center font-black text-xs shrink-0 select-none shadow-xs border border-white/20">
               {initials}
             </div>
             <div className="flex flex-col min-w-0">
               <span className="font-bold text-sm text-[var(--text-primary)] leading-snug truncate">{p.employeeName ?? '—'}</span>
               <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)] mt-0.5">
                 {p.employeeCode && !isPhoneLikeCode(p.employeeCode) && (
-                  <span className="font-mono bg-[var(--surface-muted)] px-1.5 py-0.5 rounded text-[10px] text-[var(--text-secondary)]">
+                  <span className="font-mono bg-[var(--surface-muted)] px-1.5 py-0.5 rounded text-[10px] text-[var(--text-secondary)] border border-[var(--border-subtle)]">
                     <bdi dir="ltr">{p.employeeCode}</bdi>
                   </span>
                 )}
@@ -493,8 +493,8 @@ export function InstantPenaltiesPage() {
       header: 'التاريخ',
       sortable: true,
       render: (p) => (
-        <div className="flex items-center gap-1.5 text-xs whitespace-nowrap font-mono text-[var(--text-secondary)]">
-          <Calendar className="size-3.5 text-[var(--text-muted)] shrink-0" aria-hidden="true" />
+        <div className="flex items-center gap-1.5 text-xs whitespace-nowrap font-mono text-[var(--text-secondary)] font-medium">
+          <Calendar className="size-3.5 text-primary/70 shrink-0" aria-hidden="true" />
           <span>{fmtDateWithDay(p.workDate)}</span>
         </div>
       ),
@@ -508,14 +508,19 @@ export function InstantPenaltiesPage() {
         const isActualLate = Boolean(p.notes && p.notes.includes('تأخير حضور فعلي'));
         return (
           <div className="flex flex-col gap-1 min-w-[120px]">
-            <span className="font-bold font-mono text-sm text-amber-600 dark:text-amber-400 whitespace-nowrap">{fmtLateDisplay(p.lateMinutes)}</span>
+            <span className="font-black font-mono text-sm text-amber-600 dark:text-amber-400 whitespace-nowrap">{fmtLateDisplay(p.lateMinutes)}</span>
             {isUnpunched && (
-              <span className="inline-flex items-center gap-1 w-fit rounded-md bg-rose-500/10 border border-rose-500/25 px-1.5 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400 whitespace-nowrap">
-                <Clock className="size-2.5 text-rose-500" aria-hidden="true" />
+              <span className="inline-flex items-center gap-1.5 w-fit rounded-md bg-rose-500/10 border border-rose-500/25 px-2 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400 whitespace-nowrap shadow-2xs">
+                <span className="size-1.5 rounded-full bg-rose-500 animate-pulse" />
                 لم يسجل بصمة
               </span>
             )}
-            {isActualLate && <span className="text-[10px] text-amber-700/80 dark:text-amber-300/80 font-medium">تأخير حضور فعلي</span>}
+            {isActualLate && (
+              <span className="inline-flex items-center gap-1 w-fit rounded-md bg-amber-500/10 border border-amber-500/25 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300 whitespace-nowrap">
+                <Clock className="size-2.5 text-amber-500" aria-hidden="true" />
+                تأخير حضور فعلي
+              </span>
+            )}
           </div>
         );
       },
@@ -1366,10 +1371,48 @@ export function InstantPenaltiesPage() {
             <option value="specific">تاريخ محدد…</option>
             <option value="all">كل التواريخ (الأرشيف)</option>
           </select>
+
+          {/* أزرار سريعة بنقرة واحدة */}
+          <div className="hidden sm:inline-flex items-center gap-0.5 p-0.5 bg-[var(--surface-muted)]/90 rounded-lg border border-[var(--border-subtle)] text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => setDateFilterMode('today')}
+              className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                dateFilterMode === 'today'
+                  ? 'bg-[var(--brand-primary)] text-white shadow-xs font-black'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)]'
+              }`}
+            >
+              اليوم
+            </button>
+            <button
+              type="button"
+              onClick={() => setDateFilterMode('yesterday')}
+              className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                dateFilterMode === 'yesterday'
+                  ? 'bg-[var(--brand-primary)] text-white shadow-xs font-black'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)]'
+              }`}
+            >
+              أمس
+            </button>
+            <button
+              type="button"
+              onClick={() => setDateFilterMode('all')}
+              className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                dateFilterMode === 'all'
+                  ? 'bg-[var(--brand-primary)] text-white shadow-xs font-black'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)]'
+              }`}
+            >
+              الأرشيف
+            </button>
+          </div>
+
           {dateFilterMode === 'specific' && (
             <input
               type="date"
-              className="input text-xs font-mono py-1 px-2"
+              className="input text-xs font-mono py-1 px-2 border-primary/50 shadow-xs"
               value={specificDate}
               onChange={(ev) => setSpecificDate(ev.target.value)}
               aria-label="اختر التاريخ المحدد"
@@ -1393,17 +1436,29 @@ export function InstantPenaltiesPage() {
           <option value="cancelled">ملغاة</option>
         </select>
 
-        <button type="button" className="btn-secondary" onClick={handleCsvExport} disabled={rows.length === 0} title="تصدير Excel (CSV)">
-          <FileSpreadsheet className="size-4" aria-hidden="true" />
+        <button
+          type="button"
+          className="btn-secondary text-xs font-bold hover:border-emerald-500/50 hover:bg-emerald-500/5 hover:text-emerald-700 dark:hover:text-emerald-300 transition-all cursor-pointer"
+          onClick={handleCsvExport}
+          disabled={rows.length === 0}
+          title="تصدير Excel (CSV)"
+        >
+          <FileSpreadsheet className="size-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
           <span>Excel</span>
         </button>
-        <button type="button" className="btn-secondary font-medium" onClick={handlePdfExport} disabled={rows.length === 0} title="طباعة وحفظ كملف PDF">
-          <Printer className="size-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+        <button
+          type="button"
+          className="btn-secondary text-xs font-bold hover:border-rose-500/50 hover:bg-rose-500/5 hover:text-rose-700 dark:hover:text-rose-300 transition-all cursor-pointer"
+          onClick={handlePdfExport}
+          disabled={rows.length === 0}
+          title="طباعة وحفظ كملف PDF"
+        >
+          <Printer className="size-4 text-rose-600 dark:text-rose-400" aria-hidden="true" />
           <span>تصدير PDF</span>
         </button>
         <button
           type="button"
-          className="btn-secondary font-medium"
+          className="btn-secondary text-xs font-bold hover:border-sky-500/50 hover:bg-sky-500/5 hover:text-sky-700 dark:hover:text-sky-300 transition-all cursor-pointer"
           onClick={handleHtmlExport}
           disabled={rows.length === 0}
           title="تنزيل تقرير HTML مستقل مباشرة"
@@ -2126,9 +2181,15 @@ export function InstantPenaltiesPage() {
         title="استلام الغرامة وإيداعها في صندوق الزمالة والتكافل"
         message={paymentTarget?.msg ?? ''}
         inputLabel="ملاحظات الاستلام والإيداع (اختياري)"
-        inputPlaceholder="أي تفاصيل أو ملاحظات إضافية…"
+        inputPlaceholder="أي تفاصيل أو طريقة السداد…"
         inputValue={paymentNotes}
         onInputChange={setPaymentNotes}
+        quickSuggestions={[
+          'سداد نقدي تم التوريد للخزينة',
+          'تحويل إنستاباي InstaPay',
+          'تحويل فودافون كاش',
+          'استقطاع من الحافز/الراتب',
+        ]}
         confirmLabel="تأكيد الاستلام والإيداع بالصندوق"
         tone="info"
         required={false}
@@ -2162,6 +2223,12 @@ export function InstantPenaltiesPage() {
         inputPlaceholder="سبب رفع التعليق…"
         inputValue={liftReason}
         onInputChange={setLiftReason}
+        quickSuggestions={[
+          'تعهد بالسداد لاحقاً',
+          'مراعاة لظرف طارئ موثق',
+          'توجيه من المدير التنفيذي',
+          'استيفاء ساعات العمل والتزام',
+        ]}
         confirmLabel="رفع التعليق"
         tone="warning"
         loading={liftSuspension.isPending}
@@ -2194,6 +2261,13 @@ export function InstantPenaltiesPage() {
         inputPlaceholder="سبب الإلغاء…"
         inputValue={cancelReason}
         onInputChange={setCancelReason}
+        quickSuggestions={[
+          'مأمورية عمل رسمية',
+          'إذن تأخير مسبق ومعتمد',
+          'عطل فني في شبكة/هاتف البصمة',
+          'استيفاء ساعات العمل لاحقاً',
+          'توجيه إداري / إعفاء خاص',
+        ]}
         confirmLabel="إلغاء الغرامة"
         tone="danger"
         loading={cancelPenalty.isPending}
@@ -2227,6 +2301,12 @@ export function InstantPenaltiesPage() {
         inputPlaceholder="سبب الإلغاء…"
         inputValue={bulkCancelReason}
         onInputChange={setBulkCancelReason}
+        quickSuggestions={[
+          'مأمورية عمل جماعية',
+          'عطل عام في أجهزة البصمة',
+          'توجيه إداري من الإدارة التنفيذية',
+          'إعفاء جماعي معتمد',
+        ]}
         confirmLabel={`إلغاء ${selectedIds.size} غرامة`}
         tone="danger"
         loading={bulkCancel.isPending}

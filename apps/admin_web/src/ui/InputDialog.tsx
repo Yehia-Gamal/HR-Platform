@@ -26,6 +26,7 @@ export function InputDialog({
   required = true,
   minLength = 0,
   error = null,
+  quickSuggestions,
 }: {
   open: boolean;
   title: string;
@@ -43,6 +44,7 @@ export function InputDialog({
   required?: boolean;
   minLength?: number;
   error?: string | null;
+  quickSuggestions?: string[];
 }) {
   if (!open) return null;
 
@@ -72,6 +74,22 @@ export function InputDialog({
           dir="rtl"
         />
       </label>
+
+      {quickSuggestions && quickSuggestions.length > 0 && (
+        <div className="mt-2.5 flex flex-wrap gap-1.5 text-xs">
+          <span className="text-[11px] font-bold text-[var(--text-muted)] w-full text-start mb-0.5">أسباب واختيارات سريعة:</span>
+          {quickSuggestions.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => onInputChange(s)}
+              className="text-[11px] font-semibold px-2 py-0.5 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] hover:bg-primary/10 hover:border-primary/40 active:scale-95 transition-all cursor-pointer text-start text-[var(--text-secondary)] hover:text-primary"
+            >
+              + {s}
+            </button>
+          ))}
+        </div>
+      )}
 
       {error && (
         <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300">
