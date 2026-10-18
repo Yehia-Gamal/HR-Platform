@@ -611,17 +611,35 @@ function Row({ item, focused, isToday }: { item: AttendanceRosterItem; focused: 
       {/* 7. العذر والملاحظات */}
       <td className="text-xs">
         {hasExcuse ? (
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-col gap-1 items-start max-w-[240px]">
             {item.hasApprovedLeave ? (
-              <span className="status-pill status-pill--ok text-[11px] font-bold" title={item.leaveName ? `إجازة: ${item.leaveName}` : 'إجازة معتمدة'}>
-                <CheckCircle2 className="size-3" aria-hidden="true" />
-                {item.leaveName ?? 'إجازة معتمدة'}
-              </span>
+              <div className="flex flex-col gap-0.5 items-start">
+                <span
+                  className="status-pill status-pill--ok text-[11px] font-bold"
+                  title={item.leaveName ? `نوع الإجازة: ${item.leaveName}` : 'إجازة معتمدة'}
+                >
+                  <CheckCircle2 className="size-3" aria-hidden="true" />
+                  <span>{item.leaveName ?? 'إجازة معتمدة'}</span>
+                  {item.leaveRequestNumber ? <span className="opacity-75 font-normal">(#{item.leaveRequestNumber})</span> : null}
+                </span>
+
+                {item.leaveTitle && item.leaveTitle !== item.leaveName && item.leaveTitle !== item.leaveReason ? (
+                  <span className="text-[11px] font-semibold text-[var(--text)] line-clamp-1" title={`عنوان الإجازة: ${item.leaveTitle}`}>
+                    📌 {item.leaveTitle}
+                  </span>
+                ) : null}
+
+                {item.leaveReason ? (
+                  <span className="text-[10.5px] text-[var(--text-muted)] line-clamp-2" title={`سبب الإجازة: ${item.leaveReason}`}>
+                    💬 السبب: {item.leaveReason}
+                  </span>
+                ) : null}
+              </div>
             ) : null}
             {item.hasMission ? (
               <span className="status-pill status-pill--neutral text-[11px] font-bold" title="مأمورية معتمدة">
                 <Plane className="size-3" aria-hidden="true" />
-                مأمورية
+                مأمورية معتمدة
               </span>
             ) : null}
           </div>

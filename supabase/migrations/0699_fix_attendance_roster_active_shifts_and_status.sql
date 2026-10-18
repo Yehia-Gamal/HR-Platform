@@ -89,7 +89,13 @@ begin
      where (e.event_at at time zone 'Africa/Cairo')::date = v_work_date
   ), approved_leaves as (
     select distinct on (lr.employee_id)
-           lr.employee_id, lt.is_paid, lt.code as leave_code, coalesce(lt.name_ar, lt.name_en, lt.code) as leave_name
+           lr.employee_id,
+           lt.is_paid,
+           lt.code as leave_code,
+           coalesce(lt.name_ar, lt.name_en, lt.code) as leave_name,
+           r.title as leave_title,
+           coalesce(r.reason, r.payload->>'reason') as leave_reason,
+           r.request_number as leave_request_number
       from public.leave_requests lr
       join public.requests r on r.id = lr.request_id and r.status = 'approved'
       join public.leave_types lt on lt.id = lr.leave_type_id
@@ -99,7 +105,9 @@ begin
     select distinct on (r.employee_id)
            r.employee_id,
            r.request_type,
-           r.title as request_title
+           coalesce(r.title, 'طلب ' || r.request_type) as request_title,
+           coalesce(r.reason, r.payload->>'reason') as request_reason,
+           r.request_number
       from public.requests r
      where r.status = 'approved'
        and v_work_date between coalesce(public.try_cast_date(r.payload->>'startDate'), public.try_cast_date(r.payload->>'start_date'), public.try_cast_date(r.payload->>'date'), (r.created_at at time zone 'Africa/Cairo')::date)
@@ -230,6 +238,9 @@ begin
       coalesce(al.employee_id is not null or adr.request_type in ('leave', 'compensation', 'annual_leave', 'casual_leave', 'sick_leave', 'unpaid_leave'), false) as has_approved_leave,
       coalesce(al.leave_code, adr.request_type) as leave_code,
       coalesce(al.leave_name, adr.request_title) as leave_name,
+      coalesce(al.leave_title, adr.request_title) as leave_title,
+      coalesce(al.leave_reason, adr.request_reason) as leave_reason,
+      coalesce(al.leave_request_number, adr.request_number) as leave_request_number,
       coalesce(al.is_paid, true) as leave_is_paid,
       coalesce(am.employee_id is not null, false) as has_mission,
       coalesce(pr.employee_id is not null, false) as has_pending_request,
@@ -330,6 +341,9 @@ begin
             'hasApprovedLeave', c.has_approved_leave,
             'leaveCode', c.leave_code,
             'leaveName', c.leave_name,
+            'leaveTitle', c.leave_title,
+            'leaveReason', c.leave_reason,
+            'leaveRequestNumber', c.leave_request_number,
             'leaveIsPaid', c.leave_is_paid,
             'hasMission', c.has_mission,
             'hasPendingRequest', c.has_pending_request,

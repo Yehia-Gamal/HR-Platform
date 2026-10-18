@@ -187,8 +187,13 @@ ${
   onLeave.length + onMission.length === 0
     ? '— لا يوجد موظفون في إجازة أو مأمورية —'
     : [
-        ...onLeave.map((l, i) => `${i + 1}. ${l.employeeName} · إجازة (${l.leaveName ?? 'معتمدة'})`),
-        ...onMission.map((m, i) => `${i + onLeave.length + 1}. ${m.employeeName} · مأمورية (${m.shiftName ?? 'رسمية'})`),
+        ...onLeave.map((l, i) => {
+          const reqPart = l.leaveRequestNumber ? ` (#${l.leaveRequestNumber})` : '';
+          const titlePart = l.leaveTitle && l.leaveTitle !== l.leaveName && l.leaveTitle !== l.leaveReason ? ` [${l.leaveTitle}]` : '';
+          const reasonPart = l.leaveReason ? ` - سبب: ${l.leaveReason}` : '';
+          return `${i + 1}. ${l.employeeName} (${l.departmentName ?? '—'}) · ${l.leaveName ?? 'إجازة'}${reqPart}${titlePart}${reasonPart}`;
+        }),
+        ...onMission.map((m, i) => `${i + onLeave.length + 1}. ${m.employeeName} (${m.departmentName ?? '—'}) · مأمورية (${m.shiftName ?? 'رسمية'})`),
       ].join('\n')
 }
 ━━━━━━━━━━━━━━━━━━━━
@@ -483,8 +488,8 @@ ${
                           <th className="p-2 w-8 text-center">#</th>
                           <th className="p-2">اسم الموظف</th>
                           <th className="p-2">الإدارة والفرع</th>
-                          <th className="p-2">النوع</th>
-                          <th className="p-2">البيان الرسمي</th>
+                          <th className="p-2">النوع والمعاملة</th>
+                          <th className="p-2">السبب والبيان الرسمي</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 font-medium">
@@ -504,10 +509,26 @@ ${
                                     isMission ? 'bg-indigo-100 text-indigo-800' : 'bg-teal-100 text-teal-800'
                                   }`}
                                 >
-                                  {isMission ? 'مأمورية رسمية' : 'إجازة معتمدة'}
+                                  {isMission ? 'مأمورية رسمية' : item.leaveName ?? 'إجازة معتمدة'}
+                                  {item.leaveRequestNumber ? ` (#${item.leaveRequestNumber})` : ''}
                                 </span>
                               </td>
-                              <td className="p-2 text-slate-700 font-bold">{item.leaveName ?? item.shiftName ?? 'معتمد بالمنظومة'}</td>
+                              <td className="p-2 text-slate-800 font-bold">
+                                {isMission ? (
+                                  <span>{item.shiftName ?? 'مأمورية معتمدة بالمنظومة'}</span>
+                                ) : (
+                                  <div className="flex flex-col gap-0.5">
+                                    {item.leaveTitle && item.leaveTitle !== item.leaveName && item.leaveTitle !== item.leaveReason ? (
+                                      <span className="text-slate-900 font-black text-[11px]">📌 {item.leaveTitle}</span>
+                                    ) : null}
+                                    {item.leaveReason ? (
+                                      <span className="text-slate-600 font-medium text-[10.5px]">💬 السبب: {item.leaveReason}</span>
+                                    ) : (
+                                      <span className="text-slate-400 font-normal text-[10.5px]">— معتمدة ومسجلة نظامياً</span>
+                                    )}
+                                  </div>
+                                )}
+                              </td>
                             </tr>
                           );
                         })}
