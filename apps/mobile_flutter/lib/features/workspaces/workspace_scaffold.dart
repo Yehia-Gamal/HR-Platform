@@ -99,12 +99,12 @@ class WorkspaceScaffold extends ConsumerWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            // الاسم أولاً حتى لا يبتلعه القص (…) عند الطول —
-                            // التحية لاحقة ومختصرة بلا فاصلة نهائية.
-                            '$fullName · ${greeting.replaceAll('،', '').trim()}',
+                            fullName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.titleMedium,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                           Text(
                             title,

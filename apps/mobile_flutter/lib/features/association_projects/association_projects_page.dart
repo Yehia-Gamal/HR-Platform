@@ -229,7 +229,7 @@ class _BoardTab extends ConsumerWidget {
               child: ListTile(
                 leading: const ProjectLedLamp(ProjectLed.critical, size: 18),
                 title: Text(
-                  '${critical == 1 ? 'مشروع واحد' : '$critical مشاريع'} بلا تحديث منذ ${catalog.criticalDays} يوماً أو أكثر',
+                  '${critical == 1 ? 'مشروع واحد' : critical == 2 ? 'مشروعان' : '$critical مشاريع'} بلا تحديث منذ ${catalog.criticalDays == 1 ? 'يوم' : catalog.criticalDays == 2 ? 'يومين' : catalog.criticalDays <= 10 ? '${catalog.criticalDays} أيام' : '${catalog.criticalDays} يوماً'} أو أكثر',
                   style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.statusDanger),
                 ),
                 subtitle: Text(catalog.isFullAccess ? 'تحتاج تدخلك — اضغط للعرض' : 'اضغط للعرض'),

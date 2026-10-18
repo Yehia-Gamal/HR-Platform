@@ -2214,6 +2214,8 @@ class _TodayCompensationProposalBanner extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final state = ref.watch(attendanceStateProvider).asData?.value;
     final checkInStr = state?.todayCheckInTime ??
         (state?.todayCheckInAt != null
@@ -2234,13 +2236,21 @@ class _TodayCompensationProposalBanner extends ConsumerWidget {
       padding: EdgeInsets.all(compact ? 12 : 14),
       decoration: BoxDecoration(
         color: reached
-            ? AppColors.statusSuccess.withValues(alpha: 0.12)
-            : const Color(0xFFFFF7ED),
+            ? (isDark
+                ? const Color(0xFF064E3B).withValues(alpha: 0.35)
+                : AppColors.statusSuccess.withValues(alpha: 0.12))
+            : (isDark
+                ? const Color(0xFF2E1708)
+                : const Color(0xFFFFF7ED)),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: reached
-              ? AppColors.statusSuccess.withValues(alpha: 0.4)
-              : const Color(0xFFFDBA74),
+              ? (isDark
+                  ? const Color(0xFF059669)
+                  : AppColors.statusSuccess.withValues(alpha: 0.4))
+              : (isDark
+                  ? const Color(0xFF9A3412)
+                  : const Color(0xFFFDBA74)),
           width: 1.2,
         ),
       ),
@@ -2254,8 +2264,8 @@ class _TodayCompensationProposalBanner extends ConsumerWidget {
                     ? Icons.verified_user_rounded
                     : Icons.lightbulb_rounded,
                 color: reached
-                    ? AppColors.statusSuccess
-                    : const Color(0xFFEA580C),
+                    ? (isDark ? const Color(0xFF34D399) : AppColors.statusSuccess)
+                    : (isDark ? const Color(0xFFFB923C) : const Color(0xFFEA580C)),
                 size: compact ? 18 : 22,
               ),
               const SizedBox(width: 8),
@@ -2268,8 +2278,8 @@ class _TodayCompensationProposalBanner extends ConsumerWidget {
                     fontSize: compact ? 13 : 14,
                     fontWeight: FontWeight.bold,
                     color: reached
-                        ? AppColors.statusSuccess
-                        : const Color(0xFFC2410C),
+                        ? (isDark ? const Color(0xFF34D399) : AppColors.statusSuccess)
+                        : (isDark ? const Color(0xFFFB923C) : const Color(0xFFC2410C)),
                   ),
                 ),
               ),
@@ -2285,42 +2295,54 @@ class _TodayCompensationProposalBanner extends ConsumerWidget {
             style: TextStyle(
               fontSize: compact ? 12 : 12.5,
               height: 1.4,
-              color: Theme.of(context).colorScheme.onSurface,
+              color: reached
+                  ? (isDark ? const Color(0xFFA7F3D0) : const Color(0xFF166534))
+                  : (isDark ? const Color(0xFFFFEDD5) : const Color(0xFF7C2D12)),
             ),
           ),
           if (!reached && targetStr != null) ...[
             const SizedBox(height: 8),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFEDD5),
+                color: isDark ? const Color(0xFF261205) : const Color(0xFFFFEDD5),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFFED7AA)),
+                border: Border.all(
+                  color: isDark ? const Color(0xFF7C2D12) : const Color(0xFFFED7AA),
+                ),
               ),
-              child: Row(
+              child: Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 4,
                 children: [
-                  const Icon(
-                    Icons.timer_outlined,
-                    size: 15,
-                    color: Color(0xFFEA580C),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.timer_outlined,
+                        size: 15,
+                        color: Color(0xFFEA580C),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'الموعد المستهدف للانصراف: $targetStr',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? const Color(0xFFFDBA74) : const Color(0xFF9A3412),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'الموعد المستهدف للانصراف: $targetStr',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF9A3412),
-                    ),
-                  ),
-                  const Spacer(),
                   if (remainingMins > 0)
                     Text(
                       'متبقٍ ${remainingMins ~/ 60} س و ${remainingMins % 60} د',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFFC2410C),
+                        color: isDark ? const Color(0xFFFB923C) : const Color(0xFFC2410C),
                       ),
                     ),
                 ],

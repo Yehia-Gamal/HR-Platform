@@ -214,7 +214,7 @@ class _PeopleHubPageState extends ConsumerState<PeopleHubPage> {
       controller: _search,
       textInputAction: TextInputAction.search,
       decoration: InputDecoration(
-        hintText: 'ابحث بالاسم أو الكود أو الوظيفة أو الإدارة…',
+        hintText: 'ابحث بالاسم، الكود، الوظيفة أو الإدارة…',
         prefixIcon: const Icon(Icons.search_rounded),
         suffixIcon: _query.isNotEmpty
             ? IconButton(
