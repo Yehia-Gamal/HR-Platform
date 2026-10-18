@@ -69,6 +69,12 @@ export function InputDialog({
           placeholder={inputPlaceholder}
           value={inputValue}
           onChange={(e) => onInputChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && canSubmit && !loading) {
+              e.preventDefault();
+              onConfirm();
+            }
+          }}
           disabled={loading}
           autoFocus
           dir="rtl"
@@ -83,7 +89,7 @@ export function InputDialog({
               key={s}
               type="button"
               onClick={() => onInputChange(s)}
-              className="text-[11px] font-semibold px-2 py-0.5 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] hover:bg-primary/10 hover:border-primary/40 active:scale-95 transition-all cursor-pointer text-start text-[var(--text-secondary)] hover:text-primary"
+              className="text-[11px] font-semibold px-2 py-0.5 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] hover:bg-[var(--primary)]/10 hover:border-[var(--primary)]/40 active:scale-95 transition-all cursor-pointer text-start text-[var(--text-secondary)] hover:text-[var(--primary)]"
             >
               + {s}
             </button>

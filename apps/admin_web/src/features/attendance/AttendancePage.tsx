@@ -3,10 +3,14 @@ import {
   ArrowUpRight,
   CalendarClock,
   CalendarDays,
+  Camera,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Clock3,
   Coins,
   FileSpreadsheet,
+  Loader2,
   MapPin,
   Plane,
   RefreshCcw,
@@ -46,6 +50,62 @@ export function AttendancePage() {
   const [dateIso, setDateIso] = useState(cairoTodayIso());
   const [departmentId, setDepartmentId] = useState<string | null>(null);
   const [branchId, setBranchId] = useState<string | null>(null);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const isToday = dateIso === cairoTodayIso();
+
+  const handleCaptureScreenshot = async () => {
+    const element = document.getElementById('attendance-dashboard-view');
+    if (!element) return;
+    setIsCapturing(true);
+    setToastMessage('جاري التقاط لوحة الحضور بجودة فائقة...');
+    try {
+      const h2cModule = await import('html2canvas');
+      const html2canvas = typeof h2cModule.default === 'function' ? h2cModule.default : (h2cModule as any);
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#0b1329',
+        windowWidth: element.scrollWidth,
+      });
+      canvas.toBlob((blob: Blob | null) => {
+        if (!blob) {
+          setToastMessage('تعذر التقاط لقطة الشاشة');
+          setTimeout(() => setToastMessage(null), 3000);
+          return;
+        }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `لوحة_الحضور_${dateIso}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 10_000);
+        setToastMessage('تم تنزيل لقطة الشاشة بنجاح ✅');
+        setTimeout(() => setToastMessage(null), 3500);
+      }, 'image/png');
+    } catch (err) {
+      console.error('Failed to capture screenshot', err);
+      setToastMessage('تعذر التقاط لقطة الشاشة.');
+      setTimeout(() => setToastMessage(null), 3000);
+    } finally {
+      setIsCapturing(false);
+    }
+  };
+
+  const handleShiftDate = (offsetDays: number) => {
+    const current = new Date(`${dateIso}T00:00:00`);
+    if (Number.isNaN(current.getTime())) return;
+    current.setDate(current.getDate() + offsetDays);
+    const yyyy = current.getFullYear();
+    const mm = String(current.getMonth() + 1).padStart(2, '0');
+    const dd = String(current.getDate()).padStart(2, '0');
+    setDateIso(`${yyyy}-${mm}-${dd}`);
+  };
+
   const lookups = useOrganizationLookups();
   const query = useAttendanceDashboard({ dateIso, departmentId, branchId });
   const data = query.data;
@@ -53,7 +113,7 @@ export function AttendancePage() {
   const expected = data ? (data.expected ?? data.scheduled) : 0;
   const pctOfExpected = (n: number) => (expected > 0 ? Math.min(100, Math.round((n / expected) * 100)) : 0);
   const presentPct = data ? pctOfExpected(data.present) : 0;
-  const hasFilters = Boolean(departmentId || branchId);
+  const hasFilters = Boolean(departmentId || branchId || !isToday);
   const onTimeCount = data ? Math.max(0, data.present - data.late) : 0;
   const onTimeRate = pctOfExpected(onTimeCount);
   const respondedGps = data?.locationRequestsResponded ?? data?.locationRespondedToday ?? 0;
@@ -75,25 +135,83 @@ export function AttendancePage() {
 
   return (
     <div className="space-y-6">
+      {/* ─── إشعار لقطة الشاشة ─── */}
+      {toastMessage ? (
+        <div
+          role="status"
+          className="fixed top-5 start-1/2 -translate-x-1/2 z-50 rounded-xl bg-[var(--surface-overlay,rgba(15,23,42,0.95))] text-white px-4 py-2.5 text-xs font-bold shadow-2xl border border-[var(--border)] backdrop-blur-md flex items-center gap-2 animate-in fade-in slide-in-from-top-2"
+        >
+          {isCapturing ? <Loader2 className="size-4 animate-spin text-[var(--primary)]" /> : null}
+          <span>{toastMessage}</span>
+        </div>
+      ) : null}
+
       <PageHeader
         title="الحضور والورديات"
         description="انقر أي بطاقة لعرض قائمة الموظفين المعنيين."
         actions={
-          <button className="btn-secondary" onClick={() => void query.refetch()} disabled={query.isFetching} aria-busy={query.isFetching} aria-label="تحديث">
-            <RefreshCcw className={`size-4 ${query.isFetching ? 'animate-spin' : ''}`} aria-hidden="true" />
-            تحديث
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="btn-secondary btn-sm h-9 px-3 text-xs font-bold rounded-xl border border-[var(--border)] inline-flex items-center gap-1.5 hover:border-[var(--primary)] transition-all"
+              onClick={() => void handleCaptureScreenshot()}
+              disabled={isCapturing}
+              aria-busy={isCapturing}
+              title="حفظ لقطة شاشة من لوحة الحضور كملف صورة PNG عالي الدقة"
+            >
+              {isCapturing ? <Loader2 className="size-4 animate-spin text-[var(--primary)]" /> : <Camera className="size-4 text-[var(--primary)]" />}
+              لقطة شاشة
+            </button>
+            <button
+              className="btn-secondary btn-sm h-9 px-3 text-xs font-bold rounded-xl border border-[var(--border)] inline-flex items-center gap-1.5"
+              onClick={() => void query.refetch()}
+              disabled={query.isFetching}
+              aria-busy={query.isFetching}
+              aria-label="تحديث"
+            >
+              <RefreshCcw className={`size-3.5 ${query.isFetching ? 'animate-spin text-[var(--primary)]' : ''}`} aria-hidden="true" />
+              تحديث
+            </button>
+          </div>
         }
       />
       {/* ─── شريط الفلاتر: التاريخ + القسم + الفرع ─── */}
-      <div className="card flex flex-wrap items-end gap-4 p-4">
-        <label className="flex flex-col gap-1 text-xs font-medium text-[var(--text-muted)]">
-          التاريخ
-          <input type="date" value={dateIso} onChange={(e) => setDateIso(e.target.value || cairoTodayIso())} className="input min-w-44" />
-        </label>
-        <label className="flex flex-col gap-1 text-xs font-medium text-[var(--text-muted)]">
-          القسم
-          <select className="select min-w-44" value={departmentId ?? ''} onChange={(e) => setDepartmentId(e.target.value || null)}>
+      <div className="card flex flex-wrap items-end gap-3.5 p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
+        {/* اختيار التاريخ مع أزرار التنقل */}
+        <div className="flex flex-col gap-1.5 min-w-[220px]">
+          <span className="text-xs font-bold text-[var(--text-muted)]">تاريخ العرض</span>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => handleShiftDate(1)}
+              className="btn-secondary !h-9 !w-9 !p-0 rounded-xl flex items-center justify-center shrink-0"
+              title="اليوم التالي"
+              aria-label="اليوم التالي"
+            >
+              <ChevronRight className="size-4" />
+            </button>
+            <input
+              type="date"
+              value={dateIso}
+              onChange={(e) => setDateIso(e.target.value || cairoTodayIso())}
+              className="input !h-9 text-xs font-bold rounded-xl flex-1"
+            />
+            <button
+              type="button"
+              onClick={() => handleShiftDate(-1)}
+              className="btn-secondary !h-9 !w-9 !p-0 rounded-xl flex items-center justify-center shrink-0"
+              title="اليوم السابق"
+              aria-label="اليوم السابق"
+            >
+              <ChevronLeft className="size-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* اختيار القسم */}
+        <label className="flex flex-col gap-1.5 text-xs font-bold text-[var(--text-muted)] min-w-[170px] flex-1 sm:flex-none">
+          <span>القسم</span>
+          <select className="select !h-9 text-xs font-bold rounded-xl" value={departmentId ?? ''} onChange={(e) => setDepartmentId(e.target.value || null)}>
             <option value="">كل الأقسام</option>
             {lookups.data?.departments.map((d) => (
               <option key={d.id} value={d.id}>
@@ -102,9 +220,11 @@ export function AttendancePage() {
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-xs font-medium text-[var(--text-muted)]">
-          الفرع
-          <select className="select min-w-44" value={branchId ?? ''} onChange={(e) => setBranchId(e.target.value || null)}>
+
+        {/* اختيار الفرع */}
+        <label className="flex flex-col gap-1.5 text-xs font-bold text-[var(--text-muted)] min-w-[170px] flex-1 sm:flex-none">
+          <span>الفرع</span>
+          <select className="select !h-9 text-xs font-bold rounded-xl" value={branchId ?? ''} onChange={(e) => setBranchId(e.target.value || null)}>
             <option value="">كل الفروع</option>
             {lookups.data?.branches.map((b) => (
               <option key={b.id} value={b.id}>
@@ -113,18 +233,32 @@ export function AttendancePage() {
             ))}
           </select>
         </label>
-        {hasFilters ? (
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={() => {
-              setDepartmentId(null);
-              setBranchId(null);
-            }}
-          >
-            مسح الفلاتر
-          </button>
-        ) : null}
+
+        {/* أزرار سريعة */}
+        <div className="flex items-center gap-2">
+          {!isToday ? (
+            <button
+              type="button"
+              className="btn-secondary !h-9 px-3 text-xs font-bold rounded-xl text-[var(--primary)] hover:bg-[var(--primary)]/10"
+              onClick={() => setDateIso(cairoTodayIso())}
+            >
+              اليوم الحالي
+            </button>
+          ) : null}
+          {hasFilters ? (
+            <button
+              type="button"
+              className="btn-ghost !h-9 px-3 text-xs font-bold rounded-xl text-[var(--danger)] hover:bg-[var(--danger)]/10"
+              onClick={() => {
+                setDepartmentId(null);
+                setBranchId(null);
+                setDateIso(cairoTodayIso());
+              }}
+            >
+              مسح الفلاتر
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {query.isError ? (
@@ -138,7 +272,7 @@ export function AttendancePage() {
           </section>
         </>
       ) : data ? (
-        <>
+        <div id="attendance-dashboard-view" className="space-y-6">
           {/* ─── شريط التاريخ + نسبة الحضور ─── */}
           <div className="card flex flex-wrap items-center justify-between gap-4 p-4">
             <div className="flex items-center gap-2 text-sm">
@@ -400,7 +534,7 @@ export function AttendancePage() {
               {new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(data.lastUpdatedAt ?? Date.now()))}
             </span>
           </div>
-        </>
+        </div>
       ) : null}
     </div>
   );
