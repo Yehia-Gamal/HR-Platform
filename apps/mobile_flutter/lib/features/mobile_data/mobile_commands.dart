@@ -69,44 +69,47 @@ class MobileCommands {
     ref.invalidate(employeeHomeProvider);
   }
 
-  /// موقع بدء المأمورية (إلزامي): الإحداثيات والدقة وعلامة التزييف والعنوان إن تيسّر.
+  /// موقع بدء المأمورية: الإحداثيات والدقة وعلامة التزييف والعنوان إن تيسّر.
+  /// يتم التقاطه برفق دون تعطيل إرسال الطلب إن كان المستخدم داخل مبنى مغلق أو كان GPS غير متوفر.
   Future<Map<String, dynamic>> _missionStartLocation() async {
     try {
-      final p = await LocationService.current();
-      String? address;
+      Position? p;
       try {
-        address = await LocationService.reverseGeocode(
-          p.latitude,
-          p.longitude,
-        ).timeout(const Duration(seconds: 6));
+        p = await LocationService.current().timeout(const Duration(seconds: 8));
       } catch (_) {
-        // العنوان اختياري — الإحداثيات تكفي لفتح الخريطة
+        try {
+          p = await Geolocator.getLastKnownPosition();
+        } catch (_) {}
       }
-      return {
-        'lat': double.parse(p.latitude.toStringAsFixed(6)),
-        'lng': double.parse(p.longitude.toStringAsFixed(6)),
-        'accuracy': p.accuracy.round(),
-        'mocked': p.isMocked,
-        'capturedAt': DateTime.now().toUtc().toIso8601String(),
-        'address': ?address,
-      };
-    } on GpsDisabledException {
-      throw StateError(
-        'لا تبدأ المأمورية دون تحديد موقعك — فعّل خدمة الموقع (GPS) ثم أعد الإرسال.',
-      );
-    } on GpsPermissionDeniedException catch (e) {
-      throw StateError(
-        e.isDeniedForever
-            ? 'صلاحية الموقع مرفوضة نهائيًا — افتح إعدادات التطبيق وامنحها ثم أعد الإرسال.'
-            : 'امنح التطبيق صلاحية الموقع لبدء المأمورية ثم أعد الإرسال.',
-      );
-    } on GpsAccuracyException {
-      throw StateError(
-        'دقة الموقع ضعيفة الآن — انتقل إلى مكان مكشوف وأعد الإرسال.',
-      );
-    } catch (_) {
-      throw StateError('تعذر تحديد موقعك لبدء المأمورية — أعد المحاولة.');
-    }
+
+      if (p != null) {
+        String? address;
+        try {
+          address = await LocationService.reverseGeocode(
+            p.latitude,
+            p.longitude,
+          ).timeout(const Duration(seconds: 5));
+        } catch (_) {
+          // العنوان اختياري
+        }
+        return {
+          'lat': double.parse(p.latitude.toStringAsFixed(6)),
+          'lng': double.parse(p.longitude.toStringAsFixed(6)),
+          'accuracy': p.accuracy.round(),
+          'mocked': p.isMocked,
+          'capturedAt': DateTime.now().toUtc().toIso8601String(),
+          if (address != null && address.isNotEmpty) 'address': address,
+          'status': 'captured',
+        };
+      }
+    } catch (_) {}
+
+    // لا نُعطّل تقديم طلب المأمورية أبداً إذا كان الموظف داخل مبنى أو تعذر GPS
+    return {
+      'status': 'unavailable',
+      'reason': 'indoor_or_gps_unavailable',
+      'capturedAt': DateTime.now().toUtc().toIso8601String(),
+    };
   }
 
   Future<void> startMission(String requestId) async {

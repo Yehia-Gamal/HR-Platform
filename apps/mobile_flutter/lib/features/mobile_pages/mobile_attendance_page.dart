@@ -359,6 +359,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
             onRegister: _register,
             onPunch: () => _punch(action),
             currentShift: currentShift,
+            todayCheckInAt: value.todayCheckInAt,
           ),
         ],
         const SizedBox(height: 14),
@@ -473,6 +474,29 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
     // حارس إعادة الدخول: يمنع أي طلب بصمة ثانٍ أثناء وجود طلب قيد التنفيذ
     // (من زر ثانٍ أو إعادة محاولة عند الاستئناف) — تجنّب إرسال حضور مكرر.
     if (_working) return;
+
+    // حارس الانصراف المبكر: منع الانصراف خلال أقل من دقيقتين من تسجيل الحضور
+    if (action == 'CHECK_OUT') {
+      final stateVal = ref.read(attendanceStateProvider).asData?.value;
+      if (stateVal?.todayCheckInAt != null) {
+        final elapsed = DateTime.now().toUtc().difference(stateVal!.todayCheckInAt!.toUtc()).inSeconds;
+        if (elapsed < 120) {
+          final waitSec = 120 - elapsed;
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('سُجّل حضورك للتو. حفاظاً على صحة سجلك، الانصراف متاح بعد $waitSec ثانية.'),
+                backgroundColor: AppColors.statusWarning,
+              ),
+            );
+          }
+          return;
+        }
+      }
+    }
+
+    setState(() => _working = true);
+
     if (!skipDialog) {
       final shiftInfo = ref.read(myWorkShiftInfoProvider).asData?.value;
       final availableShifts = shiftInfo?.availableShifts ?? [];
@@ -602,11 +626,13 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
           },
         ),
       );
-      if (confirmed != true) return;
+      if (confirmed != true) {
+        if (mounted) setState(() => _working = false);
+        return;
+      }
     }
 
     if (!mounted) return;
-    setState(() => _working = true);
     try {
       final result = await ref
           .read(mobileCommandsProvider)
@@ -943,8 +969,10 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
         return 'يجب تسجيل الحضور أولاً قبل الانصراف.';
       case 'attendance_check_out_required':
         return 'يجب تسجيل الانصراف أولاً قبل حضور جديد.';
-      case 'invalid_attendance_location':
-        return 'إحداثيات الموقع غير صالحة. أعد المحاولة.';
+      case 'attendance_rapid_punch_rejected':
+        return 'تم تسجيل بصمة بنجاح منذ قليل. يُرجى الانتظار 30 ثانية قبل تسجيل أي بصمة أخرى.';
+      case 'attendance_checkout_too_early':
+        return 'سُجّل حضورك للتو. لا يمكن تسجيل الانصراف إلا بعد مضي دقيقتين على الأقل لمنع الانصراف غير المقصود.';
       // 0226: Device errors now return structured JSON instead of RAISE.
       case 'local_biometric_device_not_active':
         return 'هذا الجهاز غير مفعّل للحضور. سجّل الجهاز من جديد أو تواصل مع المسؤول.';
@@ -1234,7 +1262,7 @@ enum _LocationIssueKind { gpsOff, deniedForever }
 // بطاقة البصمة الرئيسية — إجراء واحد واضح
 // ═══════════════════════════════════════════════════════════════════════════════
 
-class _PunchCard extends StatelessWidget {
+class _PunchCard extends StatefulWidget {
   const _PunchCard({
     required this.actionLabel,
     required this.actionIcon,
@@ -1246,6 +1274,7 @@ class _PunchCard extends StatelessWidget {
     required this.onRegister,
     required this.onPunch,
     this.currentShift,
+    this.todayCheckInAt,
   });
 
   final String actionLabel;
@@ -1258,9 +1287,71 @@ class _PunchCard extends StatelessWidget {
   final VoidCallback onRegister;
   final VoidCallback onPunch;
   final CurrentWorkShift? currentShift;
+  final DateTime? todayCheckInAt;
+
+  @override
+  State<_PunchCard> createState() => _PunchCardState();
+}
+
+class _PunchCardState extends State<_PunchCard> {
+  Timer? _cooldownTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkCooldownTimer();
+  }
+
+  @override
+  void didUpdateWidget(covariant _PunchCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.todayCheckInAt != widget.todayCheckInAt ||
+        oldWidget.isCheckIn != widget.isCheckIn) {
+      _checkCooldownTimer();
+    }
+  }
+
+  void _checkCooldownTimer() {
+    _cooldownTimer?.cancel();
+    _cooldownTimer = null;
+    if (!widget.isCheckIn && widget.todayCheckInAt != null) {
+      final elapsed = DateTime.now().toUtc().difference(widget.todayCheckInAt!.toUtc()).inSeconds;
+      if (elapsed < 120) {
+        _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+          if (!mounted) {
+            timer.cancel();
+            return;
+          }
+          final currentElapsed = DateTime.now().toUtc().difference(widget.todayCheckInAt!.toUtc()).inSeconds;
+          if (currentElapsed >= 120) {
+            timer.cancel();
+            setState(() {});
+          } else {
+            setState(() {});
+          }
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _cooldownTimer?.cancel();
+    super.dispose();
+  }
+
+  int get _cooldownRemainingSeconds {
+    if (widget.isCheckIn || widget.todayCheckInAt == null) return 0;
+    final elapsed = DateTime.now().toUtc().difference(widget.todayCheckInAt!.toUtc()).inSeconds;
+    final remaining = 120 - elapsed;
+    return remaining > 0 ? remaining : 0;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final cooldownRemaining = _cooldownRemainingSeconds;
+    final inCooldown = !widget.isCheckIn && cooldownRemaining > 0;
+
     return Card(
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -1271,7 +1362,7 @@ class _PunchCard extends StatelessWidget {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: isCheckIn
+                colors: widget.isCheckIn
                     ? [AppColors.brandPrimary, const Color(0xFF1E3A8A)]
                     : [const Color(0xFFD97706), const Color(0xFF9A3412)],
                 begin: Alignment.topRight,
@@ -1281,20 +1372,20 @@ class _PunchCard extends StatelessWidget {
             child: Column(
               children: [
                 Icon(
-                  isCheckIn ? Icons.fingerprint : Icons.logout_rounded,
+                  widget.isCheckIn ? Icons.fingerprint : Icons.logout_rounded,
                   color: Colors.white,
                   size: 40,
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  actionLabel,
+                  widget.actionLabel,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 22,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                if (currentShift != null) ...[
+                if (widget.currentShift != null) ...[
                   const SizedBox(height: 6),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -1309,20 +1400,20 @@ class _PunchCard extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          isCheckIn ? Icons.schedule_rounded : Icons.timer_outlined,
+                          widget.isCheckIn ? Icons.schedule_rounded : Icons.timer_outlined,
                           size: 13,
                           color: Colors.white,
                         ),
                         const SizedBox(width: 5),
                         Flexible(
                           child: Text(
-                            isCheckIn
-                                ? (currentShift!.hasTodayPermit
-                                    ? 'الوردية: ${currentShift!.formattedStartTime} · إذن حتى ${currentShift!.formattedActiveStartTime} (سماح ${currentShift!.formattedActiveGraceEndTime})'
-                                    : 'الوردية: ${currentShift!.formattedStartTime} · سماح حتى ${currentShift!.formattedGraceEndTime}')
-                                : (currentShift!.hasTodayPermit && currentShift!.todayPermit?.isEarlyDeparture == true
-                                    ? 'الانصراف المصرح: ${currentShift!.formattedActiveEndTime} (إذن -${currentShift!.todayPermit!.permitMinutes} د)'
-                                    : 'الانصراف الرسمي: ${currentShift!.formattedEndTime}'),
+                            widget.isCheckIn
+                                ? (widget.currentShift!.hasTodayPermit
+                                    ? 'الوردية: ${widget.currentShift!.formattedStartTime} · إذن حتى ${widget.currentShift!.formattedActiveStartTime} (سماح ${widget.currentShift!.formattedActiveGraceEndTime})'
+                                    : 'الوردية: ${widget.currentShift!.formattedStartTime} · سماح حتى ${widget.currentShift!.formattedGraceEndTime}')
+                                : (widget.currentShift!.hasTodayPermit && widget.currentShift!.todayPermit?.isEarlyDeparture == true
+                                    ? 'الانصراف المصرح: ${widget.currentShift!.formattedActiveEndTime} (إذن -${widget.currentShift!.todayPermit!.permitMinutes} د)'
+                                    : 'الانصراف الرسمي: ${widget.currentShift!.formattedEndTime}'),
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 11.5,
@@ -1338,9 +1429,11 @@ class _PunchCard extends StatelessWidget {
                 ],
                 const SizedBox(height: 6),
                 Text(
-                  isCheckIn
+                  widget.isCheckIn
                       ? 'بصمة أو نقش + الموقع → يتم التحقق تلقائياً'
-                      : 'تسجيل انصراف اليوم وحفظ ساعات العمل',
+                      : (inCooldown
+                          ? 'سُجّل حضورك للتو — الانصراف متاح بعد دقيقتين'
+                          : 'تسجيل انصراف اليوم وحفظ ساعات العمل'),
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.85),
                     fontSize: 12.5,
@@ -1352,27 +1445,27 @@ class _PunchCard extends StatelessWidget {
           // زر الإجراء
           Padding(
             padding: const EdgeInsets.all(16),
-            child: _buildActionButton(context),
+            child: _buildActionButton(context, inCooldown, cooldownRemaining),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildActionButton(BuildContext context) {
-    if (devicePending) {
+  Widget _buildActionButton(BuildContext context, bool inCooldown, int cooldownRemaining) {
+    if (widget.devicePending) {
       return _WarningBanner(
         icon: Icons.hourglass_top_outlined,
         text: 'جهازك مسجل وينتظر موافقة المسؤول',
       );
     }
 
-    if (!hasActiveDevice) {
+    if (!widget.hasActiveDevice) {
       return SizedBox(
         width: double.infinity,
         child: FilledButton.icon(
-          onPressed: working ? null : onRegister,
-          icon: working
+          onPressed: widget.working ? null : widget.onRegister,
+          icon: widget.working
               ? const SizedBox.square(
                   dimension: 20,
                   child: CircularProgressIndicator(strokeWidth: 2),
@@ -1383,27 +1476,63 @@ class _PunchCard extends StatelessWidget {
       );
     }
 
-    return SizedBox(
-      width: double.infinity,
-      child: FilledButton.icon(
-        onPressed: working || !canPunch ? null : onPunch,
-        icon: working
-            ? const SizedBox.square(
-                dimension: 20,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-              )
-            : Icon(actionIcon),
-        label: Text(actionLabel),
-        style: FilledButton.styleFrom(
-          backgroundColor: isCheckIn ? null : const Color(0xFFD97706),
-          foregroundColor: isCheckIn ? null : Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (inCooldown) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFEF3C7),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFF59E0B)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.timer_outlined, color: Color(0xFFB45309), size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'سُجّل حضورك للتو! الانصراف متاح بعد $cooldownRemaining ثانية لمنع الانصراف غير المقصود.',
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF92400E),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            onPressed: widget.working || !widget.canPunch || inCooldown ? null : widget.onPunch,
+            icon: widget.working
+                ? const SizedBox.square(
+                    dimension: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                : Icon(inCooldown ? Icons.hourglass_top_rounded : widget.actionIcon),
+            label: Text(
+              inCooldown
+                  ? 'الانصراف متاح بعد ($cooldownRemaining ث)'
+                  : widget.actionLabel,
+            ),
+            style: FilledButton.styleFrom(
+              backgroundColor: widget.isCheckIn ? null : (inCooldown ? Colors.grey.shade400 : const Color(0xFFD97706)),
+              foregroundColor: widget.isCheckIn ? null : Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
           ),
         ),
-      ),
+      ],
     );
   }
 }

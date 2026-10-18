@@ -4,7 +4,7 @@ import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
-const ignored = new Set(['node_modules', '.git', 'dist', 'build', '.dart_tool', 'BUILD_MANIFEST.json']);
+const ignored = new Set(['node_modules', '.git', 'dist', 'build', '.dart_tool', '.temp', '.next', 'BUILD_MANIFEST.json']);
 const rows = [];
 
 async function walk(directory) {

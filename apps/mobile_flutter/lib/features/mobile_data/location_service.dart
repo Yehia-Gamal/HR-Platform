@@ -120,18 +120,62 @@ class LocationService {
     }
 
     onPhase?.call(LocationPhase.acquiringLocation);
-    final position = await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        timeLimit: Duration(seconds: 20),
-      ),
-    );
+    Position? position;
 
-    onPhase?.call(LocationPhase.validatingAccuracy);
-    if (position.accuracy > 100) {
+    // 1. فحص الموقع الأخير المعروف أولاً لتسريع الاستجابة إن كان حديثاً ودقيقاً
+    try {
+      final lastKnown = await Geolocator.getLastKnownPosition();
+      if (lastKnown != null) {
+        final age = DateTime.now().difference(lastKnown.timestamp);
+        if (age < const Duration(seconds: 45) && lastKnown.accuracy <= 60) {
+          position = lastKnown;
+        }
+      }
+    } catch (_) {}
+
+    // 2. محاولة جلب موقع حديث بدقة عالية أولاً (10 ثوان)
+    if (position == null) {
+      try {
+        position = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            timeLimit: Duration(seconds: 10),
+          ),
+        );
+      } catch (_) {
+        // في حال بطء أو فشل الأقمار الصناعية، المحاولة بدقة متوسطة (شبكة/واي فاي)
+        try {
+          position = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.medium,
+              timeLimit: Duration(seconds: 8),
+            ),
+          );
+        } catch (_) {
+          // محاولة أخيرة مع آخر موقع معروف إن وُجد
+          try {
+            final lastKnown = await Geolocator.getLastKnownPosition();
+            if (lastKnown != null && lastKnown.accuracy <= 150) {
+              position = lastKnown;
+            }
+          } catch (_) {}
+        }
+      }
+    }
+
+    if (position == null) {
       onPhase?.call(LocationPhase.failed);
       throw GpsAccuracyException(
-        'دقة الموقع الحالية ${position.accuracy.toStringAsFixed(0)} متر — أعد المحاولة.',
+        'تعذر التقاط إشارة GPS. تأكد من تفعيل خدمة الموقع واقترب من نافذة أو مكان مكشوف.',
+      );
+    }
+
+    onPhase?.call(LocationPhase.validatingAccuracy);
+    // سماحية حتى 150 متراً للهواتف داخل المباني والمكاتب
+    if (position.accuracy > 150) {
+      onPhase?.call(LocationPhase.failed);
+      throw GpsAccuracyException(
+        'دقة الموقع الحالية (${position.accuracy.toStringAsFixed(0)} متر) غير كافية لتسجيل البصمة. يرجى الاقتراب من نافذة أو مكان مكشوف.',
       );
     }
 

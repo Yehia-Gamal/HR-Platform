@@ -6,6 +6,7 @@ import 'package:ahla_shabab_management_os/core/network/offline_cache.dart';
 import 'package:ahla_shabab_management_os/core/network/offline_sync_queue.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/location_service.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/passkey_attendance_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/penalties_providers.dart';
