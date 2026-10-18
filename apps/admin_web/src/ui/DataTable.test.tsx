@@ -61,4 +61,15 @@ describe('DataTable', () => {
     const pinnedTd = container.querySelector('td.sticky');
     expect(pinnedTd).toBeTruthy();
   });
+
+  it('supports pinLastColumn and applies sticky styles to last column', () => {
+    const { container } = render(
+      <DataTable columns={columns} data={data} rowKey={(r) => r.id} pinLastColumn />
+    );
+    const ths = container.querySelectorAll('th.sticky');
+    expect(ths.length).toBeGreaterThan(0);
+    const tds = container.querySelectorAll('td.sticky');
+    expect(tds.length).toBeGreaterThan(0);
+  });
 });
+

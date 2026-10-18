@@ -31,6 +31,8 @@ interface DataTableProps<T> {
   rowClassName?: (row: T) => string | undefined;
   /** تثبيت العمود الأول وخانة التحديد أفقياً عند التمرير (مثل: اسم الموظف) */
   pinFirstColumn?: boolean;
+  /** تثبيت العمود الأخير أفقياً عند التمرير (مثل: عمود الإجراءات) */
+  pinLastColumn?: boolean;
 }
 
 type SortDir = 'ascending' | 'descending';
@@ -52,6 +54,7 @@ export function DataTable<T>({
   focusedKey = null,
   rowClassName,
   pinFirstColumn = false,
+  pinLastColumn = false,
 }: DataTableProps<T>) {
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('ascending');
@@ -184,17 +187,27 @@ export function DataTable<T>({
               ) : null}
               {columns.map((col, colIdx) => {
                 const ariaSortValue = col.sortable && sortKey === col.key ? sortDir : undefined;
-                const isPinned = pinFirstColumn && colIdx === 0;
+                const isPinnedFirst = pinFirstColumn && colIdx === 0;
+                const isPinnedLast = pinLastColumn && colIdx === columns.length - 1;
+                const isPinned = isPinnedFirst || isPinnedLast;
                 return (
                   <th
                     key={col.key}
                     scope="col"
                     className={`px-3.5 py-2.5 whitespace-nowrap ${
-                      isPinned
+                      isPinnedFirst
                         ? 'sticky z-30 bg-[var(--surface-muted)] backdrop-blur-md shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.12)]'
-                        : ''
+                        : isPinnedLast
+                          ? 'sticky z-30 bg-[var(--surface-muted)] backdrop-blur-md shadow-[4px_0_8px_-2px_rgba(0,0,0,0.12)]'
+                          : ''
                     }`}
-                    style={isPinned ? { position: 'sticky', insetInlineStart: selectable ? '3rem' : 0, zIndex: 30 } : undefined}
+                    style={
+                      isPinnedFirst
+                        ? { position: 'sticky', insetInlineStart: selectable ? '3rem' : 0, zIndex: 30 }
+                        : isPinnedLast
+                          ? { position: 'sticky', insetInlineEnd: 0, zIndex: 30 }
+                          : undefined
+                    }
                     aria-sort={ariaSortValue}
                   >
                     {col.sortable ? (
@@ -259,12 +272,13 @@ export function DataTable<T>({
                     </td>
                   ) : null}
                   {columns.map((col, colIdx) => {
-                    const isPinned = pinFirstColumn && colIdx === 0;
+                    const isPinnedFirst = pinFirstColumn && colIdx === 0;
+                    const isPinnedLast = pinLastColumn && colIdx === columns.length - 1;
                     return (
                       <td
                         key={col.key}
                         className={`px-3.5 py-2.5 ${
-                          isPinned
+                          isPinnedFirst
                             ? `sticky z-20 ${
                                 isSelected
                                   ? 'bg-blue-50 dark:bg-blue-950/80'
@@ -272,9 +286,23 @@ export function DataTable<T>({
                                     ? 'bg-[color-mix(in_srgb,var(--brand-primary)_15%,var(--surface))]'
                                     : 'bg-[var(--surface)]'
                               } shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.1)]`
-                            : ''
+                            : isPinnedLast
+                              ? `sticky z-20 ${
+                                  isSelected
+                                    ? 'bg-blue-50 dark:bg-blue-950/80'
+                                    : focusedKey === key
+                                      ? 'bg-[color-mix(in_srgb,var(--brand-primary)_15%,var(--surface))]'
+                                      : 'bg-[var(--surface)]'
+                                } shadow-[4px_0_8px_-2px_rgba(0,0,0,0.1)]`
+                              : ''
                         }`}
-                        style={isPinned ? { position: 'sticky', insetInlineStart: selectable ? '3rem' : 0, zIndex: 20 } : undefined}
+                        style={
+                          isPinnedFirst
+                            ? { position: 'sticky', insetInlineStart: selectable ? '3rem' : 0, zIndex: 20 }
+                            : isPinnedLast
+                              ? { position: 'sticky', insetInlineEnd: 0, zIndex: 20 }
+                              : undefined
+                        }
                       >
                         {col.render ? col.render(row, rowIndex) : String((row as Record<string, unknown>)[col.key] ?? '—')}
                       </td>

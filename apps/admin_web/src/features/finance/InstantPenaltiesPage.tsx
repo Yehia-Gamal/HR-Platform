@@ -1476,13 +1476,14 @@ export function InstantPenaltiesPage() {
             rowKey={(p) => p.id}
             focusedKey={focusedId}
             data={rows}
-            minWidth="760px"
+            minWidth="960px"
             maxHeight="min(60vh, 520px)"
             columns={columns}
             selectable
             selectedKeys={selectedIds}
             onSelectionChange={setSelectedIds}
             pinFirstColumn
+            pinLastColumn
             emptyTitle="لا توجد نتائج"
             emptyDescription="جرّب تعديل البحث أو الحالة."
             rowClassName={(p) => {
