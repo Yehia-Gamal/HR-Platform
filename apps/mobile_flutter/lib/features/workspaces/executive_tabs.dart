@@ -186,53 +186,7 @@ class ExecutiveHomeTab extends ConsumerWidget {
           const _UrgentNotificationsSection(),
           const SizedBox(height: 22),
           const DailyReportsHomeBox(),
-          if (dashboard.hasValue) ...[
-            const SizedBox(height: 22),
-            const MobileSectionHeader(
-              title: 'المتابعة',
-              subtitle: 'تقارير الأداء والقرارات والقضايا.',
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: _MiniStat(
-                    icon: Icons.fact_check_outlined,
-                    label: 'تقارير KPI',
-                    value: dashboard.requireValue.pendingFinalKpi,
-                    onTap: () => pushMobileSubpage(
-                      context,
-                      'مؤشرات الأداء KPI',
-                      MobileKpiPage(access: access, employeeOnly: false),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _MiniStat(
-                    icon: Icons.gavel_rounded,
-                    label: 'قرارات منشورة',
-                    value: dashboard.requireValue.publishedDecisions,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            const MobileOfficialFeedPage(canPublish: true),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _MiniStat(
-                    icon: Icons.balance_rounded,
-                    label: 'قضايا مفتوحة',
-                    value: dashboard.requireValue.openCases,
-                  ),
-                ),
-              ],
-            ),
-          ],
+
         ],
       ),
     );
@@ -504,56 +458,6 @@ class _QuickAction extends StatelessWidget {
   }
 }
 
-class _MiniStat extends StatelessWidget {
-  const _MiniStat({
-    required this.icon,
-    required this.label,
-    required this.value,
-    this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final int value;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-          child: Column(
-            children: [
-              Icon(icon, size: 20, color: scheme.onSurfaceVariant),
-              const SizedBox(height: 6),
-              Text(
-                '$value',
-                style: text.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-              ),
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: text.labelMedium?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class _UrgentNotificationsSection extends ConsumerWidget {
   const _UrgentNotificationsSection();
