@@ -596,6 +596,19 @@ function Row({ item, focused, isToday }: { item: AttendanceRosterItem; focused: 
             <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
             متأخر (في العمل)
           </span>
+        ) : item.status === 'absent' && item.hasPendingRequest ? (
+          <span
+            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-black"
+            style={{
+              backgroundColor: 'rgba(245, 158, 11, 0.1)',
+              color: '#f59e0b',
+              border: '1px solid rgba(245, 158, 11, 0.3)',
+            }}
+            title={item.reviewReason ?? undefined}
+          >
+            <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
+            غائب (طلب معلّق)
+          </span>
         ) : (
           <StatusBadge status={item.status ?? undefined} />
         )}
@@ -678,6 +691,33 @@ function Row({ item, focused, isToday }: { item: AttendanceRosterItem; focused: 
               <span className="status-pill status-pill--neutral text-[11px] font-bold" title="مأمورية معتمدة">
                 <Plane className="size-3" aria-hidden="true" />
                 مأمورية
+              </span>
+            ) : null}
+          </div>
+        ) : item.hasPendingRequest ? (
+          <div className="flex flex-col gap-1 items-start">
+            <span
+              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold"
+              style={{
+                backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                color: '#f59e0b',
+                border: '1px solid rgba(245, 158, 11, 0.3)',
+              }}
+              title={item.reviewReason ?? item.pendingRequestTitle ?? undefined}
+            >
+              <Clock3 className="size-3" aria-hidden="true" />
+              <span>
+                {item.pendingRequestType === 'leave'
+                  ? 'طلب إجازة معلّق'
+                  : item.pendingRequestType === 'mission'
+                    ? 'طلب مأمورية معلّق'
+                    : 'طلب معلّق'}{' '}
+                {item.pendingRequestNumber ? `(#${item.pendingRequestNumber})` : ''}
+              </span>
+            </span>
+            {item.pendingRequestTitle ? (
+              <span className="text-[10px] text-[var(--text-muted)] truncate max-w-[180px]">
+                {item.pendingRequestTitle}
               </span>
             ) : null}
           </div>

@@ -1,6 +1,8 @@
 -- 0699: Fix get_attendance_day_roster active shifts and status classification
 -- Ensures employees currently at work today are classified as 'present' (or 'late'),
 -- not falsely marked as 'missing_checkout' during an active workday.
+-- Also incorporates pending leave/mission requests so employees with pending requests
+-- are not penalized as unexcused absent and their pending requests are prominently displayed.
 
 CREATE OR REPLACE FUNCTION public.get_attendance_day_roster(
   p_date date DEFAULT NULL::date,
@@ -100,42 +102,72 @@ begin
            r.title as request_title
       from public.requests r
      where r.status = 'approved'
-       and v_work_date between coalesce(public.try_cast_date(r.payload->>'startDate'), public.try_cast_date(r.payload->>'start_date'), public.try_cast_date(r.payload->>'date'), r.created_at::date)
-                           and coalesce(public.try_cast_date(r.payload->>'endDate'), public.try_cast_date(r.payload->>'end_date'), public.try_cast_date(r.payload->>'startDate'), public.try_cast_date(r.payload->>'start_date'), public.try_cast_date(r.payload->>'date'), r.created_at::date)
+       and v_work_date between coalesce(public.try_cast_date(r.payload->>'startDate'), public.try_cast_date(r.payload->>'start_date'), public.try_cast_date(r.payload->>'date'), (r.created_at at time zone 'Africa/Cairo')::date)
+                           and coalesce(public.try_cast_date(r.payload->>'endDate'), public.try_cast_date(r.payload->>'end_date'), public.try_cast_date(r.payload->>'startDate'), public.try_cast_date(r.payload->>'start_date'), public.try_cast_date(r.payload->>'date'), (r.created_at at time zone 'Africa/Cairo')::date)
+     order by r.employee_id, r.created_at desc
+  ), pending_requests as (
+    select distinct on (r.employee_id)
+           r.employee_id,
+           r.id as request_id,
+           r.request_number,
+           r.request_type,
+           coalesce(r.title, 'طلب ' || r.request_type) as request_title,
+           case
+             when r.request_type in ('leave', 'annual_leave', 'casual_leave', 'sick_leave', 'unpaid_leave', 'weekly_rest_comp', 'compensation')
+               then 'leave'
+             when r.request_type in ('mission', 'external_mission', 'convoy', 'field_convoy', 'fundraising', 'fandy')
+               then 'mission'
+             when r.request_type in ('late_permit', 'early_leave_permit', 'temporary_departure_permit')
+               then 'permit'
+             else r.request_type
+           end as normalized_type
+      from public.requests r
+     where r.status in ('pending', 'submitted')
+       and r.request_type in (
+         'leave', 'compensation', 'annual_leave', 'casual_leave', 'sick_leave', 'unpaid_leave', 'weekly_rest_comp',
+         'mission', 'external_mission', 'convoy', 'field_convoy', 'fundraising', 'fandy',
+         'late_permit', 'early_leave_permit', 'temporary_departure_permit'
+       )
+       and v_work_date between coalesce(public.try_cast_date(r.payload->>'startDate'), public.try_cast_date(r.payload->>'start_date'), public.try_cast_date(r.payload->>'permitDate'), public.try_cast_date(r.payload->>'date'), (r.created_at at time zone 'Africa/Cairo')::date)
+                           and coalesce(public.try_cast_date(r.payload->>'endDate'), public.try_cast_date(r.payload->>'end_date'), public.try_cast_date(r.payload->>'permitDate'), public.try_cast_date(r.payload->>'startDate'), public.try_cast_date(r.payload->>'start_date'), public.try_cast_date(r.payload->>'date'), (r.created_at at time zone 'Africa/Cairo')::date)
      order by r.employee_id, r.created_at desc
   ), active_missions as (
     select distinct p.employee_id
-      from public.work_assignment_participants p
-      join public.work_assignments wa on wa.id = p.assignment_id
-     where wa.status in ('APPROVED','IN_PROGRESS')
-       and v_work_date between wa.start_at::date and wa.end_at::date
-    union
-    select r.employee_id
-      from approved_direct_requests r
-     where r.request_type in ('mission', 'external_mission', 'convoy', 'field_convoy', 'fundraising', 'fandy')
+       from public.work_assignment_participants p
+       join public.work_assignments wa on wa.id = p.assignment_id
+      where wa.status in ('APPROVED','IN_PROGRESS')
+        and v_work_date between wa.start_at::date and wa.end_at::date
+     union
+     select r.employee_id
+       from approved_direct_requests r
+      where r.request_type in ('mission', 'external_mission', 'convoy', 'field_convoy', 'fundraising', 'fandy')
   ), excused_absent as (
     select dv.employee_id
       from (
         select ve.id as employee_id,
                d.status as daily_status,
                (al.employee_id is not null or adr.request_type in ('leave', 'compensation', 'annual_leave', 'casual_leave', 'sick_leave', 'unpaid_leave')) as has_approved_leave,
-               (am.employee_id is not null) as has_mission
+               (am.employee_id is not null) as has_mission,
+               (pr.employee_id is not null) as has_pending_request
           from visible_employees ve
           left join daily d on d.employee_id = ve.id
           left join approved_leaves al on al.employee_id = ve.id
           left join approved_direct_requests adr on adr.employee_id = ve.id
           left join active_missions am on am.employee_id = ve.id
+          left join pending_requests pr on pr.employee_id = ve.id
       ) dv
       left join approved_leaves al on al.employee_id = dv.employee_id
       left join approved_direct_requests adr on adr.employee_id = dv.employee_id
+      left join pending_requests pr on pr.employee_id = dv.employee_id
       left join events_day e on e.employee_id = dv.employee_id
-     where dv.daily_status = 'absent'
+     where dv.daily_status = 'absent' or dv.daily_status is null
      group by dv.employee_id
-    having count(al.employee_id) filter (
-             where al.is_paid or coalesce(al.leave_code, '') <> 'sick'
-           ) > 0
-       or count(adr.employee_id) > 0
-       or count(e.id) > 0
+     having count(al.employee_id) filter (
+              where al.is_paid or coalesce(al.leave_code, '') <> 'sick'
+            ) > 0
+        or count(adr.employee_id) > 0
+        or count(pr.employee_id) > 0
+        or count(e.id) > 0
   ), location_requests_day as (
     select distinct on (llr.employee_id)
            llr.employee_id, llr.status as llr_status, llr.requested_at, llr.responded_at,
@@ -176,16 +208,35 @@ begin
       d.last_check_out,
       coalesce(d.late_minutes, 0) as late_minutes,
       coalesce(d.is_finalized, false) as is_finalized,
-      s.name           as shift_name,
-      s.start_time     as shift_start,
-      s.end_time       as shift_end,
-      coalesce((select bool_or(e.requires_review) from events_day e where e.employee_id = ve.id), false) as requires_review,
-      rr.reason        as review_reason,
-      (al.employee_id is not null or adr.request_type in ('leave', 'compensation', 'annual_leave', 'casual_leave', 'sick_leave', 'unpaid_leave')) as has_approved_leave,
+      coalesce(s.name, emp_shift.name) as shift_name,
+      coalesce(s.start_time, emp_shift.start_time) as shift_start,
+      coalesce(s.end_time, emp_shift.end_time) as shift_end,
+      coalesce(
+        (select bool_or(e.requires_review) from events_day e where e.employee_id = ve.id),
+        false
+      ) or (pr.employee_id is not null and (d.first_check_in is null or d.status in ('absent', 'pending'))) as requires_review,
+      coalesce(
+        rr.reason,
+        case
+          when pr.employee_id is not null and pr.normalized_type = 'leave' then
+            'طلب إجازة قيد المراجعة (#' || pr.request_number || '): ' || pr.request_title
+          when pr.employee_id is not null and pr.normalized_type = 'mission' then
+            'طلب مأمورية قيد المراجعة (#' || pr.request_number || '): ' || pr.request_title
+          when pr.employee_id is not null then
+            'طلب ' || pr.request_title || ' قيد المراجعة (#' || pr.request_number || ')'
+          else null
+        end
+      ) as review_reason,
+      coalesce(al.employee_id is not null or adr.request_type in ('leave', 'compensation', 'annual_leave', 'casual_leave', 'sick_leave', 'unpaid_leave'), false) as has_approved_leave,
       coalesce(al.leave_code, adr.request_type) as leave_code,
       coalesce(al.leave_name, adr.request_title) as leave_name,
       coalesce(al.is_paid, true) as leave_is_paid,
-      (am.employee_id is not null) as has_mission,
+      coalesce(am.employee_id is not null, false) as has_mission,
+      coalesce(pr.employee_id is not null, false) as has_pending_request,
+      pr.request_id    as pending_request_id,
+      pr.request_number as pending_request_number,
+      pr.request_title  as pending_request_title,
+      pr.normalized_type as pending_request_type,
       lrd.llr_status   as location_request_status,
       lrd.requested_at as location_requested_at,
       lrd.responded_at as location_responded_at,
@@ -207,10 +258,22 @@ begin
     from visible_employees ve
     left join daily d on d.employee_id = ve.id
     left join public.shifts s on s.id = d.shift_id
+    left join lateral (
+      select s2.name, s2.start_time, s2.end_time
+        from public.shift_assignments sa2
+        join public.shifts s2 on s2.id = sa2.shift_id
+       where sa2.employee_id = ve.id
+         and sa2.is_active = true
+         and v_work_date >= sa2.effective_from
+         and (sa2.effective_to is null or v_work_date <= sa2.effective_to)
+       order by sa2.effective_from desc
+       limit 1
+    ) emp_shift on true
     left join review_reasons rr on rr.employee_id = ve.id
     left join approved_leaves al on al.employee_id = ve.id
     left join approved_direct_requests adr on adr.employee_id = ve.id
     left join active_missions am on am.employee_id = ve.id
+    left join pending_requests pr on pr.employee_id = ve.id
     left join location_requests_day lrd on lrd.employee_id = ve.id
   ), categorized as (
     select b.*,
@@ -269,6 +332,11 @@ begin
             'leaveName', c.leave_name,
             'leaveIsPaid', c.leave_is_paid,
             'hasMission', c.has_mission,
+            'hasPendingRequest', c.has_pending_request,
+            'pendingRequestId', c.pending_request_id,
+            'pendingRequestNumber', c.pending_request_number,
+            'pendingRequestTitle', c.pending_request_title,
+            'pendingRequestType', c.pending_request_type,
             'locationRequestStatus', c.location_request_status,
             'locationRequestedAt', c.location_requested_at,
             'locationRespondedAt', c.location_responded_at
@@ -292,4 +360,3 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.get_attendance_day_roster(date, text, text, uuid, uuid, uuid, text, text, integer, integer) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.get_attendance_day_roster(date, text, text, uuid, uuid, uuid, text, text, integer, integer) TO authenticated;
-
