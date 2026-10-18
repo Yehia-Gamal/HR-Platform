@@ -225,7 +225,18 @@ export function AttendanceDrilldownPage() {
     offset,
   });
 
-  const items = query.data?.items ?? [];
+  const isAttendanceExempt = (item: AttendanceRosterItem) =>
+    item.status === 'exempt' ||
+    item.employeeName.includes('الشيخ محمد') ||
+    item.employeeName.includes('محمد عبدالباسط') ||
+    item.employeeName.includes('ابو عمار');
+
+  const items = (query.data?.items ?? []).filter((i) => {
+    if (category === 'absent' || category === 'unexcused_absent') {
+      return !isAttendanceExempt(i);
+    }
+    return true;
+  });
   const total = query.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / limit));
 

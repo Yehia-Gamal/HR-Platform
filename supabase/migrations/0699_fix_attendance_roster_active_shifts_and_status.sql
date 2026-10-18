@@ -58,6 +58,7 @@ begin
              d.name as department_name,
              b.name as branch_name,
              jt.name as job_title,
+             e.is_attendance_exempt,
              mr.manager_employee_id,
              me.full_name_ar as manager_name
       from public.employees e
@@ -79,6 +80,25 @@ begin
        and (p_branch_id is null or e.branch_id = p_branch_id)
        and (p_manager_id is null or mr.manager_employee_id = p_manager_id)
        and not (public.is_employee_isolated(e.id) and not public.can_view_isolated_employee(e.id))
+       -- استبعاد غير المطالبين بالبصمة إطلاقاً (مثل الشيخ محمد وأبو عمار) ما لم يسجلوا بصمة حضور فعلية اليوم
+       and not (
+         (
+           coalesce(e.is_attendance_exempt, false)
+           or public.is_employee_attendance_exempt(e.id)
+           or public.is_employee_executive(e.id)
+         )
+         and not exists (
+           select 1 from public.attendance_daily ad
+            where ad.employee_id = e.id
+              and ad.work_date = v_work_date
+              and ad.first_check_in is not null
+         )
+         and not exists (
+           select 1 from public.attendance_events ae
+            where ae.employee_id = e.id
+              and (ae.event_at at time zone 'Africa/Cairo')::date = v_work_date
+         )
+       )
        and (v_search is null
          or lower(e.full_name_ar) like '%' || v_search || '%'
          or lower(e.employee_code) like '%' || v_search || '%')
@@ -252,7 +272,26 @@ begin
       lrd.requested_at as location_requested_at,
       lrd.responded_at as location_responded_at,
       coalesce(lrd.responded, false) as location_responded_today,
+      -- تمييز الطاقم الطبي للعيادات لوضعهم في نهاية أي جدول (مع استثناء مديريهم مثل مصطفى أحمد ويوسف رسمي)
+      (
+        (
+          ve.department_name in ('إدارة العيادات الطبية', 'العيادات الطبية')
+          or coalesce(ve.job_title, '') in ('تمريض', 'دكتورة المعمل', 'موظف استقبال')
+        )
+        and ve.id not in (
+          '4120ce3a-8999-453e-8d9d-acd8f3b5f04c', -- مصطفي أحمد كمال الدين
+          'a3b0a2ca-6cbd-49f6-87ed-2f63fa1055c6'  -- يوسف رسمي شعبان
+        )
+        and coalesce(ve.job_title, '') not like '%مدير%'
+        and coalesce(ve.job_title, '') not like '%أدارة%'
+        and coalesce(ve.job_title, '') not like '%ادارة%'
+        and coalesce(ve.job_title, '') not like '%مسؤول%'
+      ) as is_clinic_medical_staff,
       case
+        -- غير المطالبين بالبصمة لا يُعتبرون غائبين أبداً
+        when (coalesce(ve.is_attendance_exempt, false) or public.is_employee_attendance_exempt(ve.id) or public.is_employee_executive(ve.id))
+             and d.first_check_in is null
+          then 'exempt'
         -- Missing checkout applies only if day has passed without checkout, OR if shift end has elapsed on finalized records
         when d.id is not null and d.status in ('present','late')
              and d.first_check_in is not null and d.last_check_out is null
@@ -288,6 +327,7 @@ begin
     left join location_requests_day lrd on lrd.employee_id = ve.id
   ), categorized as (
     select b.*,
+           case when b.is_clinic_medical_staff then 1 else 0 end as clinic_staff_order,
            case p_sort
              when 'check_in' then coalesce(to_char(b.first_check_in, 'YYYY-MM-DD HH24:MI:SS'), '9999-99-99 99:99:99')
              when 'late'     then lpad(coalesce(b.late_minutes::text, '0'), 12, '0')
@@ -296,7 +336,7 @@ begin
            end as sort_key
       from base b
      where case p_category
-        when 'scheduled'          then true
+        when 'scheduled'          then b.derived_status <> 'exempt'
         when 'present'            then b.derived_status in ('present','late','partial','missing_checkout')
         when 'late'               then b.derived_status = 'late' or b.late_minutes > 0
         when 'absent'             then b.derived_status = 'absent'
@@ -353,10 +393,12 @@ begin
             'pendingRequestType', c.pending_request_type,
             'locationRequestStatus', c.location_request_status,
             'locationRequestedAt', c.location_requested_at,
-            'locationRespondedAt', c.location_responded_at
+            'locationRespondedAt', c.location_responded_at,
+            'isClinicMedicalStaff', c.is_clinic_medical_staff
           ) as item
           from categorized c
           order by
+            c.clinic_staff_order asc,
             case when p_direction = 'desc' then c.sort_key end desc,
             case when p_direction = 'asc'  then c.sort_key end asc,
             c.full_name_ar asc

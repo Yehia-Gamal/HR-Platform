@@ -427,6 +427,7 @@ export const attendanceRosterItemSchema = z.object({
   locationRequestStatus: z.string().nullable(),
   locationRequestedAt: z.string().nullable().optional(),
   locationRespondedAt: z.string().nullable().optional(),
+  isClinicMedicalStaff: z.boolean().nullable().optional(),
 });
 export type AttendanceRosterItem = z.infer<typeof attendanceRosterItemSchema>;
 

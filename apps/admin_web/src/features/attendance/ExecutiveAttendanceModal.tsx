@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Calendar, Camera, Check, CheckCircle2, Clock3, Copy, Download, Loader2, MessageSquare, Plane, UserCheck, UserX, Users, X } from 'lucide-react';
 import { useAttendanceRosterPage } from './useAttendanceDashboard';
+import type { AttendanceRosterItem } from '@ahla/shared-contracts';
 
 function formatTime12(iso: string | null | undefined): string {
   if (!iso) return '—';
@@ -40,15 +41,58 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
     direction: 'asc',
   });
 
-  const items = query.data?.items ?? [];
+  const rawItems = query.data?.items ?? [];
+
+  // استبعاد غير المطالبين بالبصمة إطلاقاً (مثل الشيخ محمد وأبو عمار) من الغياب وأرقام الحضور
+  const isAttendanceExempt = (item: AttendanceRosterItem) =>
+    item.status === 'exempt' ||
+    item.employeeName.includes('الشيخ محمد') ||
+    item.employeeName.includes('محمد عبدالباسط') ||
+    item.employeeName.includes('ابو عمار');
+
+  // تمييز الطاقم الطبي للعيادات لوضعهم في نهاية أي جدول (مع استثناء مديريهم مثل مصطفى أحمد ويوسف رسمي)
+  const isClinicMedicalStaff = (item: AttendanceRosterItem) => {
+    if (item.isClinicMedicalStaff !== undefined && item.isClinicMedicalStaff !== null) {
+      return item.isClinicMedicalStaff;
+    }
+    const dept = item.departmentName ?? '';
+    const job = item.jobTitle ?? '';
+    const isManager =
+      item.employeeId === '4120ce3a-8999-453e-8d9d-acd8f3b5f04c' || // مصطفى أحمد كمال الدين
+      item.employeeId === 'a3b0a2ca-6cbd-49f6-87ed-2f63fa1055c6' || // يوسف رسمي شعبان
+      job.includes('مدير') ||
+      job.includes('أدارة') ||
+      job.includes('ادارة') ||
+      job.includes('مسؤول') ||
+      item.employeeName.includes('مصطفي أحمد كمال') ||
+      item.employeeName.includes('يوسف رسمي');
+
+    if (isManager) return false;
+    return dept.includes('العيادات') || job === 'تمريض' || job === 'دكتورة المعمل' || job === 'موظف استقبال';
+  };
+
+  const sortClinicStaffToEnd = <T extends AttendanceRosterItem>(list: T[]): T[] => {
+    return [...list].sort((a, b) => {
+      const aClinic = isClinicMedicalStaff(a) ? 1 : 0;
+      const bClinic = isClinicMedicalStaff(b) ? 1 : 0;
+      if (aClinic !== bClinic) return aClinic - bClinic;
+      return (a.employeeName ?? '').localeCompare(b.employeeName ?? '', 'ar');
+    });
+  };
+
+  const items = rawItems.filter((i) => !isAttendanceExempt(i));
   const totalScheduled = items.length;
 
-  // تصنيف الموظفين
-  const present = items.filter((i) => i.status === 'present' || i.status === 'late' || i.status === 'missing_checkout' || Boolean(i.firstCheckIn));
-  const late = items.filter((i) => (i.lateMinutes ?? 0) > 0);
-  const absent = items.filter((i) => (i.status === 'absent' || i.status === 'unexcused_absent') && !i.firstCheckIn && !i.hasApprovedLeave && !i.hasMission);
-  const onLeave = items.filter((i) => i.status === 'on_leave' || Boolean(i.hasApprovedLeave));
-  const onMission = items.filter((i) => i.status === 'on_mission' || Boolean(i.hasMission));
+  // تصنيف الموظفين مع وضع الطاقم الطبي في نهاية كل جدول
+  const present = sortClinicStaffToEnd(
+    items.filter((i) => i.status === 'present' || i.status === 'late' || i.status === 'missing_checkout' || Boolean(i.firstCheckIn))
+  );
+  const late = sortClinicStaffToEnd(items.filter((i) => (i.lateMinutes ?? 0) > 0));
+  const absent = sortClinicStaffToEnd(
+    items.filter((i) => (i.status === 'absent' || i.status === 'unexcused_absent') && !i.firstCheckIn && !i.hasApprovedLeave && !i.hasMission)
+  );
+  const onLeave = sortClinicStaffToEnd(items.filter((i) => i.status === 'on_leave' || Boolean(i.hasApprovedLeave)));
+  const onMission = sortClinicStaffToEnd(items.filter((i) => i.status === 'on_mission' || Boolean(i.hasMission)));
   const pendingRequests = items.filter((i) => Boolean(i.hasPendingRequest));
 
   const attendancePct = totalScheduled > 0 ? Math.round((present.length / totalScheduled) * 100) : 0;
