@@ -648,10 +648,25 @@ function Row({ item, focused, isToday }: { item: AttendanceRosterItem; focused: 
               </div>
             ) : null}
             {item.hasMission ? (
-              <span className="status-pill status-pill--neutral text-[11px] font-bold" title="مأمورية معتمدة">
-                <Plane className="size-3" aria-hidden="true" />
-                مأمورية معتمدة
-              </span>
+              <div className="flex flex-col gap-0.5 items-start">
+                <span className="status-pill status-pill--neutral text-[11px] font-bold" title="مأمورية رسمية معتمدة">
+                  <Plane className="size-3" aria-hidden="true" />
+                  <span>{item.leaveName && item.leaveName !== item.leaveTitle ? item.leaveName : 'مأمورية رسمية'}</span>
+                  {item.leaveRequestNumber ? <span className="opacity-75 font-normal">(#{item.leaveRequestNumber})</span> : null}
+                </span>
+
+                {item.leaveTitle && item.leaveTitle !== item.leaveReason ? (
+                  <span className="text-[11px] font-semibold text-[var(--text)] line-clamp-1" title={`وجهة / موضوع المأمورية: ${item.leaveTitle}`}>
+                    📍 {item.leaveTitle}
+                  </span>
+                ) : null}
+
+                {item.leaveReason ? (
+                  <span className="text-[10.5px] text-[var(--text-muted)] line-clamp-2" title={`الغرض / بيان المأمورية: ${item.leaveReason}`}>
+                    💬 الغرض: {item.leaveReason}
+                  </span>
+                ) : null}
+              </div>
             ) : null}
           </div>
         ) : item.hasPendingRequest ? (

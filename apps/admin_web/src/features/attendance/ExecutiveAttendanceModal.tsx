@@ -84,15 +84,30 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
   const totalScheduled = items.length;
 
   // تصنيف الموظفين مع وضع الطاقم الطبي في نهاية كل جدول
-  const present = sortClinicStaffToEnd(
-    items.filter((i) => i.status === 'present' || i.status === 'late' || i.status === 'missing_checkout' || Boolean(i.firstCheckIn))
-  );
-  const late = sortClinicStaffToEnd(items.filter((i) => (i.lateMinutes ?? 0) > 0));
-  const absent = sortClinicStaffToEnd(
-    items.filter((i) => (i.status === 'absent' || i.status === 'unexcused_absent') && !i.firstCheckIn && !i.hasApprovedLeave && !i.hasMission)
-  );
-  const onLeave = sortClinicStaffToEnd(items.filter((i) => i.status === 'on_leave' || Boolean(i.hasApprovedLeave)));
   const onMission = sortClinicStaffToEnd(items.filter((i) => i.status === 'on_mission' || Boolean(i.hasMission)));
+  const onLeave = sortClinicStaffToEnd(items.filter((i) => (i.status === 'on_leave' || Boolean(i.hasApprovedLeave)) && !i.hasMission));
+  const present = sortClinicStaffToEnd(
+    items.filter(
+      (i) =>
+        (i.status === 'present' || i.status === 'late' || i.status === 'missing_checkout' || Boolean(i.firstCheckIn)) &&
+        !i.hasMission &&
+        !i.hasApprovedLeave &&
+        i.status !== 'on_mission' &&
+        i.status !== 'on_leave'
+    )
+  );
+  const late = sortClinicStaffToEnd(
+    items.filter((i) => (i.lateMinutes ?? 0) > 0 && !i.hasMission && !i.hasApprovedLeave && i.status !== 'on_mission')
+  );
+  const absent = sortClinicStaffToEnd(
+    items.filter(
+      (i) =>
+        (i.status === 'absent' || i.status === 'unexcused_absent') &&
+        !i.firstCheckIn &&
+        !i.hasApprovedLeave &&
+        !i.hasMission
+    )
+  );
   const pendingRequests = items.filter((i) => Boolean(i.hasPendingRequest));
 
   const attendancePct = totalScheduled > 0 ? Math.round((present.length / totalScheduled) * 100) : 0;
@@ -237,7 +252,12 @@ ${
           const reasonPart = l.leaveReason ? ` - سبب: ${l.leaveReason}` : '';
           return `${i + 1}. ${l.employeeName} (${l.departmentName ?? '—'}) · ${l.leaveName ?? 'إجازة'}${reqPart}${titlePart}${reasonPart}`;
         }),
-        ...onMission.map((m, i) => `${i + onLeave.length + 1}. ${m.employeeName} (${m.departmentName ?? '—'}) · مأمورية (${m.shiftName ?? 'رسمية'})`),
+        ...onMission.map((m, i) => {
+          const reqPart = m.leaveRequestNumber ? ` (#${m.leaveRequestNumber})` : '';
+          const titlePart = m.leaveTitle && m.leaveTitle !== m.leaveName ? ` [${m.leaveTitle}]` : (m.leaveName ? ` [${m.leaveName}]` : '');
+          const reasonPart = m.leaveReason ? ` - الغرض: ${m.leaveReason}` : '';
+          return `${i + onLeave.length + 1}. ${m.employeeName} (${m.departmentName ?? '—'}) · مأمورية معتمدة${reqPart}${titlePart}${reasonPart}`;
+        }),
       ].join('\n')
 }
 ━━━━━━━━━━━━━━━━━━━━
@@ -559,7 +579,16 @@ ${
                               </td>
                               <td className="p-2 text-slate-800 font-bold">
                                 {isMission ? (
-                                  <span>{item.shiftName ?? 'مأمورية معتمدة بالمنظومة'}</span>
+                                  <div className="flex flex-col gap-0.5">
+                                    {item.leaveTitle || item.leaveName ? (
+                                      <span className="text-slate-900 font-black text-[11px]">📍 {item.leaveTitle ?? item.leaveName}</span>
+                                    ) : null}
+                                    {item.leaveReason ? (
+                                      <span className="text-slate-600 font-medium text-[10.5px]">💬 الغرض: {item.leaveReason}</span>
+                                    ) : (
+                                      <span className="text-slate-500 font-normal text-[10.5px]">مأمورية رسمية معتمدة</span>
+                                    )}
+                                  </div>
                                 ) : (
                                   <div className="flex flex-col gap-0.5">
                                     {item.leaveTitle && item.leaveTitle !== item.leaveName && item.leaveTitle !== item.leaveReason ? (

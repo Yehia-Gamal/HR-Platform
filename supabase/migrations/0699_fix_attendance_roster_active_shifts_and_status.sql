@@ -292,14 +292,15 @@ begin
         when (coalesce(ve.is_attendance_exempt, false) or public.is_employee_attendance_exempt(ve.id) or public.is_employee_executive(ve.id))
              and d.first_check_in is null
           then 'exempt'
+        -- المأموريات والإجازات المعتمدة تعلو على نقص بصمة الانصراف
+        when am.employee_id is not null then 'on_mission'
+        when (al.employee_id is not null or adr.request_type in ('leave', 'compensation', 'annual_leave', 'casual_leave', 'sick_leave', 'unpaid_leave')) then 'on_leave'
         -- Missing checkout applies only if day has passed without checkout, OR if shift end has elapsed on finalized records
         when d.id is not null and d.status in ('present','late')
              and d.first_check_in is not null and d.last_check_out is null
              and (not v_is_today or d.is_finalized)
           then 'missing_checkout'
-        when am.employee_id is not null then 'on_mission'
         when d.id is not null and d.status in ('present','late') then d.status
-        when (al.employee_id is not null or adr.request_type in ('leave', 'compensation', 'annual_leave', 'casual_leave', 'sick_leave', 'unpaid_leave')) then 'on_leave'
         when d.id is not null then d.status
         when public.is_official_holiday(v_work_date, ve.id) then 'holiday'
         when extract(isodow from v_work_date) = 5 then 'weekend'
@@ -343,8 +344,8 @@ begin
         when 'unexcused_absent'   then b.derived_status = 'absent'
                                      and b.employee_id not in (select employee_id from excused_absent)
         when 'incomplete'         then b.derived_status in ('partial','pending')
-        when 'on_leave'           then b.derived_status = 'on_leave'
-        when 'on_mission'         then b.derived_status = 'on_mission'
+        when 'on_leave'           then (b.derived_status = 'on_leave' or b.has_approved_leave = true)
+        when 'on_mission'         then (b.derived_status = 'on_mission' or b.has_mission = true)
         when 'missing_checkout'   then (b.first_check_in is not null and b.last_check_out is null and (not v_is_today or b.is_finalized))
         when 'pending_review'     then b.requires_review = true
         when 'location_requests'  then b.location_requested_at is not null
