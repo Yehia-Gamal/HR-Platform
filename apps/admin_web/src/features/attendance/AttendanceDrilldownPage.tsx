@@ -42,6 +42,7 @@ import { isPhoneLikeCode } from '../../ui/phoneDisplay';
 import { useOrganizationLookups } from '../employees/useOrganizationLookups';
 import { useHrPrefix } from '../workspaces/access';
 import { exportAttendancePdf, useAttendanceRosterPage } from './useAttendanceDashboard';
+import { ExecutiveAttendanceModal } from './ExecutiveAttendanceModal';
 
 const CATEGORIES: { key: AttendanceRosterCategory; label: string; icon: typeof Users }[] = [
   { key: 'scheduled', label: 'المجدولون', icon: Users },
@@ -118,6 +119,7 @@ export function AttendanceDrilldownPage() {
   const [searchInput, setSearchInput] = useState(q);
   const [isPrinting, setIsPrinting] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [showExecutiveModal, setShowExecutiveModal] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const isToday = dateIso === cairoTodayIso();
@@ -326,6 +328,17 @@ export function AttendanceDrilldownPage() {
 
         {/* الجانب الأيسر: أزرار التصدير والإجراءات */}
         <div className="flex flex-wrap items-center gap-2 shrink-0">
+          {/* زر تقرير الصورة للمدير التنفيذي */}
+          <button
+            type="button"
+            className="btn-primary btn-sm h-9 px-3.5 text-xs font-black rounded-xl inline-flex items-center gap-1.5 shadow-sm bg-gradient-to-r from-sky-600 to-indigo-600 text-white hover:from-sky-500 hover:to-indigo-500 transition-all ring-1 ring-sky-400/30"
+            onClick={() => setShowExecutiveModal(true)}
+            title="إعداد تقرير صورة تنفيذي شامل للمدير التنفيذي (من جاء ومن تغيب ومن في إجازة)"
+          >
+            <Camera className="size-4" />
+            <span>صورة للمدير التنفيذي</span>
+          </button>
+
           <button
             type="button"
             className="btn-secondary btn-sm h-9 px-3 text-xs font-bold rounded-xl border border-[var(--border)] inline-flex items-center gap-1.5 hover:border-[var(--primary)] transition-all"
@@ -393,107 +406,27 @@ export function AttendanceDrilldownPage() {
 
       {/* ─── بطاقة المحتوى والجدول ─── */}
       <div id="attendance-roster-view" className="card space-y-4 p-3.5 sm:p-4.5 bg-[var(--surface)]">
-        {/* ─── شريط الفلاتر والبحث المنضبط ─── */}
-        <div className="space-y-2.5">
-          {/* حقل البحث الرئيسي */}
-          <div className="relative w-full">
-            <Search className="pointer-events-none absolute end-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
-            <input
-              type="search"
-              className="input !h-10.5 w-full ps-9 pe-10 text-xs font-bold rounded-xl"
-              placeholder="ابحث بالاسم أو الرقم الوظيفي أو الإدارة..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              aria-label="بحث في القائمة"
-            />
-            {searchInput ? (
-              <button
-                type="button"
-                onClick={() => setSearchInput('')}
-                className="absolute start-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)] p-1 rounded-md transition-colors"
-                aria-label="مسح نص البحث"
-              >
-                <X className="size-3.5" aria-hidden="true" />
-              </button>
-            ) : null}
-          </div>
-
-          {/* صف خيارات التصفية والترتيب */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            {/* اختيار الفرع */}
-            <div className="min-w-[160px] flex-1 sm:flex-none">
-              <select
-                className="input !h-9.5 !py-1 !ps-2.5 !pe-7 text-xs font-bold w-full rounded-xl bg-[var(--surface)] text-[var(--text)]"
-                value={branch}
-                onChange={(e) => updateParams({ branch: e.target.value })}
-                aria-label="تصفية حسب الفرع"
-              >
-                <option value="">كل الفروع</option>
-                {(lookups.data?.branches ?? []).map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* اختيار الإدارة */}
-            <div className="min-w-[170px] flex-1 sm:flex-none">
-              <select
-                className="input !h-9.5 !py-1 !ps-2.5 !pe-7 text-xs font-bold w-full rounded-xl bg-[var(--surface)] text-[var(--text)]"
-                value={dept}
-                onChange={(e) => updateParams({ dept: e.target.value })}
-                aria-label="تصفية حسب الإدارة"
-              >
-                <option value="">كل الإدارات</option>
-                {(lookups.data?.departments ?? []).map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* الترتيب */}
-            <div className="min-w-[130px] flex-1 sm:flex-none">
-              <select
-                className="input !h-9.5 !py-1 !ps-2.5 !pe-7 text-xs font-bold w-full rounded-xl bg-[var(--surface)] text-[var(--text)]"
-                value={sort}
-                onChange={(e) => updateParams({ sort: e.target.value })}
-                aria-label="ترتيب القائمة"
-              >
-                {SORT_OPTIONS.map((s) => (
-                  <option key={s.key} value={s.key}>
-                    ترتيب: {s.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* زر اتجاه الترتيب */}
+        {/* ─── شريط البحث النظيف والمنضبط ─── */}
+        <div className="relative w-full">
+          <Search className="pointer-events-none absolute end-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
+          <input
+            type="search"
+            className="input !h-10.5 w-full ps-9 pe-10 text-xs font-bold rounded-xl bg-[var(--surface-muted)]/40 focus:bg-[var(--surface)] border border-[var(--border)]"
+            placeholder="ابحث بالاسم أو الرقم الوظيفي..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            aria-label="بحث في القائمة"
+          />
+          {searchInput ? (
             <button
               type="button"
-              className="btn-secondary !h-9.5 px-3.5 text-xs font-bold shrink-0 rounded-xl inline-flex items-center gap-1.5 border border-[var(--border)]"
-              onClick={() => updateParams({ dir: direction === 'asc' ? 'desc' : 'asc' })}
-              aria-label={`ترتيب ${direction === 'asc' ? 'تنازلي' : 'تصاعدي'}`}
+              onClick={() => setSearchInput('')}
+              className="absolute start-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)] p-1 rounded-md transition-colors"
+              aria-label="مسح نص البحث"
             >
-              <ArrowUpDown className="size-3.5" aria-hidden="true" />
-              {direction === 'asc' ? 'تصاعدي ↑' : 'تنازلي ↓'}
+              <X className="size-3.5" aria-hidden="true" />
             </button>
-
-            {/* زر إلغاء التصفية */}
-            {isFiltered ? (
-              <button
-                type="button"
-                onClick={handleClearFilters}
-                className="btn-ghost btn-sm !h-9.5 px-3 text-xs text-[var(--danger)] hover:bg-[var(--danger)]/10 shrink-0 inline-flex items-center gap-1.5 rounded-xl transition-colors font-bold"
-                aria-label="إعادة ضبط الفلاتر"
-              >
-                <X className="size-3.5" aria-hidden="true" />
-                إلغاء التصفية
-              </button>
-            ) : null}
-          </div>
+          ) : null}
         </div>
 
         {/* ─── عرض البيانات أو الحالات البديلة ─── */}
@@ -548,6 +481,9 @@ export function AttendanceDrilldownPage() {
           />
         ) : null}
       </div>
+
+      {/* ─── نافذة تقرير الصورة للمدير التنفيذي ─── */}
+      {showExecutiveModal && <ExecutiveAttendanceModal dateIso={dateIso} onClose={() => setShowExecutiveModal(false)} />}
     </div>
   );
 }
@@ -571,9 +507,7 @@ function Row({ item, focused, isToday }: { item: AttendanceRosterItem; focused: 
               {item.employeeName}
             </Link>
             <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-[11px] text-[var(--text-muted)] font-mono">
-                {item.employeeCode ? <bdi dir="ltr">{item.employeeCode}</bdi> : '—'}
-              </span>
+              <span className="text-[11px] text-[var(--text-muted)] font-mono">{item.employeeCode ? <bdi dir="ltr">{item.employeeCode}</bdi> : '—'}</span>
               {item.jobTitle ? (
                 <span className="text-[10px] text-[var(--text-secondary)] truncate max-w-[120px]" title={item.jobTitle}>
                   · {item.jobTitle}
@@ -679,10 +613,7 @@ function Row({ item, focused, isToday }: { item: AttendanceRosterItem; focused: 
         {hasExcuse ? (
           <div className="flex flex-wrap gap-1">
             {item.hasApprovedLeave ? (
-              <span
-                className="status-pill status-pill--ok text-[11px] font-bold"
-                title={item.leaveName ? `إجازة: ${item.leaveName}` : 'إجازة معتمدة'}
-              >
+              <span className="status-pill status-pill--ok text-[11px] font-bold" title={item.leaveName ? `إجازة: ${item.leaveName}` : 'إجازة معتمدة'}>
                 <CheckCircle2 className="size-3" aria-hidden="true" />
                 {item.leaveName ?? 'إجازة معتمدة'}
               </span>
@@ -707,19 +638,11 @@ function Row({ item, focused, isToday }: { item: AttendanceRosterItem; focused: 
             >
               <Clock3 className="size-3" aria-hidden="true" />
               <span>
-                {item.pendingRequestType === 'leave'
-                  ? 'طلب إجازة معلّق'
-                  : item.pendingRequestType === 'mission'
-                    ? 'طلب مأمورية معلّق'
-                    : 'طلب معلّق'}{' '}
+                {item.pendingRequestType === 'leave' ? 'طلب إجازة معلّق' : item.pendingRequestType === 'mission' ? 'طلب مأمورية معلّق' : 'طلب معلّق'}{' '}
                 {item.pendingRequestNumber ? `(#${item.pendingRequestNumber})` : ''}
               </span>
             </span>
-            {item.pendingRequestTitle ? (
-              <span className="text-[10px] text-[var(--text-muted)] truncate max-w-[180px]">
-                {item.pendingRequestTitle}
-              </span>
-            ) : null}
+            {item.pendingRequestTitle ? <span className="text-[10px] text-[var(--text-muted)] truncate max-w-[180px]">{item.pendingRequestTitle}</span> : null}
           </div>
         ) : item.reviewReason ? (
           <span className="text-amber-500 text-[11px] font-bold flex items-center gap-1" title={item.reviewReason}>
