@@ -603,6 +603,52 @@ final myLeaveBalancesProvider = FutureProvider<List<MobileLeaveBalance>>((
   return _asList(data).map(MobileLeaveBalance.fromJson).toList(growable: false);
 });
 
+final myPermitBalanceProvider = FutureProvider<MobilePermitBalance>((ref) async {
+  try {
+    final data = await rpcWithTimeout(
+      ref.watch(supabaseProvider).rpc<dynamic>('get_my_permit_balance'),
+    );
+    if (data is Map) {
+      return MobilePermitBalance.fromJson(Map<String, dynamic>.from(data));
+    }
+  } catch (_) {
+    // خطة احتياطية عند انقطاع الاتصال أو تعذر الاستجابة
+  }
+
+  // حساب احتياطي من الطلبات المحلية المسجلة
+  final requests = ref.watch(mobileRequestsProvider).asData?.value ?? const [];
+  final now = DateTime.now();
+  int approved = 0;
+  int pending = 0;
+  for (final r in requests) {
+    if (r.type == 'late_permit' || r.type == 'early_permit' || r.type == 'permit') {
+      final dt = r.createdAt;
+      if (dt.year == now.year && dt.month == now.month) {
+        if (r.status == 'approved') {
+          approved++;
+        } else if (r.status == 'pending') {
+          pending++;
+        }
+      }
+    }
+  }
+  final total = approved + pending;
+  final rem = (4 - total).clamp(0, 4);
+  return MobilePermitBalance(
+    month: '${now.year}-${now.month.toString().padLeft(2, '0')}-01',
+    maxPermits: 4,
+    maxHours: 8,
+    usedApproved: approved,
+    usedPending: pending,
+    totalUsed: total,
+    remainingPermits: rem,
+    remainingHours: rem * 2,
+    minutesPerPermit: 120,
+    hasRemaining: rem > 0,
+    items: const [],
+  );
+});
+
 final myOffboardingPortalProvider = FutureProvider<MobileOffboardingPortal>((
   ref,
 ) async {

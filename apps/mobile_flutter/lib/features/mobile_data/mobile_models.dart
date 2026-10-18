@@ -2104,6 +2104,83 @@ class MobileLeaveBalance {
   final DateTime? expiresAt;
 }
 
+class MobilePermitItem {
+  const MobilePermitItem({
+    required this.id,
+    required this.date,
+    required this.kind,
+    required this.kindLabel,
+    required this.minutes,
+    required this.status,
+    required this.title,
+  });
+
+  factory MobilePermitItem.fromJson(Map<String, dynamic> json) =>
+      MobilePermitItem(
+        id: json['id'] as String? ?? '',
+        date: json['date'] as String? ?? '',
+        kind: json['kind'] as String? ?? '',
+        kindLabel: json['kind_label'] as String? ?? 'إذن',
+        minutes: (json['minutes'] as num?)?.toInt() ?? 120,
+        status: json['status'] as String? ?? 'pending',
+        title: json['title'] as String? ?? '',
+      );
+
+  final String id;
+  final String date;
+  final String kind;
+  final String kindLabel;
+  final int minutes;
+  final String status;
+  final String title;
+}
+
+/// رصيد أذونات الموظف الشهري (الحد الأقصى 4 أذونات = 8 ساعات شهريًا).
+class MobilePermitBalance {
+  const MobilePermitBalance({
+    required this.month,
+    required this.maxPermits,
+    required this.maxHours,
+    required this.usedApproved,
+    required this.usedPending,
+    required this.totalUsed,
+    required this.remainingPermits,
+    required this.remainingHours,
+    required this.minutesPerPermit,
+    required this.hasRemaining,
+    required this.items,
+  });
+
+  factory MobilePermitBalance.fromJson(Map<String, dynamic> json) =>
+      MobilePermitBalance(
+        month: json['month'] as String? ?? '',
+        maxPermits: (json['max_permits'] as num?)?.toInt() ?? 4,
+        maxHours: (json['max_hours'] as num?)?.toInt() ?? 8,
+        usedApproved: (json['used_approved'] as num?)?.toInt() ?? 0,
+        usedPending: (json['used_pending'] as num?)?.toInt() ?? 0,
+        totalUsed: (json['total_used'] as num?)?.toInt() ?? 0,
+        remainingPermits: (json['remaining_permits'] as num?)?.toInt() ?? 4,
+        remainingHours: (json['remaining_hours'] as num?)?.toInt() ?? 8,
+        minutesPerPermit: (json['minutes_per_permit'] as num?)?.toInt() ?? 120,
+        hasRemaining: (json['has_remaining'] as bool?) ?? true,
+        items: (json['items'] as List<dynamic>? ?? const [])
+            .map((e) => MobilePermitItem.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList(growable: false),
+      );
+
+  final String month;
+  final int maxPermits;
+  final int maxHours;
+  final int usedApproved;
+  final int usedPending;
+  final int totalUsed;
+  final int remainingPermits;
+  final int remainingHours;
+  final int minutesPerPermit;
+  final bool hasRemaining;
+  final List<MobilePermitItem> items;
+}
+
 /// تكليف عمل (مأمورية/قافلة/فاندي) — وحدة work_assignments.
 /// لا يخصم من رصيد الإجازات ولا يُحتسب غيابًا.
 class MobileWorkAssignment {

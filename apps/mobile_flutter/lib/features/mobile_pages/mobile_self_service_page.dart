@@ -30,6 +30,11 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final balances = ref.watch(myLeaveBalancesProvider);
+    final permitBalanceAsync = ref.watch(myPermitBalanceProvider);
+    final permitBalance = permitBalanceAsync.asData?.value;
+    final permitSubtitle = permitBalance != null
+        ? 'متبقي ${permitBalance.remainingPermits} من 4 (${permitBalance.remainingHours} س)'
+        : 'حضور أو انصراف (ساعتين)';
     final requests = ref.watch(mobileRequestsProvider);
     final access = ref.watch(accessContextProvider).value;
     final isClinicStaff = access?.isClinicStaff == true;
@@ -118,7 +123,7 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
                     child: _ServiceCard(
                       icon: Icons.access_time_rounded,
                       title: 'طلب إذن',
-                      subtitle: 'حضور أو انصراف (ساعتين)',
+                      subtitle: permitSubtitle,
                       color: const Color(0xFFBF6A22),
                       onTap: () => _submitRequest(context, ref, 'permit'),
                     ),
@@ -194,7 +199,7 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
                     child: _ServiceCard(
                       icon: Icons.access_time_rounded,
                       title: 'طلب إذن',
-                      subtitle: 'حضور أو انصراف (ساعتين)',
+                      subtitle: permitSubtitle,
                       color: const Color(0xFFBF6A22),
                       onTap: () => _submitRequest(context, ref, 'permit'),
                     ),
@@ -472,6 +477,7 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
           );
       ref.invalidate(mobileRequestsProvider);
       ref.invalidate(myLeaveBalancesProvider);
+      ref.invalidate(myPermitBalanceProvider);
       ref.invalidate(employeeHomeProvider);
       ref.invalidate(attendanceStateProvider);
       if (context.mounted) {
@@ -1223,35 +1229,7 @@ class NewRequestSheetState extends State<NewRequestSheet> {
               ),
             ),
             const SizedBox(height: 12),
-            // معلومات الإذن — ساعتين ثابتة و 4 أذونات شهريًا
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.primaryContainer.withValues(alpha: .25),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    size: 20,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(width: 10),
-                  const Expanded(
-                    child: Text(
-                      'كل إذن ساعتين كاملة · 4 أذونات شهريًا',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            const _PermitAndLeaveBalancesSection(),
           ],
 
           const SizedBox(height: 12),
@@ -1443,6 +1421,435 @@ class _ForgotPunchSheetState extends State<_ForgotPunchSheet> {
             },
             child: const Text('إرسال طلب التصحيح'),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── بطاقة رصيد الأذونات الشهرية وأرصدة الإجازات المتاحة ──
+
+class _PermitAndLeaveBalancesSection extends StatelessWidget {
+  const _PermitAndLeaveBalancesSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer(
+      builder: (context, ref, _) {
+        final permitBalanceAsync = ref.watch(myPermitBalanceProvider);
+        final leaveBalancesAsync = ref.watch(myLeaveBalancesProvider);
+        final theme = Theme.of(context);
+        final scheme = theme.colorScheme;
+
+        final permitBalance = permitBalanceAsync.asData?.value;
+        final leaveBalances =
+            leaveBalancesAsync.asData?.value ?? const <MobileLeaveBalance>[];
+
+        final remPermits = permitBalance?.remainingPermits ?? 4;
+        final maxPermits = permitBalance?.maxPermits ?? 4;
+        final usedApproved = permitBalance?.usedApproved ?? 0;
+        final usedPending = permitBalance?.usedPending ?? 0;
+        final remHours = permitBalance?.remainingHours ?? (remPermits * 2);
+        final isPermitsExhausted = remPermits <= 0;
+
+        // Leave balances
+        double annualAvail = 0;
+        double casualAvail = 0;
+        double weeklyCompAvail = 0;
+        for (final b in leaveBalances) {
+          if (b.code == 'annual') annualAvail = b.availableUnits;
+          if (b.code == 'casual') casualAvail = b.availableUnits;
+          if (b.code == 'weekly_rest_comp') weeklyCompAvail = b.availableUnits;
+        }
+
+        final Color statusColor;
+        final Color statusBg;
+        final IconData statusIcon;
+        final String statusTitle;
+        if (isPermitsExhausted) {
+          statusColor = const Color(0xFFDC2626);
+          statusBg = const Color(0xFFFEF2F2);
+          statusIcon = Icons.cancel_outlined;
+          statusTitle = 'استُهلكت جميع أذونات هذا الشهر (0 من $maxPermits)';
+        } else if (remPermits == 1) {
+          statusColor = const Color(0xFFD97706);
+          statusBg = const Color(0xFFFFFBEB);
+          statusIcon = Icons.warning_amber_rounded;
+          statusTitle = 'متبقي إذن واحد فقط لهذا الشهر ($remHours ساعات)';
+        } else {
+          statusColor = const Color(0xFF0D9488);
+          statusBg = const Color(0xFFF0FDFA);
+          statusIcon = Icons.check_circle_outline;
+          statusTitle =
+              'متبقي $remPermits أذونات متاحة ($remHours ساعات متبقية)';
+        }
+
+        return Container(
+          decoration: BoxDecoration(
+            color: scheme.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isPermitsExhausted
+                  ? const Color(0xFFFCA5A5)
+                  : scheme.outlineVariant.withValues(alpha: 0.6),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ── شريط حالة رصيد الأذونات ──
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: statusBg,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(13),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(statusIcon, size: 20, color: statusColor),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            statusTitle,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: statusColor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    // مربعات الأذونات الأربعة (حصص الشهر)
+                    Row(
+                      children: List.generate(maxPermits, (index) {
+                        final isApproved = index < usedApproved;
+                        final isPending = index >= usedApproved &&
+                            index < (usedApproved + usedPending);
+                        final isAvailable =
+                            index >= (usedApproved + usedPending);
+
+                        final Color dotBorder;
+                        final Color dotBg;
+                        final IconData dotIcon;
+                        final Color iconColor;
+                        if (isApproved) {
+                          dotBorder = const Color(0xFF059669);
+                          dotBg = const Color(0xFFD1FAE5);
+                          dotIcon = Icons.check;
+                          iconColor = const Color(0xFF059669);
+                        } else if (isPending) {
+                          dotBorder = const Color(0xFFD97706);
+                          dotBg = const Color(0xFFFEF3C7);
+                          dotIcon = Icons.schedule;
+                          iconColor = const Color(0xFFD97706);
+                        } else {
+                          dotBorder = const Color(0xFFCBD5E1);
+                          dotBg = Colors.white;
+                          dotIcon = Icons.radio_button_unchecked;
+                          iconColor = const Color(0xFF94A3B8);
+                        }
+
+                        return Expanded(
+                          child: Container(
+                            margin: EdgeInsets.only(
+                              left: index == maxPermits - 1 ? 0 : 6,
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            decoration: BoxDecoration(
+                              color: dotBg,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: dotBorder, width: 1.2),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(dotIcon, size: 13, color: iconColor),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'إذن ${index + 1}',
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: isAvailable
+                                        ? const Color(0xFF64748B)
+                                        : iconColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'الحد الشهري: 4 أذونات (ساعتان لكل إذن = 8 ساعات شهريًا)',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: scheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    if (isPermitsExhausted) ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEE2E2),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          '⚠️ تنبيه: تم استهلاك حصتك الشهرية من الأذونات، يُنصح بالتقديم على إجازة عارضة أو اعتيادية تجنبًا لاقتطاع الراتب.',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFFB91C1C),
+                          ),
+                        ),
+                      ),
+                    ],
+                    if (permitBalance != null &&
+                        permitBalance.items.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Theme(
+                        data: theme.copyWith(dividerColor: Colors.transparent),
+                        child: ExpansionTile(
+                          tilePadding: EdgeInsets.zero,
+                          childrenPadding: const EdgeInsets.only(bottom: 6),
+                          title: Text(
+                            'عرض أذونات الشهر المسجلة (${permitBalance.items.length})',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: scheme.primary,
+                            ),
+                          ),
+                          children: permitBalance.items.map((item) {
+                            final isAppr = item.status == 'approved';
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 2),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    isAppr ? Icons.check_circle : Icons.schedule,
+                                    size: 14,
+                                    color: isAppr
+                                        ? const Color(0xFF059669)
+                                        : const Color(0xFFD97706),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      '${item.date} · ${item.kindLabel} (${item.minutes} دقيقة)',
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isAppr
+                                          ? const Color(0xFFD1FAE5)
+                                          : const Color(0xFFFEF3C7),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      isAppr ? 'معتمد' : 'قيد المراجعة',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                        color: isAppr
+                                            ? const Color(0xFF059669)
+                                            : const Color(0xFFD97706),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
+              const Divider(height: 1, thickness: 1),
+
+              // ── شريط أرصدة الإجازات المتاحة ──
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.beach_access_rounded,
+                          size: 16,
+                          color: scheme.primary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'أرصدة إجازاتك المتاحة حاليًا:',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: scheme.onSurface,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: [
+                        _LeaveChip(
+                          label: 'سنوية',
+                          days: annualAvail,
+                          color: const Color(0xFF2563EB),
+                          bg: const Color(0xFFEFF6FF),
+                        ),
+                        _LeaveChip(
+                          label: 'عارضة',
+                          days: casualAvail,
+                          extraHint: 'اعتماد فوري',
+                          color: const Color(0xFFD97706),
+                          bg: const Color(0xFFFFFBEB),
+                        ),
+                        if (weeklyCompAvail > 0)
+                          _LeaveChip(
+                            label: 'بدل راحة أسبوعية',
+                            days: weeklyCompAvail,
+                            color: const Color(0xFF0D9488),
+                            bg: const Color(0xFFF0FDFA),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: () {
+                        Navigator.pop(context);
+                        LeavePlannerSheet.show(context);
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.calendar_month_outlined,
+                              size: 14,
+                              color: Color(0xFF0284C7),
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              'تحتاج ليوم كامل؟ افتح مخطط الإجازات الذكي 🗓️',
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                                color: scheme.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _LeaveChip extends StatelessWidget {
+  const _LeaveChip({
+    required this.label,
+    required this.days,
+    this.extraHint,
+    required this.color,
+    required this.bg,
+  });
+
+  final String label;
+  final double days;
+  final String? extraHint;
+  final Color color;
+  final Color bg;
+
+  @override
+  Widget build(BuildContext context) {
+    final daysStr = days % 1 == 0 ? days.toInt().toString() : days.toString();
+    final unit = days == 1
+        ? 'يوم'
+        : (days >= 3 && days <= 10 && days % 1 == 0 ? 'أيام' : 'يوم');
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$label: ',
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+          Text(
+            '$daysStr $unit',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              color: color,
+            ),
+          ),
+          if (extraHint != null) ...[
+            const SizedBox(width: 4),
+            Text(
+              '($extraHint)',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: color.withValues(alpha: 0.8),
+              ),
+            ),
+          ],
         ],
       ),
     );
