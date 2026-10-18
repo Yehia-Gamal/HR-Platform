@@ -5,10 +5,13 @@ import {
   CalendarClock,
   CalendarX2,
   Camera,
+  Check,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Clock3,
+  Copy,
+  Download,
   Loader2,
   MapPin,
   Plane,
@@ -133,31 +136,50 @@ export function AttendanceDrilldownPage() {
     }
   };
 
-  const handleCaptureScreenshot = async () => {
+  const handleCaptureScreenshot = async (copyToClipboard = false) => {
     const element = document.getElementById('attendance-roster-view');
     if (!element) return;
     setIsCapturing(true);
-    setToastMessage('جاري التقاط الشاشة بجودة فائقة...');
+    setToastMessage(copyToClipboard ? 'جاري تجهيز الصورة للنسخ للحافظة...' : 'جاري التقاط الشاشة بجودة فائقة...');
+    const headerEl = document.getElementById('capture-executive-header');
+    if (headerEl) headerEl.classList.remove('hidden');
+
     try {
       const h2cModule = await import('html2canvas');
       const html2canvas = typeof h2cModule.default === 'function' ? h2cModule.default : (h2cModule as any);
       const canvas = await html2canvas(element, {
-        scale: 2,
+        scale: 2.2,
         useCORS: true,
         logging: false,
         backgroundColor: '#0b1329',
         windowWidth: element.scrollWidth,
+        ignoreElements: (el: Element) => el.getAttribute('data-hide-capture') === 'true',
       });
-      canvas.toBlob((blob: Blob | null) => {
+
+      canvas.toBlob(async (blob: Blob | null) => {
         if (!blob) {
           setToastMessage('تعذر التقاط لقطة الشاشة');
           setTimeout(() => setToastMessage(null), 3000);
           return;
         }
+
+        if (copyToClipboard) {
+          try {
+            if (navigator.clipboard && 'write' in navigator.clipboard && typeof ClipboardItem !== 'undefined') {
+              await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+              setToastMessage('تم نسخ صورة الكشف للحافظة! يمكنك الآن لصقها (Ctrl + V) في واتساب مباشرة ✅');
+              setTimeout(() => setToastMessage(null), 4500);
+              return;
+            }
+          } catch (clipErr) {
+            console.warn('Clipboard write failed, falling back to download', clipErr);
+          }
+        }
+
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `كشف_حضور_${category}_${dateIso}.png`;
+        a.download = `كشف_${currentCategory.label}_${dateIso}.png`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -170,6 +192,7 @@ export function AttendanceDrilldownPage() {
       setToastMessage('تعذر التقاط لقطة الشاشة.');
       setTimeout(() => setToastMessage(null), 3000);
     } finally {
+      if (headerEl) headerEl.classList.add('hidden');
       setIsCapturing(false);
     }
   };
@@ -339,7 +362,7 @@ export function AttendanceDrilldownPage() {
 
         {/* الجانب الأيسر: أزرار التصدير والإجراءات */}
         <div className="flex flex-wrap items-center gap-2 shrink-0">
-          {/* زر تقرير الصورة للمدير التنفيذي */}
+          {/* 1. زر تقرير الصورة للمدير التنفيذي */}
           <button
             type="button"
             className="btn-primary btn-sm h-9 px-3.5 text-xs font-black rounded-xl inline-flex items-center gap-1.5 shadow-sm bg-gradient-to-r from-sky-600 to-indigo-600 text-white hover:from-sky-500 hover:to-indigo-500 transition-all ring-1 ring-sky-400/30"
@@ -347,21 +370,36 @@ export function AttendanceDrilldownPage() {
             title="إعداد تقرير صورة تنفيذي شامل للمدير التنفيذي (من جاء ومن تغيب ومن في إجازة)"
           >
             <Camera className="size-4" />
-            <span>صورة للمدير التنفيذي</span>
+            <span>تقرير تنفيذي مصوّر</span>
           </button>
 
+          {/* 2. زر نسخ صورة لواتساب مباشرة */}
+          <button
+            type="button"
+            className="btn-secondary btn-sm h-9 px-3 text-xs font-bold rounded-xl border border-[var(--border)] inline-flex items-center gap-1.5 hover:border-emerald-500 hover:text-emerald-400 transition-all"
+            onClick={() => void handleCaptureScreenshot(true)}
+            disabled={isCapturing}
+            aria-busy={isCapturing}
+            title="التقاط صورة مظلمة أنيقة للكشف الحالي ونسخها للحافظة فوراً للصقها (Ctrl+V) في واتساب"
+          >
+            {isCapturing ? <Loader2 className="size-4 animate-spin text-emerald-400" /> : <Copy className="size-4 text-emerald-400" />}
+            <span>نسخ لواتساب</span>
+          </button>
+
+          {/* 3. زر حفظ لقطة شاشة كملف PNG */}
           <button
             type="button"
             className="btn-secondary btn-sm h-9 px-3 text-xs font-bold rounded-xl border border-[var(--border)] inline-flex items-center gap-1.5 hover:border-[var(--primary)] transition-all"
-            onClick={() => void handleCaptureScreenshot()}
+            onClick={() => void handleCaptureScreenshot(false)}
             disabled={isCapturing}
             aria-busy={isCapturing}
             title="حفظ لقطة شاشة من الكشف كملف صورة PNG عالي الدقة"
           >
-            {isCapturing ? <Loader2 className="size-4 animate-spin text-[var(--primary)]" /> : <Camera className="size-4 text-[var(--primary)]" />}
-            لقطة شاشة
+            {isCapturing ? <Loader2 className="size-4 animate-spin text-[var(--primary)]" /> : <Download className="size-4 text-[var(--primary)]" />}
+            <span>تحميل PNG</span>
           </button>
 
+          {/* 4. زر تصدير PDF */}
           <button
             type="button"
             className="btn-secondary btn-sm h-9 px-3 text-xs font-bold rounded-xl border border-[var(--border)] inline-flex items-center gap-1.5 hover:border-emerald-500 transition-all"
@@ -374,6 +412,7 @@ export function AttendanceDrilldownPage() {
             تصدير PDF
           </button>
 
+          {/* 5. زر تحديث */}
           <button
             type="button"
             className="btn-secondary btn-sm h-9 px-3 text-xs font-bold rounded-xl border border-[var(--border)] inline-flex items-center gap-1.5"
@@ -415,29 +454,48 @@ export function AttendanceDrilldownPage() {
         })}
       </nav>
 
-      {/* ─── بطاقة المحتوى والجدول ─── */}
+      {/* ─── شريط البحث النظيف والمنضبط (خارج منطقة لقطة الشاشة) ─── */}
+      <div className="relative w-full">
+        <Search className="pointer-events-none absolute end-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
+        <input
+          type="search"
+          className="input !h-10.5 w-full ps-9 pe-10 text-xs font-bold rounded-xl bg-[var(--surface-muted)]/40 focus:bg-[var(--surface)] border border-[var(--border)]"
+          placeholder="ابحث بالاسم أو الرقم الوظيفي..."
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          aria-label="بحث في القائمة"
+        />
+        {searchInput ? (
+          <button
+            type="button"
+            onClick={() => setSearchInput('')}
+            className="absolute start-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)] p-1 rounded-md transition-colors"
+            aria-label="مسح نص البحث"
+          >
+            <X className="size-3.5" aria-hidden="true" />
+          </button>
+        ) : null}
+      </div>
+
+      {/* ─── بطاقة المحتوى والجدول المخصصة للالتقاط ─── */}
       <div id="attendance-roster-view" className="card space-y-4 p-3.5 sm:p-4.5 bg-[var(--surface)]">
-        {/* ─── شريط البحث النظيف والمنضبط ─── */}
-        <div className="relative w-full">
-          <Search className="pointer-events-none absolute end-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
-          <input
-            type="search"
-            className="input !h-10.5 w-full ps-9 pe-10 text-xs font-bold rounded-xl bg-[var(--surface-muted)]/40 focus:bg-[var(--surface)] border border-[var(--border)]"
-            placeholder="ابحث بالاسم أو الرقم الوظيفي..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            aria-label="بحث في القائمة"
-          />
-          {searchInput ? (
-            <button
-              type="button"
-              onClick={() => setSearchInput('')}
-              className="absolute start-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)] p-1 rounded-md transition-colors"
-              aria-label="مسح نص البحث"
-            >
-              <X className="size-3.5" aria-hidden="true" />
-            </button>
-          ) : null}
+        {/* ─── ترويسة تنفيذية رسمية تظهر أثناء التقاط الصورة ─── */}
+        <div id="capture-executive-header" className="hidden p-4 rounded-xl bg-[#080e1f] border border-slate-800 text-white flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <div className="size-11 rounded-xl bg-sky-600 text-white flex items-center justify-center font-black text-lg shadow-md">
+              أحلى
+            </div>
+            <div>
+              <div className="text-base font-black tracking-tight text-white">جمعية خواطر أحلى شباب</div>
+              <div className="text-[11px] text-slate-400 font-bold">منظومة الإدارة والمتابعة المؤسسية · كشف الحضور والانصراف الرسمي</div>
+            </div>
+          </div>
+          <div className="text-start bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-2">
+            <div className="text-xs font-black text-sky-400">كشف: {currentCategory.label} ({total} موظف)</div>
+            <div className="text-[11px] text-slate-300 font-medium mt-0.5">
+              {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'full' }).format(new Date(`${dateIso}T00:00:00`))}
+            </div>
+          </div>
         </div>
 
         {/* ─── عرض البيانات أو الحالات البديلة ─── */}
@@ -468,7 +526,7 @@ export function AttendanceDrilldownPage() {
                   <th>الحضور / الانصراف</th>
                   <th>الموقع</th>
                   <th>العذر والبيان</th>
-                  <th className="text-end" aria-label="فتح الملف"></th>
+                  <th className="text-end" aria-label="فتح الملف" data-hide-capture="true"></th>
                 </tr>
               </thead>
               <tbody>
@@ -541,6 +599,32 @@ function Row({ item, focused, isToday }: { item: AttendanceRosterItem; focused: 
             <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
             متأخر (في العمل)
           </span>
+        ) : (item.status === 'on_leave' || item.hasApprovedLeave || item.pendingRequestType === 'leave') && item.hasPendingRequest ? (
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black"
+            style={{
+              backgroundColor: 'rgba(245, 158, 11, 0.12)',
+              color: '#f59e0b',
+              border: '1px solid rgba(245, 158, 11, 0.3)',
+            }}
+            title="طلب إجازة قيد المراجعة والاعتماد"
+          >
+            <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
+            إجازة (قيد المراجعة)
+          </span>
+        ) : (item.status === 'on_mission' || item.hasMission || item.pendingRequestType === 'mission') && item.hasPendingRequest ? (
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black"
+            style={{
+              backgroundColor: 'rgba(56, 189, 248, 0.12)',
+              color: '#38bdf8',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+            }}
+            title="طلب مأمورية قيد المراجعة والاعتماد"
+          >
+            <span className="size-1.5 rounded-full bg-sky-400 animate-pulse" />
+            مأمورية (قيد المراجعة)
+          </span>
         ) : item.status === 'absent' && item.hasPendingRequest ? (
           <span
             className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-black"
@@ -552,7 +636,7 @@ function Row({ item, focused, isToday }: { item: AttendanceRosterItem; focused: 
             title={item.reviewReason ?? undefined}
           >
             <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
-            غائب (طلب معلّق)
+            طلب معلّق
           </span>
         ) : (
           <StatusBadge status={item.status ?? undefined} />
@@ -698,7 +782,7 @@ function Row({ item, focused, isToday }: { item: AttendanceRosterItem; focused: 
       </td>
 
       {/* 8. فتح الملف */}
-      <td className="text-end">
+      <td className="text-end" data-hide-capture="true">
         <Link
           to={`${hrPrefix}/employees/${item.employeeId}`}
           className="btn-ghost btn-xs whitespace-nowrap text-xs font-bold text-[var(--primary)] hover:bg-[var(--primary)]/10 rounded-lg px-2 py-1"

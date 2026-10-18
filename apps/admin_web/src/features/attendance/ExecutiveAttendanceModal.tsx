@@ -84,8 +84,19 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
   const totalScheduled = items.length;
 
   // تصنيف الموظفين مع وضع الطاقم الطبي في نهاية كل جدول
-  const onMission = sortClinicStaffToEnd(items.filter((i) => i.status === 'on_mission' || Boolean(i.hasMission)));
-  const onLeave = sortClinicStaffToEnd(items.filter((i) => (i.status === 'on_leave' || Boolean(i.hasApprovedLeave)) && !i.hasMission));
+  const onMission = sortClinicStaffToEnd(
+    items.filter((i) => i.status === 'on_mission' || Boolean(i.hasMission) || (i.hasPendingRequest && i.pendingRequestType === 'mission'))
+  );
+  const onLeave = sortClinicStaffToEnd(
+    items.filter(
+      (i) =>
+        (i.status === 'on_leave' ||
+          Boolean(i.hasApprovedLeave) ||
+          (i.hasPendingRequest && i.pendingRequestType !== 'mission' && i.pendingRequestType !== 'permit')) &&
+        !i.hasMission &&
+        i.pendingRequestType !== 'mission'
+    )
+  );
   const present = sortClinicStaffToEnd(
     items.filter(
       (i) =>
@@ -93,11 +104,20 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
         !i.hasMission &&
         !i.hasApprovedLeave &&
         i.status !== 'on_mission' &&
-        i.status !== 'on_leave'
+        i.status !== 'on_leave' &&
+        !(i.hasPendingRequest && (i.pendingRequestType === 'leave' || i.pendingRequestType === 'mission'))
     )
   );
   const late = sortClinicStaffToEnd(
-    items.filter((i) => (i.lateMinutes ?? 0) > 0 && !i.hasMission && !i.hasApprovedLeave && i.status !== 'on_mission')
+    items.filter(
+      (i) =>
+        (i.lateMinutes ?? 0) > 0 &&
+        !i.hasMission &&
+        !i.hasApprovedLeave &&
+        i.status !== 'on_mission' &&
+        i.status !== 'on_leave' &&
+        !(i.hasPendingRequest && (i.pendingRequestType === 'leave' || i.pendingRequestType === 'mission'))
+    )
   );
   const absent = sortClinicStaffToEnd(
     items.filter(
@@ -105,7 +125,8 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
         (i.status === 'absent' || i.status === 'unexcused_absent') &&
         !i.firstCheckIn &&
         !i.hasApprovedLeave &&
-        !i.hasMission
+        !i.hasMission &&
+        !i.hasPendingRequest
     )
   );
   const pendingRequests = items.filter((i) => Boolean(i.hasPendingRequest));
@@ -128,7 +149,7 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
         scale: 2.5,
         useCORS: true,
         logging: false,
-        backgroundColor: '#ffffff',
+        backgroundColor: '#0b1329',
         windowWidth: 1200,
       });
 
@@ -169,7 +190,7 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
         scale: 2.5,
         useCORS: true,
         logging: false,
-        backgroundColor: '#ffffff',
+        backgroundColor: '#0b1329',
         windowWidth: 1200,
       });
 
@@ -360,26 +381,26 @@ ${
             /* ─── البطاقة التنفيذية التي سيتم التقاطها كصورة (Executive Card) ─── */
             <div
               id="executive-attendance-card"
-              className="w-full max-w-[1100px] bg-white text-slate-900 rounded-2xl p-6 sm:p-8 shadow-md border border-slate-200 font-sans"
+              className="w-full max-w-[1100px] rounded-2xl p-6 sm:p-8 shadow-2xl font-sans"
               dir="rtl"
-              style={{ minWidth: '950px', backgroundColor: '#ffffff', color: '#0f172a' }}
+              style={{ minWidth: '950px', backgroundColor: '#0b1329', color: '#f8fafc', border: '1px solid rgba(255, 255, 255, 0.1)' }}
             >
               {/* 1. الترويسة الملكية للجمعية */}
-              <div className="flex items-center justify-between pb-5 border-b-2 border-slate-900/10 mb-6">
+              <div className="flex items-center justify-between pb-5 border-b border-slate-800 mb-6">
                 <div className="flex items-center gap-3.5">
-                  <div className="size-12 rounded-2xl bg-sky-900 text-white flex items-center justify-center font-black text-xl shadow-sm">أحلى</div>
+                  <div className="size-12 rounded-2xl bg-sky-600 text-white flex items-center justify-center font-black text-xl shadow-lg">أحلى</div>
                   <div>
-                    <h1 className="text-xl font-black text-slate-900 tracking-tight">جمعية خواطر أحلى شباب</h1>
-                    <p className="text-xs font-bold text-slate-500 mt-0.5">منظومة الإدارة والمتابعة المؤسسية · الإدارة التنفيذية</p>
+                    <h1 className="text-xl font-black text-white tracking-tight">جمعية خواطر أحلى شباب</h1>
+                    <p className="text-xs font-bold text-slate-400 mt-0.5">منظومة الإدارة والمتابعة المؤسسية · الإدارة التنفيذية</p>
                   </div>
                 </div>
 
-                <div className="text-start bg-slate-50 border border-slate-200 rounded-xl px-4 py-2">
-                  <div className="flex items-center gap-1.5 text-xs font-black text-slate-800">
-                    <Calendar className="size-3.5 text-sky-700" />
+                <div className="text-start bg-slate-900 border border-slate-700/80 rounded-xl px-4 py-2">
+                  <div className="flex items-center gap-1.5 text-xs font-black text-slate-200">
+                    <Calendar className="size-3.5 text-sky-400" />
                     <span>{dateFormatted}</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 mt-0.5">
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 mt-0.5">
                     <Clock3 className="size-3 text-slate-400" />
                     <span>توقيت الإصدار: {nowFormatted}</span>
                   </div>
@@ -388,62 +409,62 @@ ${
 
               {/* عنوان الكشف الصريح */}
               <div className="text-center mb-6">
-                <h2 className="text-lg font-black text-slate-900 inline-block px-6 py-1.5 bg-sky-50 text-sky-900 rounded-full border border-sky-200">
+                <h2 className="text-base font-black text-sky-400 inline-block px-6 py-1.5 bg-sky-500/10 rounded-full border border-sky-500/30">
                   كشف المتابعة اليومية للحضور والانصراف
                 </h2>
               </div>
 
               {/* 2. شريط المؤشرات الرقمية (KPI Strip) */}
               <div className="grid grid-cols-5 gap-3 mb-6">
-                <div className="p-3.5 rounded-xl bg-slate-100 border border-slate-200 text-center">
-                  <span className="block text-[11px] font-bold text-slate-600 mb-1">إجمالي قوة العمل</span>
-                  <span className="text-2xl font-black text-slate-900">{totalScheduled}</span>
+                <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 text-center">
+                  <span className="block text-[11px] font-bold text-slate-400 mb-1">إجمالي قوة العمل</span>
+                  <span className="text-2xl font-black text-white">{totalScheduled}</span>
                   <span className="text-[10px] text-slate-500 block mt-0.5">موظف مجدول</span>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-center">
-                  <span className="block text-[11px] font-bold text-emerald-800 mb-1">الحضور الفعلي</span>
-                  <span className="text-2xl font-black text-emerald-700">{present.length}</span>
-                  <span className="text-[10px] font-bold text-emerald-600 block mt-0.5">نسبة: {attendancePct}%</span>
+                <div className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-center">
+                  <span className="block text-[11px] font-bold text-emerald-300 mb-1">الحضور الفعلي</span>
+                  <span className="text-2xl font-black text-emerald-400">{present.length}</span>
+                  <span className="text-[10px] font-bold text-emerald-400/80 block mt-0.5">نسبة: {attendancePct}%</span>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-center">
-                  <span className="block text-[11px] font-bold text-amber-800 mb-1">المتأخرون</span>
-                  <span className="text-2xl font-black text-amber-700">{late.length}</span>
-                  <span className="text-[10px] text-amber-600 block mt-0.5">حضروا بعد الموعد</span>
+                <div className="p-3.5 rounded-xl bg-amber-950/40 border border-amber-500/30 text-center">
+                  <span className="block text-[11px] font-bold text-amber-300 mb-1">المتأخرون</span>
+                  <span className="text-2xl font-black text-amber-400">{late.length}</span>
+                  <span className="text-[10px] text-amber-400/80 block mt-0.5">حضروا بعد الموعد</span>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-center">
-                  <span className="block text-[11px] font-bold text-rose-800 mb-1">الغياب</span>
-                  <span className="text-2xl font-black text-rose-700">{absent.length}</span>
-                  <span className="text-[10px] text-rose-600 block mt-0.5">{absent.length > 0 ? 'لم يسجلوا حضوراً' : 'لا يوجد غياب'}</span>
+                <div className="p-3.5 rounded-xl bg-rose-950/40 border border-rose-500/30 text-center">
+                  <span className="block text-[11px] font-bold text-rose-300 mb-1">الغياب</span>
+                  <span className="text-2xl font-black text-rose-400">{absent.length}</span>
+                  <span className="text-[10px] text-rose-400/80 block mt-0.5">{absent.length > 0 ? 'لم يسجلوا حضوراً' : 'لا يوجد غياب'}</span>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-indigo-50 border border-indigo-200 text-center">
-                  <span className="block text-[11px] font-bold text-indigo-800 mb-1">إجازات ومأموريات</span>
-                  <span className="text-2xl font-black text-indigo-700">{onLeave.length + onMission.length}</span>
-                  <span className="text-[10px] text-indigo-600 block mt-0.5">بعذر رسمي</span>
+                <div className="p-3.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-center">
+                  <span className="block text-[11px] font-bold text-indigo-300 mb-1">إجازات ومأموريات</span>
+                  <span className="text-2xl font-black text-indigo-400">{onLeave.length + onMission.length}</span>
+                  <span className="text-[10px] text-indigo-400/80 block mt-0.5">بعذر رسمي أو معلق</span>
                 </div>
               </div>
 
               {/* 3. الجداول التنفيذية الثلاثة */}
               <div className="space-y-6">
                 {/* أ) جدول الحاضرين */}
-                <div className="rounded-xl border border-slate-200 overflow-hidden">
-                  <div className="bg-emerald-700 text-white px-4 py-2 flex items-center justify-between text-xs font-black">
+                <div className="rounded-xl border border-slate-800 overflow-hidden bg-slate-900/40">
+                  <div className="bg-emerald-900/70 border-b border-emerald-500/20 text-white px-4 py-2 flex items-center justify-between text-xs font-black">
                     <div className="flex items-center gap-1.5">
-                      <UserCheck className="size-4" />
+                      <UserCheck className="size-4 text-emerald-400" />
                       <span>قائمة الحاضرين (المتواجدون بالمجمع)</span>
                     </div>
-                    <span className="bg-emerald-800 px-2 py-0.5 rounded-full text-[11px]">{present.length} موظف</span>
+                    <span className="bg-emerald-800 px-2.5 py-0.5 rounded-full text-[11px]">{present.length} موظف</span>
                   </div>
 
                   {present.length === 0 ? (
-                    <div className="py-4 text-center text-xs text-slate-500 font-bold bg-slate-50">لا يوجد حضور مسجل لهذا اليوم حتى الآن.</div>
+                    <div className="py-4 text-center text-xs text-slate-400 font-bold bg-slate-900/20">لا يوجد حضور مسجل لهذا اليوم حتى الآن.</div>
                   ) : (
                     <table className="w-full text-[11px] border-collapse">
                       <thead>
-                        <tr className="bg-slate-100 text-slate-700 border-b border-slate-200 text-start font-black">
+                        <tr className="bg-slate-900/90 text-slate-300 border-b border-slate-800 text-start font-black">
                           <th className="p-2 w-8 text-center">#</th>
                           <th className="p-2">اسم الموظف</th>
                           <th className="p-2">الإدارة والفرع</th>
@@ -453,25 +474,25 @@ ${
                           <th className="p-2">الحالة</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 font-medium">
+                      <tbody className="divide-y divide-slate-800 font-medium">
                         {present.map((p, idx) => (
-                          <tr key={p.employeeId} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
-                            <td className="p-2 text-center text-slate-400 font-bold">{idx + 1}</td>
-                            <td className="p-2 font-black text-slate-900">{p.employeeName}</td>
-                            <td className="p-2 text-slate-600">
+                          <tr key={p.employeeId} className={idx % 2 === 0 ? 'bg-slate-950/40' : 'bg-slate-900/40'}>
+                            <td className="p-2 text-center text-slate-500 font-bold">{idx + 1}</td>
+                            <td className="p-2 font-black text-white">{p.employeeName}</td>
+                            <td className="p-2 text-slate-300">
                               <span>{p.departmentName ?? '—'}</span>
                               {p.branchName ? <span className="text-slate-400 text-[10px] block">{p.branchName}</span> : null}
                             </td>
-                            <td className="p-2 text-slate-600">{p.shiftName ?? '—'}</td>
-                            <td className="p-2 font-bold text-emerald-800">{p.firstCheckIn ? formatTime12(p.firstCheckIn) : '—'}</td>
-                            <td className="p-2 text-emerald-700 font-bold">{p.lastCheckOut ? formatTime12(p.lastCheckOut) : 'متواجد حالياً في المجمع'}</td>
+                            <td className="p-2 text-slate-300">{p.shiftName ?? '—'}</td>
+                            <td className="p-2 font-bold text-emerald-400">{p.firstCheckIn ? formatTime12(p.firstCheckIn) : '—'}</td>
+                            <td className="p-2 text-emerald-300 font-bold">{p.lastCheckOut ? formatTime12(p.lastCheckOut) : 'متواجد حالياً في المجمع'}</td>
                             <td className="p-2">
                               {(p.lateMinutes ?? 0) > 0 ? (
-                                <span className="inline-block px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-black text-[10px]">
+                                <span className="inline-block px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-black text-[10px]">
                                   متأخر {formatMinutes(p.lateMinutes)}
                                 </span>
                               ) : (
-                                <span className="inline-block px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">في الموعد</span>
+                                <span className="inline-block px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold text-[10px]">في الموعد</span>
                               )}
                             </td>
                           </tr>
@@ -482,21 +503,21 @@ ${
                 </div>
 
                 {/* ب) جدول الغائبين */}
-                <div className="rounded-xl border border-slate-200 overflow-hidden">
-                  <div className="bg-rose-700 text-white px-4 py-2 flex items-center justify-between text-xs font-black">
+                <div className="rounded-xl border border-slate-800 overflow-hidden bg-slate-900/40">
+                  <div className="bg-rose-900/70 border-b border-rose-500/20 text-white px-4 py-2 flex items-center justify-between text-xs font-black">
                     <div className="flex items-center gap-1.5">
-                      <UserX className="size-4" />
-                      <span>قائمة الغائبين</span>
+                      <UserX className="size-4 text-rose-400" />
+                      <span>قائمة الغائبين بدون إذن</span>
                     </div>
-                    <span className="bg-rose-800 px-2 py-0.5 rounded-full text-[11px]">{absent.length} موظف</span>
+                    <span className="bg-rose-800 px-2.5 py-0.5 rounded-full text-[11px]">{absent.length} موظف</span>
                   </div>
 
                   {absent.length === 0 ? (
-                    <div className="py-4 text-center text-xs text-slate-500 font-bold bg-slate-50">لا يوجد غياب اليوم (نسبة الحضور مكتملة).</div>
+                    <div className="py-4 text-center text-xs text-slate-400 font-bold bg-slate-900/20">لا يوجد غياب غير مبرر لهذا اليوم.</div>
                   ) : (
                     <table className="w-full text-[11px] border-collapse">
                       <thead>
-                        <tr className="bg-slate-100 text-slate-700 border-b border-slate-200 text-start font-black">
+                        <tr className="bg-slate-900/90 text-slate-300 border-b border-slate-800 text-start font-black">
                           <th className="p-2 w-8 text-center">#</th>
                           <th className="p-2">اسم الموظف</th>
                           <th className="p-2">الإدارة والفرع</th>
@@ -504,27 +525,18 @@ ${
                           <th className="p-2">موقف العذر والطلب</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 font-medium">
+                      <tbody className="divide-y divide-slate-800 font-medium">
                         {absent.map((a, idx) => (
-                          <tr key={a.employeeId} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
-                            <td className="p-2 text-center text-slate-400 font-bold">{idx + 1}</td>
-                            <td className="p-2 font-black text-slate-900">{a.employeeName}</td>
-                            <td className="p-2 text-slate-600">
+                          <tr key={a.employeeId} className={idx % 2 === 0 ? 'bg-slate-950/40' : 'bg-slate-900/40'}>
+                            <td className="p-2 text-center text-slate-500 font-bold">{idx + 1}</td>
+                            <td className="p-2 font-black text-white">{a.employeeName}</td>
+                            <td className="p-2 text-slate-300">
                               <span>{a.departmentName ?? '—'}</span>
                               {a.branchName ? <span className="text-slate-400 text-[10px] block">{a.branchName}</span> : null}
                             </td>
-                            <td className="p-2 text-slate-600">{a.shiftName ?? '—'}</td>
+                            <td className="p-2 text-slate-300">{a.shiftName ?? '—'}</td>
                             <td className="p-2">
-                              {a.hasPendingRequest ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-black text-[10px]">
-                                  <span>⏳</span>
-                                  <span>
-                                    طلب معلّق {a.pendingRequestNumber ? `(#${a.pendingRequestNumber})` : ''}: {a.pendingRequestTitle ?? 'قيد الاعتماد'}
-                                  </span>
-                                </span>
-                              ) : (
-                                <span className="inline-block px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 font-bold text-[10px]">غياب بدون إذن</span>
-                              )}
+                              <span className="inline-block px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold text-[10px]">غياب بدون إذن</span>
                             </td>
                           </tr>
                         ))}
@@ -533,22 +545,22 @@ ${
                   )}
                 </div>
 
-                {/* ج) جدول الإجازات والمأموريات المعتمدة */}
-                <div className="rounded-xl border border-slate-200 overflow-hidden">
-                  <div className="bg-indigo-700 text-white px-4 py-2 flex items-center justify-between text-xs font-black">
+                {/* ج) جدول الإجازات والمأموريات */}
+                <div className="rounded-xl border border-slate-800 overflow-hidden bg-slate-900/40">
+                  <div className="bg-indigo-900/70 border-b border-indigo-500/20 text-white px-4 py-2 flex items-center justify-between text-xs font-black">
                     <div className="flex items-center gap-1.5">
-                      <Plane className="size-4" />
-                      <span>قائمة الإجازات والمأموريات الرسمية المعتمدة</span>
+                      <Plane className="size-4 text-indigo-400" />
+                      <span>قائمة الإجازات والمأموريات الرسمية والطلبات</span>
                     </div>
-                    <span className="bg-indigo-800 px-2 py-0.5 rounded-full text-[11px]">{onLeave.length + onMission.length} موظف</span>
+                    <span className="bg-indigo-800 px-2.5 py-0.5 rounded-full text-[11px]">{onLeave.length + onMission.length} موظف</span>
                   </div>
 
                   {onLeave.length + onMission.length === 0 ? (
-                    <div className="py-4 text-center text-xs text-slate-500 font-bold bg-slate-50">لا توجد إجازات أو مأموريات مقررة لهذا اليوم.</div>
+                    <div className="py-4 text-center text-xs text-slate-400 font-bold bg-slate-900/20">لا توجد إجازات أو مأموريات مقررة لهذا اليوم.</div>
                   ) : (
                     <table className="w-full text-[11px] border-collapse">
                       <thead>
-                        <tr className="bg-slate-100 text-slate-700 border-b border-slate-200 text-start font-black">
+                        <tr className="bg-slate-900/90 text-slate-300 border-b border-slate-800 text-start font-black">
                           <th className="p-2 w-8 text-center">#</th>
                           <th className="p-2">اسم الموظف</th>
                           <th className="p-2">الإدارة والفرع</th>
@@ -556,46 +568,55 @@ ${
                           <th className="p-2">السبب والبيان الرسمي</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 font-medium">
+                      <tbody className="divide-y divide-slate-800 font-medium">
                         {[...onLeave, ...onMission].map((item, idx) => {
-                          const isMission = item.status === 'on_mission' || item.hasMission;
+                          const isMission = item.status === 'on_mission' || item.hasMission || item.pendingRequestType === 'mission';
+                          const isPending = Boolean(item.hasPendingRequest) && !item.hasApprovedLeave;
                           return (
-                            <tr key={item.employeeId} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
-                              <td className="p-2 text-center text-slate-400 font-bold">{idx + 1}</td>
-                              <td className="p-2 font-black text-slate-900">{item.employeeName}</td>
-                              <td className="p-2 text-slate-600">
+                            <tr key={item.employeeId} className={idx % 2 === 0 ? 'bg-slate-950/40' : 'bg-slate-900/40'}>
+                              <td className="p-2 text-center text-slate-500 font-bold">{idx + 1}</td>
+                              <td className="p-2 font-black text-white">{item.employeeName}</td>
+                              <td className="p-2 text-slate-300">
                                 <span>{item.departmentName ?? '—'}</span>
                                 {item.branchName ? <span className="text-slate-400 text-[10px] block">{item.branchName}</span> : null}
                               </td>
                               <td className="p-2">
                                 <span
                                   className={`inline-block px-1.5 py-0.5 rounded font-black text-[10px] ${
-                                    isMission ? 'bg-indigo-100 text-indigo-800' : 'bg-teal-100 text-teal-800'
+                                    isPending
+                                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                      : isMission
+                                      ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
+                                      : 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
                                   }`}
                                 >
-                                  {isMission ? 'مأمورية رسمية' : item.leaveName ?? 'إجازة معتمدة'}
-                                  {item.leaveRequestNumber ? ` (#${item.leaveRequestNumber})` : ''}
+                                  {isPending
+                                    ? `⏳ طلب إجازة معلّق (#${item.pendingRequestNumber ?? item.leaveRequestNumber ?? ''})`
+                                    : isMission
+                                    ? 'مأمورية رسمية'
+                                    : item.leaveName ?? 'إجازة معتمدة'}
+                                  {!isPending && item.leaveRequestNumber ? ` (#${item.leaveRequestNumber})` : ''}
                                 </span>
                               </td>
-                              <td className="p-2 text-slate-800 font-bold">
+                              <td className="p-2 text-slate-200 font-bold">
                                 {isMission ? (
                                   <div className="flex flex-col gap-0.5">
                                     {item.leaveTitle || item.leaveName ? (
-                                      <span className="text-slate-900 font-black text-[11px]">📍 {item.leaveTitle ?? item.leaveName}</span>
+                                      <span className="text-white font-black text-[11px]">📍 {item.leaveTitle ?? item.leaveName}</span>
                                     ) : null}
                                     {item.leaveReason ? (
-                                      <span className="text-slate-600 font-medium text-[10.5px]">💬 الغرض: {item.leaveReason}</span>
+                                      <span className="text-slate-400 font-medium text-[10.5px]">💬 الغرض: {item.leaveReason}</span>
                                     ) : (
-                                      <span className="text-slate-500 font-normal text-[10.5px]">مأمورية رسمية معتمدة</span>
+                                      <span className="text-slate-400 font-normal text-[10.5px]">مأمورية رسمية</span>
                                     )}
                                   </div>
                                 ) : (
                                   <div className="flex flex-col gap-0.5">
                                     {item.leaveTitle && item.leaveTitle !== item.leaveName && item.leaveTitle !== item.leaveReason ? (
-                                      <span className="text-slate-900 font-black text-[11px]">📌 {item.leaveTitle}</span>
+                                      <span className="text-white font-black text-[11px]">📌 {item.leaveTitle}</span>
                                     ) : null}
                                     {item.leaveReason ? (
-                                      <span className="text-slate-600 font-medium text-[10.5px]">💬 السبب: {item.leaveReason}</span>
+                                      <span className="text-slate-400 font-medium text-[10.5px]">💬 السبب: {item.leaveReason}</span>
                                     ) : (
                                       <span className="text-slate-400 font-normal text-[10.5px]">— معتمدة ومسجلة نظامياً</span>
                                     )}
@@ -612,7 +633,7 @@ ${
               </div>
 
               {/* 4. تذييل التقرير الرسمي */}
-              <div className="mt-8 pt-4 border-t border-slate-200 flex items-center justify-between text-[11px] font-bold text-slate-500">
+              <div className="mt-8 pt-4 border-t border-slate-800 flex items-center justify-between text-[11px] font-bold text-slate-400">
                 <span>صادر عن منظومة الموارد البشرية والمتابعة الميدانية · جمعية خواطر أحلى شباب</span>
                 <span className="text-slate-400">تقرير رسمي معتمد للإرسال للإدارة التنفيذية</span>
                 <span className="font-mono text-[10px]">كود التحقق: {dateIso.replace(/-/g, '')}-EXEC</span>
