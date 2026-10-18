@@ -594,9 +594,9 @@ function Row({ item, focused, isToday }: { item: AttendanceRosterItem; focused: 
             {item.lastCheckOut ? (
               <span className="font-bold text-[var(--text)]">{formatTime(item.lastCheckOut)}</span>
             ) : isToday ? (
-              <span className="inline-flex items-center gap-1 font-bold text-emerald-500 text-[11px]">
+              <span className="inline-flex items-center gap-1 font-bold text-emerald-500 text-[11px]" title="سجل حضور صباحاً ومتواجد حالياً في المجمع">
                 <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                على رأس العمل
+                متواجد حالياً في المجمع
               </span>
             ) : (
               <span className="text-[var(--text-muted)]">—</span>

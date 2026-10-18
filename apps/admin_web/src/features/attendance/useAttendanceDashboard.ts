@@ -167,14 +167,14 @@ function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIs
       if (item.lastCheckOut) {
         checkOutDisplay = _fmt(item.lastCheckOut);
       } else if (item.firstCheckIn) {
-        checkOutDisplay = '<span style="color:#059669;font-weight:700">على رأس العمل</span>';
+        checkOutDisplay = '<span style="color:#059669;font-weight:700">متواجد حالياً في المجمع</span>';
       }
 
       let excuseDisplay = '—';
       if (item.leaveName) {
         excuseDisplay = item.leaveName;
       } else if (item.hasMission) {
-        excuseDisplay = 'مأمورية معتمدة';
+        excuseDisplay = item.leaveTitle ?? 'مأمورية معتمدة';
       } else if (item.reviewReason) {
         excuseDisplay = item.reviewReason;
       }

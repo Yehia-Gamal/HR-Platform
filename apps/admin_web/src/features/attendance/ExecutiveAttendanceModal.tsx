@@ -433,7 +433,7 @@ ${
                   <div className="bg-emerald-700 text-white px-4 py-2 flex items-center justify-between text-xs font-black">
                     <div className="flex items-center gap-1.5">
                       <UserCheck className="size-4" />
-                      <span>قائمة الحاضرين على رأس العمل</span>
+                      <span>قائمة الحاضرين (المتواجدون بالمجمع)</span>
                     </div>
                     <span className="bg-emerald-800 px-2 py-0.5 rounded-full text-[11px]">{present.length} موظف</span>
                   </div>
@@ -464,7 +464,7 @@ ${
                             </td>
                             <td className="p-2 text-slate-600">{p.shiftName ?? '—'}</td>
                             <td className="p-2 font-bold text-emerald-800">{p.firstCheckIn ? formatTime12(p.firstCheckIn) : '—'}</td>
-                            <td className="p-2 text-slate-600">{p.lastCheckOut ? formatTime12(p.lastCheckOut) : 'على رأس العمل'}</td>
+                            <td className="p-2 text-emerald-700 font-bold">{p.lastCheckOut ? formatTime12(p.lastCheckOut) : 'متواجد حالياً في المجمع'}</td>
                             <td className="p-2">
                               {(p.lateMinutes ?? 0) > 0 ? (
                                 <span className="inline-block px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-black text-[10px]">
