@@ -59,11 +59,24 @@ class _TeamRequestsPageState extends ConsumerState<TeamRequestsPage> {
   final _selected = <String>{};
   bool get _selecting => _selected.isNotEmpty;
 
-  bool _selectable(MobileRequest r) =>
-      r.status == 'pending' && (r.canDecide ?? true);
+  @override
+  void initState() {
+    super.initState();
+    // تحديث فوري عند فتح الصفحة لضمان جلب أحدث الطلبات من الخادم دون الاعتماد على كاش قديم
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.invalidate(mobileRequestsProvider);
+        ref.invalidate(teamAttendanceCorrectionsProvider(_correctionStatus));
+        ref.invalidate(mobileTeamProvider);
+      }
+    });
+  }
 
-  void _toggle(MobileRequest r) {
-    if (!_selectable(r)) return;
+  bool _selectable(MobileRequest r, bool isBroad) =>
+      r.status == 'pending' && (isBroad || (r.canDecide ?? true));
+
+  void _toggle(MobileRequest r, bool isBroad) {
+    if (!_selectable(r, isBroad)) return;
     setState(() {
       if (!_selected.remove(r.id)) _selected.add(r.id);
     });
@@ -106,16 +119,17 @@ class _TeamRequestsPageState extends ConsumerState<TeamRequestsPage> {
     _ => null,
   };
 
-  /// طلبات الآخرين في نطاقي: الخادم (0646) يحدّد النطاق ويعلّم طلباتي؛
-  /// الخادم الأقدم يُكتفى معه بأعضاء الفريق المباشر.
-  bool _inScope(MobileRequest r, String? me, Set<String> teamIds) {
+  /// طلبات الآخرين في نطاقي: الخادم يحدّد النطاق ويعلّم طلباتي؛
+  /// إذا كان المستخدم ذا دور قيادي/HR/تشغيل/أدمن أو يمكنه القرار، فالطلب في نطاقه حتمًا.
+  bool _inScope(MobileRequest r, String? me, Set<String> teamIds, bool isBroad) {
     if (r.isMineFor(me)) return false;
+    if (isBroad || r.canDecide == true || r.awaitingMe == true) return true;
     if (r.isMine != null) return true;
     return r.employeeId != null && teamIds.contains(r.employeeId);
   }
 
-  bool _matchesStatus(MobileRequest r) => switch (_statusFilter) {
-    'pending' => r.status == 'pending' && (r.canDecide ?? true),
+  bool _matchesStatus(MobileRequest r, bool isBroad) => switch (_statusFilter) {
+    'pending' => r.status == 'pending' && (isBroad || (r.canDecide ?? true)),
     'approved' => r.status == 'approved',
     'closed' =>
       r.status == 'rejected' ||
@@ -141,14 +155,15 @@ class _TeamRequestsPageState extends ConsumerState<TeamRequestsPage> {
     List<MobileRequest> all,
     String? me,
     Set<String> teamIds,
+    bool isBroad,
   ) {
     if (_category == _Category.corrections) return const [];
     final list = all
         .where(
           (r) =>
-              _inScope(r, me, teamIds) &&
+              _inScope(r, me, teamIds, isBroad) &&
               _category.matches(r.type) &&
-              _matchesStatus(r) &&
+              _matchesStatus(r, isBroad) &&
               _matchesQuery(r),
         )
         .toList();
@@ -196,18 +211,18 @@ class _TeamRequestsPageState extends ConsumerState<TeamRequestsPage> {
     if (mounted) ref.invalidate(teamAttendanceCorrectionsProvider(_correctionStatus));
   }
 
-  Widget _card(MobileRequest r) => Padding(
+  Widget _card(MobileRequest r, bool isBroad) => Padding(
     padding: const EdgeInsets.only(bottom: 10),
     child: _TeamRequestCard(
       request: r,
       selecting: _selecting,
       selected: _selected.contains(r.id),
-      onTap: _selecting ? () => _toggle(r) : () => _openRequest(r),
-      onLongPress: _selectable(r) ? () => _toggle(r) : null,
-      onApprove: !_selecting && _selectable(r)
+      onTap: _selecting ? () => _toggle(r, isBroad) : () => _openRequest(r),
+      onLongPress: _selectable(r, isBroad) ? () => _toggle(r, isBroad) : null,
+      onApprove: !_selecting && _selectable(r, isBroad)
           ? () => _quickDecide(r, 'approve')
           : null,
-      onReject: !_selecting && _selectable(r)
+      onReject: !_selecting && _selectable(r, isBroad)
           ? () => _quickDecide(r, 'reject')
           : null,
     ),
@@ -289,7 +304,23 @@ class _TeamRequestsPageState extends ConsumerState<TeamRequestsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final me = ref.watch(accessContextProvider).value?.employeeId;
+    final access = ref.watch(accessContextProvider).value;
+    final me = access?.employeeId;
+    final isBroad = access?.roles.any((r) => const {
+      'admin',
+      'super-admin',
+      'system-admin',
+      'executive',
+      'executive-director',
+      'general-manager',
+      'executive-secretary',
+      'hr-manager',
+      'hr-specialist',
+      'hr-officer',
+      'operations-manager-1',
+      'operations-manager',
+    }.contains(r)) ?? (access?.hasPermission('requests.request.override') ?? false);
+
     final teamAsync = ref.watch(mobileTeamProvider);
     final requestsAsync = ref.watch(mobileRequestsProvider);
     final correctionsAsync = ref.watch(
@@ -301,7 +332,7 @@ class _TeamRequestsPageState extends ConsumerState<TeamRequestsPage> {
       _ => <String>{},
     };
     final allRequests = requestsAsync.value ?? const <MobileRequest>[];
-    final requests = _filtered(allRequests, me, teamIds);
+    final requests = _filtered(allRequests, me, teamIds, isBroad);
     final corrections = _filteredCorrections(
       correctionsAsync.value ?? const <MobileTeamAttendanceCorrection>[],
     );
@@ -311,13 +342,13 @@ class _TeamRequestsPageState extends ConsumerState<TeamRequestsPage> {
     final pendingMine = allRequests
         .where(
           (r) =>
-              _inScope(r, me, teamIds) &&
+              _inScope(r, me, teamIds, isBroad) &&
               r.status == 'pending' &&
-              (r.canDecide ?? true),
+              (isBroad || (r.canDecide ?? true)),
         )
         .toList(growable: false);
     final awaiting = pendingMine
-        .where((r) => r.awaitingMe == true || r.canDecide == true)
+        .where((r) => r.awaitingMe == true || r.canDecide == true || isBroad)
         .length;
     final overdue = pendingMine
         .where((r) => r.effectiveDueAt?.isBefore(now) ?? false)
@@ -337,7 +368,7 @@ class _TeamRequestsPageState extends ConsumerState<TeamRequestsPage> {
     // بتاريخ التقديم — لا كتلة تصحيحات (قد تكون قديمة) فوق الطلبات الأحدث.
     final timeline = <({DateTime at, Widget card})>[
       for (final c in corrections) (at: c.createdAt, card: _correctionCard(c)),
-      for (final r in requests) (at: r.createdAt, card: _card(r)),
+      for (final r in requests) (at: r.createdAt, card: _card(r, isBroad)),
     ]..sort((a, b) => b.at.compareTo(a.at));
 
     return PermissionGate(
@@ -361,7 +392,7 @@ class _TeamRequestsPageState extends ConsumerState<TeamRequestsPage> {
                   TextButton(
                     onPressed: () => setState(
                       () => _selected.addAll(
-                        requests.where(_selectable).map((r) => r.id),
+                        requests.where((r) => _selectable(r, isBroad)).map((r) => r.id),
                       ),
                     ),
                     child: const Text('تحديد الكل'),
@@ -382,11 +413,11 @@ class _TeamRequestsPageState extends ConsumerState<TeamRequestsPage> {
                     ),
                   ),
                   if (_statusFilter == 'pending' &&
-                      requests.where(_selectable).length > 1)
+                      requests.where((r) => _selectable(r, isBroad)).length > 1)
                     TextButton.icon(
                       onPressed: () => setState(
                         () => _selected.add(
-                          requests.firstWhere(_selectable).id,
+                          requests.firstWhere((r) => _selectable(r, isBroad)).id,
                         ),
                       ),
                       icon: const Icon(Icons.checklist_rounded, size: 20),
