@@ -206,7 +206,7 @@ export function NotificationsPage() {
 
                         <time
                           dateTime={new Date(n.createdAt).toISOString()}
-                          title={new Intl.DateTimeFormat('ar-EG', { dateStyle: 'full', timeStyle: 'short' }).format(new Date(n.createdAt))}
+                          title={new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'full', timeStyle: 'short' }).format(new Date(n.createdAt))}
                           className="muted mt-2 block text-xs"
                         >
                           {relativeTime(n.createdAt)}

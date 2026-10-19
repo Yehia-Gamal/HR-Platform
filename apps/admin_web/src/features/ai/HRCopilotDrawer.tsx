@@ -47,7 +47,7 @@ export function HRCopilotDrawer({ isOpen, onClose }: { isOpen: boolean; onClose:
       id: 'm1',
       sender: 'assistant',
       text: `مرحباً ${auth.access?.displayName ?? 'بك'}! 👋\nأنا المساعد الإداري الذكي (HR Copilot).\nكيف يمكنني مساعدتك اليوم في لوائح الموارد البشرية، صياغة الخطابات، أو احتساب الجزاءات؟`,
-      timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+      timestamp: new Date().toLocaleTimeString('ar-EG-u-nu-latn', { hour: '2-digit', minute: '2-digit' }),
     },
   ]);
   const [inputValue, setInputValue] = useState('');
@@ -90,7 +90,7 @@ export function HRCopilotDrawer({ isOpen, onClose }: { isOpen: boolean; onClose:
       id: `u-${Date.now()}`,
       sender: 'user',
       text,
-      timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+      timestamp: new Date().toLocaleTimeString('ar-EG-u-nu-latn', { hour: '2-digit', minute: '2-digit' }),
     };
 
     setMessages((prev) => [...prev, userMsg]);
@@ -139,7 +139,7 @@ export function HRCopilotDrawer({ isOpen, onClose }: { isOpen: boolean; onClose:
         id: `b-${Date.now()}`,
         sender: 'assistant',
         text: reply,
-        timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+        timestamp: new Date().toLocaleTimeString('ar-EG-u-nu-latn', { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, botMsg]);
     }, 450);
@@ -147,7 +147,7 @@ export function HRCopilotDrawer({ isOpen, onClose }: { isOpen: boolean; onClose:
 
   const handleGenerateLetter = (e: React.FormEvent) => {
     e.preventDefault();
-    const dateStr = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'full' }).format(new Date());
+    const dateStr = new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'full' }).format(new Date());
     const name = empName.trim() || 'الموظف المحترم';
     const role = empRole.trim() || 'الموظف بالشركة';
     const reason = letterReason.trim();

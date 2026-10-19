@@ -86,7 +86,7 @@ import { EmployeeActivityTimeline } from './EmployeeActivityTimeline';
 import { EmployeeOrgChartTab } from './EmployeeOrgChartTab';
 import { AssignShiftDialog } from './AssignShiftDialog';
 
-const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
+const dateFormatter = new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium' });
 
 const PENDING_ACCOUNT_STATES = new Set(['invited', 'onboarding', 'pending', 'draft']);
 
@@ -1662,7 +1662,7 @@ export function EmployeeDetailPage() {
                   <span className="text-xs text-[var(--text-secondary)] block">وقت الحضور</span>
                   <span className="font-bold">
                     {item.todayStatus?.checkInAt
-                      ? new Date(item.todayStatus.checkInAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })
+                      ? new Date(item.todayStatus.checkInAt).toLocaleTimeString('ar-EG-u-nu-latn', { hour: '2-digit', minute: '2-digit' })
                       : '—'}
                   </span>
                 </div>
@@ -1670,7 +1670,7 @@ export function EmployeeDetailPage() {
                   <span className="text-xs text-[var(--text-secondary)] block">وقت الانصراف</span>
                   <span className="font-bold">
                     {item.todayStatus?.checkOutAt
-                      ? new Date(item.todayStatus.checkOutAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })
+                      ? new Date(item.todayStatus.checkOutAt).toLocaleTimeString('ar-EG-u-nu-latn', { hour: '2-digit', minute: '2-digit' })
                       : '—'}
                   </span>
                 </div>
@@ -1903,7 +1903,7 @@ export function EmployeeDetailPage() {
               <CalendarDays className="size-4" aria-hidden="true" />
               آخر تحديث:{' '}
               {item.lastUpdatedAt
-                ? new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.lastUpdatedAt))
+                ? new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.lastUpdatedAt))
                 : 'غير متوفر'}
             </p>
           </div>

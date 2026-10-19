@@ -156,7 +156,7 @@ export function DocumentsStudioPage() {
                     <td className="px-4 py-3 text-center">
                       {d.pendingSignatures > 0 ? <span className="font-bold text-[var(--warning)]">{d.pendingSignatures}</span> : '—'}
                     </td>
-                    <td className="px-4 py-3 text-xs text-[var(--text-tertiary)]">{d.issuedAt ? new Date(d.issuedAt).toLocaleDateString('ar-EG') : '—'}</td>
+                    <td className="px-4 py-3 text-xs text-[var(--text-tertiary)]">{d.issuedAt ? new Date(d.issuedAt).toLocaleDateString('ar-EG-u-nu-latn') : '—'}</td>
                   </tr>
                 ))}
               </tbody>

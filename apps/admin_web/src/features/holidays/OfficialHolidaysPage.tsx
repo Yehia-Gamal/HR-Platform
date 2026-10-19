@@ -13,7 +13,7 @@ import { useOrganizationLookups } from '../employees/useOrganizationLookups';
 import type { Holiday } from './useHolidays';
 import { useHolidays, useCreateHoliday, useUpdateHoliday, useDeleteHoliday } from './useHolidays';
 
-const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
+const dateFormatter = new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium' });
 const SCOPE_LABELS: Record<string, string> = { all: 'الكل', legal_entity: 'جهة قانونية', department: 'إدارة' };
 const currentYear = new Date().getFullYear();
 const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear + 2 - i);

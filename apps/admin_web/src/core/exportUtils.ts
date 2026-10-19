@@ -129,8 +129,8 @@ export function generateReportHtml(sections: PrintableSection[], documentTitle: 
 
   const now = new Date();
   const dateIso = now.toISOString().slice(0, 10);
-  const dateStr = now.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-  const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+  const dateStr = now.toLocaleDateString('ar-EG-u-nu-latn', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const timeStr = now.toLocaleTimeString('ar-EG-u-nu-latn', { hour: '2-digit', minute: '2-digit' });
   const safeFilename = `${documentTitle.replace(/\s+/g, '_')}_${dateIso}`;
 
   return `<!doctype html>

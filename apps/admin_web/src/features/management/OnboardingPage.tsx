@@ -99,7 +99,7 @@ export function OnboardingPage() {
                       </div>
                       <p className="muted mt-1 text-sm">
                         {journey.employeeCode}
-                        {journey.probationEnd ? ` · نهاية التجربة ${new Date(journey.probationEnd).toLocaleDateString('ar-EG')}` : ''}
+                        {journey.probationEnd ? ` · نهاية التجربة ${new Date(journey.probationEnd).toLocaleDateString('ar-EG-u-nu-latn')}` : ''}
                       </p>
                     </div>
                     <div className="min-w-56">

@@ -17,7 +17,7 @@ const PULSE_TITLES: Record<PulseDialogKind, string> = {
 
 /** ينسّق تاريخًا YYYY-MM-DD كنص عربي كامل (اليوم/الشهر/السنة). */
 function fmtFullDate(iso: string): string {
-  return new Intl.DateTimeFormat('ar-EG', { dateStyle: 'full' }).format(new Date(`${iso}T00:00:00`));
+  return new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'full' }).format(new Date(`${iso}T00:00:00`));
 }
 
 export function exportPulseListPDF(employees: EmployeeOverviewRow[], kind: PulseDialogKind): void {
@@ -120,7 +120,7 @@ export function exportPulseListPDF(employees: EmployeeOverviewRow[], kind: Pulse
 
   <div class="footer">
     <span>تم الإنشاء بواسطة منظومة أحلى شباب الإدارية</span>
-    <span>تاريخ الطباعة: ${new Intl.DateTimeFormat('ar-EG', { dateStyle: 'full', timeStyle: 'short' }).format(new Date())}</span>
+    <span>تاريخ الطباعة: ${new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'full', timeStyle: 'short' }).format(new Date())}</span>
   </div>
 </div>
 

@@ -5,8 +5,8 @@ import { ErrorState } from '../../ui/ErrorState';
 import { SkeletonCard } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 
-const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
-const dateTimeFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' });
+const dateFormatter = new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium' });
+const dateTimeFormatter = new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' });
 
 const DECISION_CATEGORY_LABELS: Record<string, string> = {
   general: 'عام',

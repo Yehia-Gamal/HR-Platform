@@ -249,10 +249,10 @@ export function ProjectsDisplayPage() {
 
         <div className="text-end">
           <p className="tabular text-[clamp(1.6rem,2.8vw,6rem)] leading-none font-black">
-            {now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
+            {now.toLocaleTimeString('ar-EG-u-nu-latn', { hour: '2-digit', minute: '2-digit' })}
           </p>
           <p className="mt-[0.4vh] text-[clamp(0.8rem,0.95vw,2rem)] text-slate-400">
-            {now.toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' })}
+            {now.toLocaleDateString('ar-EG-u-nu-latn', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
         </div>
       </header>

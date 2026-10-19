@@ -111,7 +111,7 @@ export function SystemPage() {
                       </div>
                       <p className="mt-3 text-sm font-bold">{e.message}</p>
                       <p className="muted mt-2 text-xs">
-                        {new Intl.DateTimeFormat('ar-EG', {
+                        {new Intl.DateTimeFormat('ar-EG-u-nu-latn', {
                           dateStyle: 'medium',
                           timeStyle: 'short',
                         }).format(new Date(e.occurredAt))}

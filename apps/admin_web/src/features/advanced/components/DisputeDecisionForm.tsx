@@ -28,7 +28,7 @@ export function DisputeDecisionForm({ selected, people, commands, run }: Props) 
             .filter((item) => item.status === 'held')
             .map((item) => (
               <option value={item.id} key={item.id}>
-                {item.type} — {item.heldAt ? new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' }).format(new Date(item.heldAt)) : '—'}
+                {item.type} — {item.heldAt ? new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium' }).format(new Date(item.heldAt)) : '—'}
               </option>
             ))}
         </select>

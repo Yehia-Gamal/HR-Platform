@@ -21,7 +21,7 @@ export function ActivityFeed({ activities, onOpenProject }: Props) {
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <span className="font-black">{a.projectName}</span>
               <time className="text-xs text-[var(--text-muted)]" dateTime={a.createdAt}>
-                {new Date(a.createdAt).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' })}
+                {new Date(a.createdAt).toLocaleString('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' })}
               </time>
             </div>
             <p className="mt-1 line-clamp-2 text-sm leading-7 text-[var(--text-secondary)]">{a.note}</p>

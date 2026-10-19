@@ -721,12 +721,12 @@ export function RequestsPage() {
                     </div>
                     {asg.assignmentType === 'FUNDRAISING' && asg.targetAmount != null ? (
                       <p className="mt-3 text-sm">
-                        المستهدف المالي: <strong>{asg.targetAmount.toLocaleString('ar-EG')}</strong>
+                        المستهدف المالي: <strong>{asg.targetAmount.toLocaleString('ar-EG-u-nu-latn')}</strong>
                       </p>
                     ) : null}
                     <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-[var(--border)] pt-4 text-xs">
                       <span className="muted">
-                        {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: asg.isFullDay ? undefined : 'short' }).format(
+                        {new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: asg.isFullDay ? undefined : 'short' }).format(
                           new Date(asg.startAt),
                         )}
                       </span>
@@ -786,12 +786,12 @@ export function RequestsPage() {
               </p>
               {selected.missionExecution.startedAt ? (
                 <p className="muted">
-                  بدأت: {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(selected.missionExecution.startedAt))}
+                  بدأت: {new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(selected.missionExecution.startedAt))}
                 </p>
               ) : null}
               {selected.missionExecution.endedAt ? (
                 <p className="muted">
-                  انتهت: {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(selected.missionExecution.endedAt))}
+                  انتهت: {new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(selected.missionExecution.endedAt))}
                 </p>
               ) : null}
               {selected.missionExecution.actualMinutes != null ? <p className="muted">المدة الفعلية: {selected.missionExecution.actualMinutes} دقيقة</p> : null}

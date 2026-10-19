@@ -12,7 +12,7 @@ import { ListSkeleton } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { AUDIT_CATEGORY_LABELS, AUDIT_SEVERITY_LABELS, useAuditTrail, type AuditTrailItem } from '../finance/useFinancialExtensions';
 
-const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' });
+const dateFormatter = new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' });
 
 export function AuditTrailPage() {
   const [search, setSearch] = useState('');

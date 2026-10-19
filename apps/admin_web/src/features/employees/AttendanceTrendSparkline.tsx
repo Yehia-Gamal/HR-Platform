@@ -14,7 +14,7 @@ export function AttendanceTrendSparkline({ points }: { points: AttendanceTrendPo
 
   const fmtDate = (iso: string): string => {
     const d = new Date(`${iso}T00:00:00`);
-    return new Intl.DateTimeFormat('ar-EG', { weekday: 'short', day: 'numeric', month: 'numeric' }).format(d);
+    return new Intl.DateTimeFormat('ar-EG-u-nu-latn', { weekday: 'short', day: 'numeric', month: 'numeric' }).format(d);
   };
 
   return (

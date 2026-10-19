@@ -13,7 +13,7 @@ import { useInstantPenalties, INSTANT_PENALTY_STATUS_LABELS, type InstantPenalty
 import { useFellowshipFundSummary } from './useFellowshipFund';
 import { useSubmitPenaltyDispute, usePenaltyDisputes } from './usePenaltyDisputes';
 
-const currencyFmt = new Intl.NumberFormat('ar-EG', { style: 'currency', currency: 'EGP', maximumFractionDigits: 0 });
+const currencyFmt = new Intl.NumberFormat('ar-EG-u-nu-latn', { style: 'currency', currency: 'EGP', maximumFractionDigits: 0 });
 
 function formatCurrency(amount: number | null | undefined): string {
   if (amount == null) return '—';

@@ -333,7 +333,7 @@ export function OfficialFeedPage() {
                     </div>
                     <span className="muted text-xs">
                       {item.publishedAt
-                        ? new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.publishedAt))
+                        ? new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.publishedAt))
                         : 'غير منشور'}
                     </span>
                   </div>
@@ -669,7 +669,7 @@ function EngagementPeople({
                 <span className="muted text-xs">
                   {person.reactionType ? `${reactionLabels[person.reactionType] ?? person.reactionType} · ` : ''}
                   {person.viewCount && person.viewCount > 1 ? `${person.viewCount} مرات · ` : ''}
-                  {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(person.at))}
+                  {new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(person.at))}
                 </span>
               </div>
             </div>

@@ -4,7 +4,7 @@ import { ErrorState } from '../../ui/ErrorState';
 import { SkeletonCard } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 
-const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
+const dateFormatter = new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium' });
 
 const STAGE_LABELS: Record<string, string> = {
   self: 'تقييم ذاتي',

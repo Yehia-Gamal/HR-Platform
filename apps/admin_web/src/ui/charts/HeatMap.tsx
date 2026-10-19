@@ -34,12 +34,12 @@ const BASE_COLORS: Record<string, string> = {
 
 /** تنسيق الأرقام بالعربية */
 function formatNumber(value: number): string {
-  return value.toLocaleString('ar-EG');
+  return value.toLocaleString('ar-EG-u-nu-latn');
 }
 
-/** تحويل الساعة إلى نص عربي (مثال: ٠٣:٠٠) */
+/** تحويل الساعة إلى نص موحد بالأرقام اللاتينية (مثال: 03:00) */
 function formatHour(h: number): string {
-  return `${h.toString().padStart(2, '0')}:00`.replace(/\d/g, (d) => String.fromCharCode(0x0660 + Number(d)));
+  return `${h.toString().padStart(2, '0')}:00`;
 }
 
 /* ───────────────── المكون ───────────────── */

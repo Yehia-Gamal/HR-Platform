@@ -5,7 +5,7 @@ import { ErrorState } from '../../ui/ErrorState';
 import { SkeletonCard } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 
-const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
+const dateFormatter = new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium' });
 
 export function EmployeeLeaveTab({ employeeId }: { employeeId: string }) {
   const query = useAdminLeaves({ employeeId, limit: 100 });

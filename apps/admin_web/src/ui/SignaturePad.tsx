@@ -202,7 +202,7 @@ export function SignaturePad({
           <span className="text-[var(--text)] font-semibold">{signerName || 'المستخدم الحالي'}</span>
           {signerId && <span className="tabular text-[11px]">({signerId})</span>}
         </div>
-        <div className="text-[11px] tabular">{new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date())}</div>
+        <div className="text-[11px] tabular">{new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date())}</div>
       </div>
 
       {/* شريط الإجراءات والأزرار */}

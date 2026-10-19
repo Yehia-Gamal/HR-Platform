@@ -72,7 +72,7 @@ export function OfficialDocumentGeneratorModal({ isOpen, onClose, employee, init
   const transport = emp.transportAllowance ?? 1000;
   const total = emp.totalSalary ?? basicSalary + housing + transport;
 
-  const issueDate = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'long' }).format(new Date());
+  const issueDate = new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'long' }).format(new Date());
   const serialNo = `DOC-${new Date().getFullYear()}-${emp.employeeCode.replace(/\D/g, '') || '99'}-${Math.floor(1000 + Math.random() * 9000)}`;
 
   const handlePrint = () => {
@@ -413,19 +413,19 @@ export function OfficialDocumentGeneratorModal({ isOpen, onClose, employee, init
                       <tbody className="divide-y divide-slate-200">
                         <tr>
                           <td className="p-2.5">الراتب الأساسي (Basic Salary)</td>
-                          <td className="p-2.5 text-end font-mono font-bold">{basicSalary.toLocaleString()} ج.م</td>
+                          <td className="p-2.5 text-end font-mono font-bold">{basicSalary.toLocaleString('ar-EG-u-nu-latn')} ج.م</td>
                         </tr>
                         <tr>
                           <td className="p-2.5">بدل السكن والإعاشة (Housing)</td>
-                          <td className="p-2.5 text-end font-mono font-bold">{housing.toLocaleString()} ج.م</td>
+                          <td className="p-2.5 text-end font-mono font-bold">{housing.toLocaleString('ar-EG-u-nu-latn')} ج.م</td>
                         </tr>
                         <tr>
                           <td className="p-2.5">بدل الانتقال والميدان (Transport)</td>
-                          <td className="p-2.5 text-end font-mono font-bold">{transport.toLocaleString()} ج.م</td>
+                          <td className="p-2.5 text-end font-mono font-bold">{transport.toLocaleString('ar-EG-u-nu-latn')} ج.م</td>
                         </tr>
                         <tr className="bg-slate-50 font-bold text-slate-900">
                           <td className="p-2.5">إجمالي الراتب الشهري الشامل (Gross Salary)</td>
-                          <td className="p-2.5 text-end font-mono text-sm font-black">{total.toLocaleString()} ج.م</td>
+                          <td className="p-2.5 text-end font-mono text-sm font-black">{total.toLocaleString('ar-EG-u-nu-latn')} ج.م</td>
                         </tr>
                       </tbody>
                     </table>
@@ -465,7 +465,7 @@ export function OfficialDocumentGeneratorModal({ isOpen, onClose, employee, init
                       <strong>فترة التجربة:</strong> يخضع الطرف الثاني لفترة تجربة مدتها {probationMonths} أشهر وفقاً لأحكام قانون العمل.
                     </li>
                     <li>
-                      <strong>الراتب والمستحقات:</strong> يتقاضى الطرف الثاني راتباً شهرياً إجمالياً قدره ({total.toLocaleString()} ج.م) شاملاً كافة البدلات.
+                      <strong>الراتب والمستحقات:</strong> يتقاضى الطرف الثاني راتباً شهرياً إجمالياً قدره ({total.toLocaleString('ar-EG-u-nu-latn')} ج.م) شاملاً كافة البدلات.
                     </li>
                     <li>
                       <strong>السرية وحماية البيانات:</strong> يتعهد الطرف الثاني بالحفاظ التام على أسرار العمل وعدم إفشاء أي بيانات تشغيلية أو برمجية.

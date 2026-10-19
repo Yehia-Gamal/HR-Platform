@@ -18,7 +18,7 @@ export function formatClock(value: string | null | undefined): string {
   if (!value) return '—';
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return '—';
-  return new Intl.DateTimeFormat('ar-EG', { hour: '2-digit', minute: '2-digit' }).format(d);
+  return new Intl.DateTimeFormat('ar-EG-u-nu-latn', { hour: '2-digit', minute: '2-digit' }).format(d);
 }
 
 /** يحوّل قيمة تاريخ إلى ISO string، أو null إذا كان التاريخ غير صالح. */

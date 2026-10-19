@@ -34,7 +34,7 @@ export function Pagination({ currentPage, totalPages, totalItems, pageSize, onPa
     <nav className="flex flex-wrap items-center justify-between gap-3 px-1 py-2" aria-label="التنقل بين الصفحات">
       {/* معلومات النتائج */}
       <p className="text-xs font-bold text-[var(--text-muted)]" aria-live="polite">
-        عرض {totalItems.toLocaleString('ar-EG')} نتيجة — الصفحة {currentPage.toLocaleString('ar-EG')} من {totalPages.toLocaleString('ar-EG')}
+        عرض {totalItems.toLocaleString('ar-EG-u-nu-latn')} نتيجة — الصفحة {currentPage.toLocaleString('ar-EG-u-nu-latn')} من {totalPages.toLocaleString('ar-EG-u-nu-latn')}
       </p>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -50,7 +50,7 @@ export function Pagination({ currentPage, totalPages, totalItems, pageSize, onPa
             >
               {PAGE_SIZE_OPTIONS.map((size) => (
                 <option key={size} value={size}>
-                  {size.toLocaleString('ar-EG')}
+                  {size.toLocaleString('ar-EG-u-nu-latn')}
                 </option>
               ))}
             </select>
@@ -84,10 +84,10 @@ export function Pagination({ currentPage, totalPages, totalItems, pageSize, onPa
                 type="button"
                 className={`filter-chip !min-w-[36px] !px-1.5 ${isActive ? 'is-active' : ''}`}
                 onClick={() => onPageChange(page)}
-                aria-label={`الصفحة ${page.toLocaleString('ar-EG')}`}
+                aria-label={`الصفحة ${page.toLocaleString('ar-EG-u-nu-latn')}`}
                 aria-current={isActive ? 'page' : undefined}
               >
-                {page.toLocaleString('ar-EG')}
+                {page.toLocaleString('ar-EG-u-nu-latn')}
               </button>
             );
           })}

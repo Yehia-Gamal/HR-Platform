@@ -40,7 +40,7 @@ export const transitionLabels: Record<string, string> = {
 
 export function formatDate(value?: string | null, withTime = true) {
   if (!value) return '—';
-  return new Intl.DateTimeFormat('ar-EG', withTime ? { dateStyle: 'medium', timeStyle: 'short' } : { dateStyle: 'medium' }).format(new Date(value));
+  return new Intl.DateTimeFormat('ar-EG-u-nu-latn', withTime ? { dateStyle: 'medium', timeStyle: 'short' } : { dateStyle: 'medium' }).format(new Date(value));
 }
 
 export function remainingLabel(value?: string | null) {

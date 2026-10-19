@@ -280,7 +280,7 @@ export function KpiEvaluationEditor({ evaluationId, onDone }: { evaluationId: st
         </div>
         <div className="text-start">
           <p className="text-2xl font-black">{form.finalScore ?? form.criteria.reduce((sum, item) => sum + (item.effectiveScore ?? 0), 0)} / 100</p>
-          <p className="muted text-xs">الموعد: {form.cycle.effectiveDeadline ? new Date(form.cycle.effectiveDeadline).toLocaleString('ar-EG') : '—'}</p>
+          <p className="muted text-xs">الموعد: {form.cycle.effectiveDeadline ? new Date(form.cycle.effectiveDeadline).toLocaleString('ar-EG-u-nu-latn') : '—'}</p>
           <button className="btn-secondary mt-2" onClick={onDone}>
             إغلاق التفاصيل
           </button>

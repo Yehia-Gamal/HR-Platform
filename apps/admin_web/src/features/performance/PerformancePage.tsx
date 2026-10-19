@@ -183,7 +183,7 @@ export function PerformancePage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <StatusBadge value={item.currentStage} />
                   <span className="muted text-xs">
-                    {new Intl.DateTimeFormat('ar-EG', { month: 'long', year: 'numeric' }).format(new Date(item.periodMonth))}
+                    {new Intl.DateTimeFormat('ar-EG-u-nu-latn', { month: 'long', year: 'numeric' }).format(new Date(item.periodMonth))}
                   </span>
                 </div>
                 <div className="mt-3 flex items-center gap-3">

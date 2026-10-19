@@ -425,7 +425,7 @@ export function AccessPage() {
                             className="inline-flex items-center gap-2 rounded-full bg-[var(--surface-muted)] px-3 py-1.5 text-xs font-bold"
                           >
                             {role.name}
-                            {role.effectiveTo ? ` · حتى ${new Date(role.effectiveTo).toLocaleDateString('ar-EG')}` : ''}
+                            {role.effectiveTo ? ` · حتى ${new Date(role.effectiveTo).toLocaleDateString('ar-EG-u-nu-latn')}` : ''}
                             <button
                               aria-label="سحب الدور"
                               className="text-[var(--danger)]"
@@ -785,7 +785,7 @@ function RoleManagementDialog({
                         <p className="font-bold">{user.name}</p>
                         <p className="muted text-xs">
                           {user.employeeCode ?? user.userId}
-                          {userRole?.effectiveTo ? ` · حتى ${new Date(userRole.effectiveTo).toLocaleDateString('ar-EG')}` : ''}
+                          {userRole?.effectiveTo ? ` · حتى ${new Date(userRole.effectiveTo).toLocaleDateString('ar-EG-u-nu-latn')}` : ''}
                         </p>
                       </div>
                     </div>

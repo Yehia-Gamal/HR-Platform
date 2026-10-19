@@ -328,7 +328,7 @@ export function buildExecutiveMonthlyReportHtml(
 
   <div class="footer">
     <span>تم استخراج التقرير بواسطة ${esc(systemName)}</span>
-    <span>تاريخ التوليد: ${generatedAt ? new Date(generatedAt).toLocaleString('ar-EG') : new Date().toLocaleString('ar-EG')}</span>
+    <span>تاريخ التوليد: ${generatedAt ? new Date(generatedAt).toLocaleString('ar-EG-u-nu-latn') : new Date().toLocaleString('ar-EG-u-nu-latn')}</span>
   </div>
 </body>
 </html>`;

@@ -386,7 +386,7 @@ function DetailContent({
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <span className="text-sm font-bold">{u.authorName}</span>
                     <time className="text-xs text-[var(--text-muted)]" dateTime={u.createdAt}>
-                      {new Date(u.createdAt).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' })}
+                      {new Date(u.createdAt).toLocaleString('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' })}
                     </time>
                   </div>
                   <p className="mt-1 text-sm leading-7 whitespace-pre-line">{u.note}</p>

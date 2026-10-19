@@ -34,7 +34,7 @@ const INCIDENT_STATUSES = ['open', 'investigating', 'resolved', 'closed'];
 
 function date(value: string | null) {
   if (!value) return 'غير محدد';
-  return new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+  return new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 }
 
 export function GovernancePage() {

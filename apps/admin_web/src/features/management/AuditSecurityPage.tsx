@@ -36,7 +36,7 @@ import { hasPermission } from '../workspaces/access';
 type Tab = 'security' | 'audit' | 'devices';
 
 function date(value: string) {
-  return new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+  return new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 }
 
 function eventLabel(value: string) {

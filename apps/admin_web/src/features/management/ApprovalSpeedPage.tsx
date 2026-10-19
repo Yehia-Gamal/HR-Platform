@@ -311,7 +311,7 @@ export function ApprovalSpeedPage() {
             <TrendingUp className="h-4 w-4 text-[var(--brand-primary)]" />
           </div>
           <div className="text-2xl font-black text-[var(--text-primary)]">
-            {summary?.total_decisions.toLocaleString('ar-EG') ?? 0}
+            {summary?.total_decisions.toLocaleString('ar-EG-u-nu-latn') ?? 0}
           </div>
           <div className="text-[11px] text-[var(--text-muted)] mt-1">
             {approvalRate}% نسبة القبول
@@ -365,7 +365,7 @@ export function ApprovalSpeedPage() {
             <Flame className="h-4 w-4 text-amber-500" />
           </div>
           <div className="text-2xl font-black text-amber-600 dark:text-amber-400">
-            {summary?.total_pending.toLocaleString('ar-EG') ?? 0}
+            {summary?.total_pending.toLocaleString('ar-EG-u-nu-latn') ?? 0}
           </div>
           <div className="text-[11px] text-[var(--text-muted)] mt-1">
             بانتظار قرار المعتمد
@@ -378,7 +378,7 @@ export function ApprovalSpeedPage() {
             <AlertTriangle className="h-4 w-4 text-rose-500" />
           </div>
           <div className="text-2xl font-black text-rose-600 dark:text-rose-400">
-            {summary?.total_escalated.toLocaleString('ar-EG') ?? 0}
+            {summary?.total_escalated.toLocaleString('ar-EG-u-nu-latn') ?? 0}
           </div>
           <div className="text-[11px] text-[var(--text-muted)] mt-1">
             تجاوزت مهلة SLA
@@ -536,7 +536,7 @@ export function ApprovalSpeedPage() {
                           </div>
                         </td>
                         <td className="p-3 font-black text-[var(--text-primary)]">
-                          {app.total_decisions.toLocaleString('ar-EG')}
+                          {app.total_decisions.toLocaleString('ar-EG-u-nu-latn')}
                         </td>
                         <td className="p-3">
                           <span className="text-emerald-600 dark:text-emerald-400 font-bold">{app.approved_count}</span>

@@ -190,14 +190,14 @@ export function DailyReportsFeedPage() {
                   </div>
                   <div className="shrink-0 text-end">
                     <p className="text-xs font-bold text-[var(--text-muted)]">
-                      {new Intl.DateTimeFormat('ar-EG', {
+                      {new Intl.DateTimeFormat('ar-EG-u-nu-latn', {
                         day: 'numeric',
                         month: 'long',
                         year: 'numeric',
                       }).format(new Date(`${item.reportDate}T00:00:00`))}
                     </p>
                     <p className="text-[10px] text-[var(--text-muted)]">
-                      {new Intl.DateTimeFormat('ar-EG', { weekday: 'long' }).format(new Date(`${item.reportDate}T00:00:00`))}
+                      {new Intl.DateTimeFormat('ar-EG-u-nu-latn', { weekday: 'long' }).format(new Date(`${item.reportDate}T00:00:00`))}
                     </p>
                   </div>
                 </div>
@@ -287,7 +287,7 @@ export function DailyReportsFeedPage() {
                           <p className="text-sm font-black">{comment.employeeName}</p>
                           <p className="mt-0.5 text-sm leading-7">{comment.comment}</p>
                           <p className="mt-1 text-[10px] text-[var(--text-muted)]">
-                            {new Intl.DateTimeFormat('ar-EG', {
+                            {new Intl.DateTimeFormat('ar-EG-u-nu-latn', {
                               hour: '2-digit',
                               minute: '2-digit',
                               day: 'numeric',

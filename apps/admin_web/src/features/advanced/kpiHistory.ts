@@ -33,7 +33,7 @@ export interface KpiHistoryPoint {
 export function formatMonthLabel(iso: string): string {
   const d = new Date(`${iso.slice(0, 7)}-01T00:00:00`);
   if (Number.isNaN(d.getTime())) return iso.slice(0, 7);
-  return new Intl.DateTimeFormat('ar-EG', { month: 'short', year: 'numeric' }).format(d);
+  return new Intl.DateTimeFormat('ar-EG-u-nu-latn', { month: 'short', year: 'numeric' }).format(d);
 }
 
 /** تحويل صفوف catalog.cycles إلى سلسلة زمنية مرتبة تصاعديًا حسب الشهر */

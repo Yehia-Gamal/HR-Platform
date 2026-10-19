@@ -14,8 +14,8 @@ import { StatusBadge } from '../../ui/StatusBadge';
 import { useEmployees } from '../employees/useEmployees';
 import { PENALTY_STATUS_LABELS, PENALTY_TYPE_LABELS, useAddEmployeePenalty, useEmployeePenalties, useWaiveEmployeePenalty } from './useFinancialExtensions';
 
-const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
-const currencyFmt = new Intl.NumberFormat('ar-EG', { style: 'currency', currency: 'EGP', maximumFractionDigits: 0 });
+const dateFormatter = new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium' });
+const currencyFmt = new Intl.NumberFormat('ar-EG-u-nu-latn', { style: 'currency', currency: 'EGP', maximumFractionDigits: 0 });
 
 function formatCurrency(amount: number | null | undefined): string {
   if (amount == null) return '—';

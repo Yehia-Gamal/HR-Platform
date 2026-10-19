@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useInstantPenalties } from './useInstantPenalties';
 
-const currencyFmt = new Intl.NumberFormat('ar-EG', { style: 'currency', currency: 'EGP', maximumFractionDigits: 0 });
+const currencyFmt = new Intl.NumberFormat('ar-EG-u-nu-latn', { style: 'currency', currency: 'EGP', maximumFractionDigits: 0 });
 const fmt = (n: number) => currencyFmt.format(n);
 
 export interface DashboardStats {

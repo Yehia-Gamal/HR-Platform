@@ -23,7 +23,7 @@ export function AiHrAssistantDialog({ isOpen, onClose }: { isOpen: boolean; onCl
       id: 'welcome',
       sender: 'assistant',
       text: `مرحباً بك! أنا مساعد الموارد البشرية الذكي لمنظومة «أحلى شباب». يمكنك سؤالي عن سياسات العمل، أرصدة الإجازات، اللوائح، أو خطوات تقديم الطلبات. كيف أستطيع خدمتك اليوم؟`,
-      timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+      timestamp: new Date().toLocaleTimeString('ar-EG-u-nu-latn', { hour: '2-digit', minute: '2-digit' }),
     },
   ]);
   const [input, setInput] = useState('');
@@ -44,7 +44,7 @@ export function AiHrAssistantDialog({ isOpen, onClose }: { isOpen: boolean; onCl
       id: `u-${Date.now()}`,
       sender: 'user',
       text: q,
-      timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+      timestamp: new Date().toLocaleTimeString('ar-EG-u-nu-latn', { hour: '2-digit', minute: '2-digit' }),
     };
 
     setMessages((prev) => [...prev, userMsg]);
@@ -76,7 +76,7 @@ export function AiHrAssistantDialog({ isOpen, onClose }: { isOpen: boolean; onCl
           id: `a-${Date.now()}`,
           sender: 'assistant',
           text: reply,
-          timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+          timestamp: new Date().toLocaleTimeString('ar-EG-u-nu-latn', { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
       setIsTyping(false);

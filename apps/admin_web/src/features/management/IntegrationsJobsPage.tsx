@@ -15,7 +15,7 @@ import { hasPermission } from '../workspaces/access';
 type Tab = 'connectors' | 'outbox' | 'logs' | 'automations';
 
 function date(value: string | null) {
-  return value ? new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : 'لم يحدث بعد';
+  return value ? new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : 'لم يحدث بعد';
 }
 
 export function IntegrationsJobsPage() {

@@ -20,7 +20,7 @@ const emptyTask: TaskDraft = { title: '', description: '', assigneeId: '', prior
 
 function date(value: string | null, withTime = false) {
   if (!value) return 'غير محدد';
-  return new Intl.DateTimeFormat('ar-EG', withTime ? { dateStyle: 'medium', timeStyle: 'short' } : { dateStyle: 'medium' }).format(new Date(value));
+  return new Intl.DateTimeFormat('ar-EG-u-nu-latn', withTime ? { dateStyle: 'medium', timeStyle: 'short' } : { dateStyle: 'medium' }).format(new Date(value));
 }
 
 function transport(value: string | null) {

@@ -288,15 +288,15 @@ export function KpiCyclesPage() {
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-2">
-                          <strong>{new Intl.DateTimeFormat('ar-EG', { month: 'long', year: 'numeric' }).format(new Date(cycle.periodMonth))}</strong>
+                          <strong>{new Intl.DateTimeFormat('ar-EG-u-nu-latn', { month: 'long', year: 'numeric' }).format(new Date(cycle.periodMonth))}</strong>
                           <StatusBadge value={cycleStatusLabels[cycle.status] ?? cycle.status} />
                         </div>
                         <p className="muted mt-1 text-sm">
                           {cycle.finalized}/{cycle.evaluations} مدرج · {cycle.overdue ?? 0} متأخر · المتوسط {cycle.averageScore ?? '—'}
                         </p>
                         <p className="muted mt-1 text-xs">
-                          الفتح: {cycle.scheduledOpenAt ? new Date(cycle.scheduledOpenAt).toLocaleString('ar-EG') : '—'} · النهاية:{' '}
-                          {cycle.effectiveDeadline ? new Date(cycle.effectiveDeadline).toLocaleString('ar-EG') : '—'}
+                          الفتح: {cycle.scheduledOpenAt ? new Date(cycle.scheduledOpenAt).toLocaleString('ar-EG-u-nu-latn') : '—'} · النهاية:{' '}
+                          {cycle.effectiveDeadline ? new Date(cycle.effectiveDeadline).toLocaleString('ar-EG-u-nu-latn') : '—'}
                         </p>
                         {cycle.overrideReason ? (
                           <p className="mt-2 text-xs text-[var(--warning)]">{cycle.overrideReason.replace(/^آخر سبب إداري:\s*/i, '')}</p>

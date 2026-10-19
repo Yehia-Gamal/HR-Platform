@@ -560,7 +560,7 @@ export function buildExecutiveDailyReportHtml(
   <!-- التذييل -->
   <div class="footer">
     <span>تم الإنشاء بواسطة ${esc(systemName)}</span>
-    <span>تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+    <span>تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG-u-nu-latn', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
   </div>
 
   <!-- التوقيعات -->

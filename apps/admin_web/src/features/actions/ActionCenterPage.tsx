@@ -113,14 +113,14 @@ export function ActionCenterPage() {
                     {item.dueAt ? (
                       <p className="text-xs font-bold text-[var(--warning)]">
                         المهلة:{' '}
-                        {new Intl.DateTimeFormat('ar-EG', {
+                        {new Intl.DateTimeFormat('ar-EG-u-nu-latn', {
                           dateStyle: 'medium',
                           timeStyle: 'short',
                         }).format(new Date(item.dueAt))}
                       </p>
                     ) : null}
                     {item.sourceUpdatedAt ? (
-                      <p className="muted text-xs" title={new Date(item.sourceUpdatedAt).toLocaleString('ar-EG')}>
+                      <p className="muted text-xs" title={new Date(item.sourceUpdatedAt).toLocaleString('ar-EG-u-nu-latn')}>
                         آخر تحديث {relativeTime(item.sourceUpdatedAt)}
                       </p>
                     ) : null}

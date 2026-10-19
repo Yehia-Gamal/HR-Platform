@@ -7,7 +7,7 @@ import { ChartCard } from '../../ui/charts/ChartCard';
 import { buildComparisonCsv, deriveDeltas, deriveHistory, downloadCsv, toEvaluationsSeries, toRadarData, toScoreSeries, type CatalogInput } from './kpiHistory';
 
 function fmtNum(v: number | null): string {
-  return v == null ? '—' : new Intl.NumberFormat('ar-EG', { maximumFractionDigits: 1 }).format(v);
+  return v == null ? '—' : new Intl.NumberFormat('ar-EG-u-nu-latn', { maximumFractionDigits: 1 }).format(v);
 }
 
 function deltaBadge(delta: number | null, invert: boolean): React.ReactNode {

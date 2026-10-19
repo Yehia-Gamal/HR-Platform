@@ -16,7 +16,7 @@ import { StatusBadge } from '../../ui/StatusBadge';
 import { useToast } from '../../ui/Toast';
 import { ASSET_STATUS_LABELS, DOCUMENT_STATUS_LABELS, OFFBOARDING_STATUS_LABELS, useDocumentsCatalog, useReviewDocument } from './useDocuments';
 
-const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
+const dateFormatter = new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium' });
 
 type Tab = 'documents' | 'assets' | 'offboarding';
 

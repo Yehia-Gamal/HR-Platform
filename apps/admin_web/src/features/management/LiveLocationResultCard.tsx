@@ -17,7 +17,7 @@ import { useToast } from '../../ui/Toast';
 function fmt(value: string | null | undefined): string {
   if (!value) return '—';
   const d = new Date(value);
-  return d.toLocaleString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit' });
+  return d.toLocaleString('ar-EG-u-nu-latn', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit' });
 }
 
 function num(v: unknown): number | null {

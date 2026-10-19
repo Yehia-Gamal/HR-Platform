@@ -9,7 +9,10 @@ import { AuthProvider } from './features/auth/AuthProvider';
 import { AppErrorBoundary } from './ui/AppErrorBoundary';
 import { ToastProvider, emitToast } from './ui/Toast';
 import { initializeTheme } from './ui/theme';
+import { enforceLatinNumeralsGlobal } from './core/localeConfig';
 import './styles.css';
+
+enforceLatinNumeralsGlobal();
 
 // تسجيل Service Worker للإشعارات
 function registerSW() {

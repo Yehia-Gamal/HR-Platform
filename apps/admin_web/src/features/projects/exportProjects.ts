@@ -22,7 +22,7 @@ export function exportProjectsCsv(projects: AssociationProjectListItem[]): void 
     { key: 'lastActivityAt', header: 'آخر نشاط', get: (r) => daysAgoLabel(activityDays(r)) },
   ];
   const csv = toCsv(columns, projects);
-  downloadCsv(`مشاريع_الجمعية_${new Date().toLocaleDateString('ar-EG')}.csv`, csv);
+  downloadCsv(`مشاريع_الجمعية_${new Date().toLocaleDateString('ar-EG-u-nu-latn')}.csv`, csv);
 }
 
 export function exportProjectsPdf(projects: AssociationProjectListItem[]): void {
@@ -71,7 +71,7 @@ export function exportProjectsPdf(projects: AssociationProjectListItem[]): void 
     [
       {
         title: 'مشاريع الجمعية',
-        subtitle: `تاريخ التصدير: ${new Date().toLocaleDateString('ar-EG')}`,
+        subtitle: `تاريخ التصدير: ${new Date().toLocaleDateString('ar-EG-u-nu-latn')}`,
         table: {
           headers: ['الكود', 'المشروع', 'الإدارات', 'القائد', 'الحالة', 'الموافقة', 'الأولوية', 'اللمبة', 'التقدم', 'الخطوات', 'آخر نشاط'],
           rows,

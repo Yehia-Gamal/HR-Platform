@@ -23,7 +23,7 @@ const PALETTE = ['var(--brand-primary)', 'var(--success)', 'var(--warning)', 'va
 /** تنسيق الأرقام بالعربية */
 function formatNumber(value: unknown): string {
   if (typeof value !== 'number') return String(value ?? '');
-  return value.toLocaleString('ar-EG');
+  return value.toLocaleString('ar-EG-u-nu-latn');
 }
 
 /* ───────────────── محتوى التلميح ───────────────── */

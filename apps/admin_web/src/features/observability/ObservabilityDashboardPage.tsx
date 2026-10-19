@@ -36,7 +36,7 @@ function num(v: unknown, fallback = 0): number {
 function fmtTime(iso: string | null | undefined): string {
   if (!iso) return '—';
   try {
-    return new Intl.DateTimeFormat('ar-EG', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(iso));
+    return new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(iso));
   } catch {
     return String(iso);
   }

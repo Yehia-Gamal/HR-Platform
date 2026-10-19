@@ -29,7 +29,7 @@ const AVAILABLE_FIELDS: ReportField[] = [
     id: 'createdAt',
     label: 'تاريخ الإضافة / التعيين',
     category: 'وظيفية',
-    getValue: (e) => (e.createdAt ? new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' }).format(new Date(e.createdAt)) : '—'),
+    getValue: (e) => (e.createdAt ? new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium' }).format(new Date(e.createdAt)) : '—'),
   },
 
   // حالة الحساب

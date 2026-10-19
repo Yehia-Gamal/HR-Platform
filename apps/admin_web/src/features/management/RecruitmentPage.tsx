@@ -289,7 +289,7 @@ export function RecruitmentPage() {
                       <td className="p-3">
                         <StatusBadge value={application.stageName ?? application.status} />
                       </td>
-                      <td className="p-3 muted">{new Date(application.appliedAt).toLocaleDateString('ar-EG')}</td>
+                      <td className="p-3 muted">{new Date(application.appliedAt).toLocaleDateString('ar-EG-u-nu-latn')}</td>
                       <td className="p-3">
                         <select
                           className="input max-w-48"
@@ -356,7 +356,7 @@ export function RecruitmentPage() {
                       <p className="font-black">{interview.candidateName}</p>
                       <p className="muted mt-1 text-sm">
                         {interview.mode === 'remote' ? 'عن بُعد' : 'حضوري'} ·{' '}
-                        {interview.scheduledAt ? new Date(interview.scheduledAt).toLocaleString('ar-EG') : 'غير مجدولة'}
+                        {interview.scheduledAt ? new Date(interview.scheduledAt).toLocaleString('ar-EG-u-nu-latn') : 'غير مجدولة'}
                         {interview.locationOrLink ? ` · ${interview.locationOrLink}` : ''}
                       </p>
                     </div>
@@ -448,7 +448,7 @@ export function RecruitmentPage() {
                           <p className="font-black">{offer.candidateName}</p>
                           <p className="muted mt-1 text-sm">
                             {offer.title ?? 'عرض توظيف'} · نسخة {offer.version}
-                            {offer.startDate ? ` · يبدأ ${new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' }).format(new Date(offer.startDate))}` : ''}
+                            {offer.startDate ? ` · يبدأ ${new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium' }).format(new Date(offer.startDate))}` : ''}
                           </p>
                         </div>
                         <StatusBadge value={offer.status} />

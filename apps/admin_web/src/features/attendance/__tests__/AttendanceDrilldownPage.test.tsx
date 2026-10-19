@@ -86,7 +86,7 @@ describe('AttendanceDrilldownPage', () => {
       refetch: () => undefined,
     };
     renderPage();
-    expect(screen.getByText(/عرض ٢٧ نتيجة/)).toBeDefined();
+    expect(screen.getByText(/عرض 27 نتيجة/)).toBeDefined();
   });
 
   it('يعرض حالة فارغة عند غياب العناصر', () => {

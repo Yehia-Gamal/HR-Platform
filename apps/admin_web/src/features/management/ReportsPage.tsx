@@ -160,7 +160,7 @@ export function ReportsPage() {
           {/* بيانات التوليد */}
           <section className="card flex items-center justify-between p-4">
             <p className="text-xs text-[var(--text-muted)]">
-              آخر توليد: {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(d.generatedAt))}
+              آخر توليد: {new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(d.generatedAt))}
             </p>
           </section>
         </>

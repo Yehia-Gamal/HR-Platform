@@ -69,7 +69,7 @@ export function ConvoyRadarModal({
   };
 
   function handleAdvanceCheckpoint(id: string, newStatus: 'in_progress' | 'completed') {
-    const nowTime = new Intl.DateTimeFormat('ar-EG', {
+    const nowTime = new Intl.DateTimeFormat('ar-EG-u-nu-latn', {
       timeStyle: 'short',
     }).format(new Date());
 

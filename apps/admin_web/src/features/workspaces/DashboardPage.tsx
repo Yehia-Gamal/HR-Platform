@@ -628,7 +628,7 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
                 </span>
               </div>
               <div className="text-[var(--text-muted)]">
-                آخر مزامنة: {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(data.lastUpdatedAt ?? Date.now()))}
+                آخر مزامنة: {new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(data.lastUpdatedAt ?? Date.now()))}
               </div>
             </section>
           ) : null}

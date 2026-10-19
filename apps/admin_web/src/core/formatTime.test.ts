@@ -53,8 +53,8 @@ describe('formatClock', () => {
 
   it('ينسّق الساعة والدقيقة فقط', () => {
     const result = formatClock('2026-08-07T14:30:00Z');
-    // أرقام عربية (٠-٩) مع نقطتين — لا يحوي تاريخًا
-    expect(result).toMatch(/[\u0660-\u0669]{1,2}:[\u0660-\u0669]{2}/);
+    // أرقام لاتينية موحدة (0-9) مع نقطتين وتحديد ص/م — لا يحوي تاريخًا
+    expect(result).toMatch(/\d{1,2}:\d{2}/);
     expect(result).not.toMatch(/2026/);
   });
 });

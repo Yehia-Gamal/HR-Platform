@@ -136,15 +136,15 @@ export function FellowshipFundPage() {
       [
         {
           title: 'كشف حركات صندوق الزمالة والتكافل الاجتماعي',
-          subtitle: `الرصيد المتاح: ${currentBalance.toLocaleString('ar-EG')} ج.م — عدد الحركات: ${list.length}`,
+          subtitle: `الرصيد المتاح: ${currentBalance.toLocaleString('ar-EG-u-nu-latn')} ج.م — عدد الحركات: ${list.length}`,
           table: {
             headers: ['التاريخ', 'النوع', 'الفئة', 'المبلغ', 'الرصيد بعد', 'البيان / السبب', 'المعني', 'المسؤول'],
             rows: list.map((t) => [
               t.createdAt.replace('T', ' ').slice(0, 16),
               t.transactionType === 'inflow' ? 'وارد (+)' : 'منصرف (-)',
               t.category,
-              `${t.amount.toLocaleString('ar-EG')} ج.م`,
-              `${t.balanceAfter.toLocaleString('ar-EG')} ج.م`,
+              `${t.amount.toLocaleString('ar-EG-u-nu-latn')} ج.م`,
+              `${t.balanceAfter.toLocaleString('ar-EG-u-nu-latn')} ج.م`,
               t.reason,
               t.employeeName || '—',
               t.performerName || '—',
@@ -154,9 +154,9 @@ export function FellowshipFundPage() {
       ],
       'تقرير صندوق الزمالة والتكافل',
       [
-        { label: 'الرصيد المتاح', value: `${currentBalance.toLocaleString('ar-EG')} ج.م` },
-        { label: 'إجمالي الوارد', value: `${(summary?.totalInflows ?? 0).toLocaleString('ar-EG')} ج.م` },
-        { label: 'إجمالي المنصرف', value: `${(summary?.totalOutflows ?? 0).toLocaleString('ar-EG')} ج.م` },
+        { label: 'الرصيد المتاح', value: `${currentBalance.toLocaleString('ar-EG-u-nu-latn')} ج.م` },
+        { label: 'إجمالي الوارد', value: `${(summary?.totalInflows ?? 0).toLocaleString('ar-EG-u-nu-latn')} ج.م` },
+        { label: 'إجمالي المنصرف', value: `${(summary?.totalOutflows ?? 0).toLocaleString('ar-EG-u-nu-latn')} ج.م` },
         { label: 'عدد الإيداعات', value: `${summary?.inflowsCount ?? 0}` },
         { label: 'عدد السحوبات', value: `${summary?.outflowsCount ?? 0}` },
       ],

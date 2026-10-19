@@ -129,13 +129,13 @@ const STATUS_LABELS_PDF: Record<string, string> = {
 
 function _fmt(iso: string | null | undefined): string {
   if (!iso) return '—';
-  return new Intl.DateTimeFormat('ar-EG', { timeStyle: 'short' }).format(new Date(iso));
+  return new Intl.DateTimeFormat('ar-EG-u-nu-latn', { timeStyle: 'short' }).format(new Date(iso));
 }
 
 function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIso: string): string {
   const categoryLabel = CATEGORY_LABELS[category] ?? category;
   const dateObj = new Date(`${dateIso}T00:00:00`);
-  const dateLabel = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'full' }).format(Number.isNaN(dateObj.getTime()) ? new Date() : dateObj);
+  const dateLabel = new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'full' }).format(Number.isNaN(dateObj.getTime()) ? new Date() : dateObj);
   const title = `كشف الحضور الرسمي — ${categoryLabel} — ${dateLabel}`;
 
   const isMissionItem = (i: AttendanceRosterItem): boolean =>
@@ -446,7 +446,7 @@ function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIs
 
   <div class="footer">
     <span>منظومة أحلى شباب الإدارية — كشف حضور رسمي مُصدّر إلكترونياً</span>
-    <span>تاريخ التوليد: ${new Intl.DateTimeFormat('ar-EG', { dateStyle: 'full', timeStyle: 'short' }).format(new Date())}</span>
+    <span>تاريخ التوليد: ${new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'full', timeStyle: 'short' }).format(new Date())}</span>
   </div>
 </div>
 

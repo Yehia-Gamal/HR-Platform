@@ -442,7 +442,7 @@ export function AttendanceDrilldownPage() {
               <h1 className="text-base sm:text-lg font-black text-[var(--text)]">قائمة «{currentCategory.label}»</h1>
               {total > 0 ? (
                 <span className="rounded-full bg-[var(--primary)]/10 text-[var(--primary)] px-2.5 py-0.5 text-xs font-black border border-[var(--primary)]/20">
-                  {total.toLocaleString('ar-EG')}
+                  {total.toLocaleString('ar-EG-u-nu-latn')}
                 </span>
               ) : null}
             </div>

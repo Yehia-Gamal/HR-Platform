@@ -59,8 +59,8 @@ export function ExecutiveDailyReportPage() {
   const { dayName, monthName, dateDay } = useMemo(() => {
     const dt = new Date(dateIso);
     return {
-      dayName: dt.toLocaleDateString('ar-EG', { weekday: 'long' }),
-      monthName: dt.toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' }),
+      dayName: dt.toLocaleDateString('ar-EG-u-nu-latn', { weekday: 'long' }),
+      monthName: dt.toLocaleDateString('ar-EG-u-nu-latn', { month: 'long', year: 'numeric' }),
       dateDay: dt.getDate(),
     };
   }, [dateIso]);

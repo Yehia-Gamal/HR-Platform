@@ -6,7 +6,7 @@ import { hasPermission } from '../workspaces/access';
 import { useEmployeeAuditTrail } from './useEmployees';
 import { safeErrorMessage } from '../../core/errorMapper';
 
-const dateTimeFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' });
+const dateTimeFormatter = new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' });
 
 // الهاتف المصري المحلي: 11 رقماً يبدأ بـ 01
 const LOCAL_PHONE_PATTERN = /^01\d{9}$/;

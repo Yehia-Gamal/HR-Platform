@@ -188,7 +188,7 @@ export function buildStatementBodyHtml(data: AttendanceStatement, orgName = 'ج�
     </div>
   </div>`;
 
-  const printDateStr = new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
+  const printDateStr = new Date().toLocaleDateString('ar-EG-u-nu-latn', { year: 'numeric', month: 'long', day: 'numeric' });
 
   // إذا كانت الأيام قليلة (15 يوماً أو أقل)، تُعرض كاملة في صفحة واحدة متناسقة
   if (days.length <= 15) {

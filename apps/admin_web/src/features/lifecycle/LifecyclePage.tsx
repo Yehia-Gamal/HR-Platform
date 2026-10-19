@@ -18,7 +18,7 @@ type Journey = OnboardingAdminCatalog['journeys'][number];
 type JourneyTask = Journey['tasks'][number];
 type EligibleEmployee = OnboardingAdminCatalog['eligibleEmployees'][number];
 
-const dateFormatter = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium' });
+const dateFormatter = new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium' });
 
 const STATUS_FILTERS = ['all', 'in_progress', 'completed'] as const;
 

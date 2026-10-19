@@ -77,7 +77,7 @@ export function activityDays(p: Pick<AssociationProjectListItem, 'daysSinceActiv
 
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' });
+  return new Date(iso).toLocaleDateString('ar-EG-u-nu-latn', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
 export function isOnBoard(p: AssociationProjectListItem): boolean {
