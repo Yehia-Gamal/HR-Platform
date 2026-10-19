@@ -40,10 +40,10 @@ import {
 } from './executiveReportLogic';
 import { ExecutiveWorkforceChart } from './ExecutiveWorkforceChart';
 
-function formatTime12(iso: string | null | undefined): string {
+function formatTime12(iso: string | null | undefined, numberSystem: 'latn' | 'arab' = 'latn'): string {
   if (!iso) return '—';
   try {
-    return new Intl.DateTimeFormat('ar-EG', { timeStyle: 'short', timeZone: 'Africa/Cairo' }).format(new Date(iso));
+    return new Intl.DateTimeFormat(`ar-EG-u-nu-${numberSystem}`, { timeStyle: 'short', timeZone: 'Africa/Cairo' }).format(new Date(iso));
   } catch {
     return String(iso);
   }
@@ -56,6 +56,7 @@ interface Props {
 
 export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
   const [activeReportTab, setActiveReportTab] = useState<'live' | 'end_of_day' | 'comparison'>('live');
+  const [numberSystem, setNumberSystem] = useState<'latn' | 'arab'>('latn');
   const [isCapturing, setIsCapturing] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [copiedType, setCopiedType] = useState<'image' | 'text' | 'print' | null>(null);
@@ -126,8 +127,8 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
   const upcomingShiftList = classified.filter((c) => c.category === 'shift_not_started');
   const onTimePresentList = classified.filter((c) => c.category === 'present_on_time');
 
-  const dateFormatted = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'full' }).format(new Date(`${dateIso}T00:00:00`));
-  const nowFormatted = new Intl.DateTimeFormat('ar-EG', { timeStyle: 'short', timeZone: 'Africa/Cairo' }).format(new Date());
+  const dateFormatted = new Intl.DateTimeFormat(`ar-EG-u-nu-${numberSystem}`, { dateStyle: 'full' }).format(new Date(`${dateIso}T00:00:00`));
+  const nowFormatted = new Intl.DateTimeFormat(`ar-EG-u-nu-${numberSystem}`, { timeStyle: 'short', timeZone: 'Africa/Cairo' }).format(new Date());
 
   // كود التحقق الأمني مع Hash رقمي للمحتوى
   const securityInfo = generateSecurityVerificationCode(
@@ -503,6 +504,17 @@ ${
               >
                 {copiedType === 'text' ? <Check className="size-4 text-emerald-400" /> : <MessageSquare className="size-4 text-emerald-400" />}
                 <span>نسخ نص واتساب</span>
+              </button>
+
+              {/* زر توحيد وتبديل نمط الأرقام (خيار قابل للضبط) */}
+              <button
+                type="button"
+                onClick={() => setNumberSystem((prev) => (prev === 'latn' ? 'arab' : 'latn'))}
+                className="btn-secondary btn-sm h-9 px-2.5 text-xs font-bold rounded-xl inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 hover:border-sky-500 transition-all font-mono"
+                title="توحيد نمط الأرقام عبر التقرير (لاتيني 123 أو مشرقية ١٢٣)"
+              >
+                <span className="text-sky-400 font-bold">{numberSystem === 'latn' ? '123' : '١٢٣'}</span>
+                <span className="text-[11px] hidden sm:inline">{numberSystem === 'latn' ? 'أرقام موحدة' : 'أرقام مشرقية'}</span>
               </button>
 
               {/* زر الإغلاق */}

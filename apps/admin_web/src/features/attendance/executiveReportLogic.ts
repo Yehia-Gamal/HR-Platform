@@ -437,7 +437,10 @@ export function sanitizeMissionPurpose(title: string | null | undefined, reason:
  */
 export function formatShiftBadge(shiftName: string | null | undefined): string {
   if (!shiftName || shiftName === '—') return 'دوام مرن';
-  return shiftName.replace(/(\d+)\s*ع(?=[\s\–\-—\)]|$)/g, '$1 م');
+  let formatted = shiftName.replace(/(\d+)\s*ع(?=[\s\–\-—\)]|$)/g, '$1 م');
+  // توضيح وسم "عيادات (١)" أو "عيادات (1)" غير المفهوم ليصبح صريحاً للمدير التنفيذي
+  formatted = formatted.replace(/عيادات\s*\([١1]\)/g, 'العيادات الطبية (الفترة المسائية 3 م – 11 م)');
+  return formatted;
 }
 
 /**
