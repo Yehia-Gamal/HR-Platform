@@ -178,7 +178,7 @@ describe('ExecutiveAttendanceModal', () => {
     // Logo image is present
     const logoImg = screen.getByAltText('شعار جمعية خواطر أحلى شباب') as HTMLImageElement;
     expect(logoImg).toBeDefined();
-    expect(logoImg.src).toContain('/brand/association-logo-white.png');
+    expect(logoImg.src).toContain('data:image/png;base64');
 
     // Title and association name
     expect(screen.getByText('جمعية خواطر أحلى شباب')).toBeDefined();

@@ -3,6 +3,7 @@ import { Calendar, Camera, Check, CheckCircle2, Clock3, Copy, Download, Loader2,
 import { useAttendanceRosterPage } from './useAttendanceDashboard';
 import { DialogPortal } from '../../ui/DialogPortal';
 import type { AttendanceRosterItem } from '@ahla/shared-contracts';
+import { ASSOCIATION_LOGO_WHITE_DATA_URL } from './brandAssets';
 
 function formatTime12(iso: string | null | undefined): string {
   if (!iso) return '—';
@@ -534,12 +535,11 @@ ${
                 {/* 1. الترويسة الملكية للجمعية مع الشعار الرسمي */}
                 <div className="flex items-center justify-between pb-5 border-b border-slate-800/90 mb-6 gap-4">
                   <div className="flex items-center gap-4">
-                    <div className="size-16 rounded-2xl bg-slate-900/90 border border-slate-700/80 p-2 flex items-center justify-center shadow-xl shrink-0 ring-1 ring-white/10">
+                    <div className="size-20 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-700/80 p-2 flex items-center justify-center shadow-2xl shrink-0 ring-1 ring-white/10">
                       <img
-                        src="/brand/association-logo-white.png"
+                        src={ASSOCIATION_LOGO_WHITE_DATA_URL}
                         alt="شعار جمعية خواطر أحلى شباب"
                         className="size-full object-contain"
-                        crossOrigin="anonymous"
                       />
                     </div>
                     <div>

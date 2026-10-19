@@ -17,6 +17,7 @@ import { rpc } from '../../core/rpc';
 import { cairoTodayIso } from '../../core/cairoTime';
 import { useAuth } from '../auth/AuthProvider';
 import { loadDomainMocks } from '../mock/loadDomainMocks';
+import { ASSOCIATION_LOGO_BLUE_DATA_URL } from './brandAssets';
 
 export interface AttendanceDashboardFilters {
   dateIso?: string;
@@ -370,9 +371,12 @@ function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIs
 
 <div class="page">
   <div class="header">
-    <div>
-      <div class="org-title">جمعية خواطر أحلى شباب (المشهرة برقم 7226)</div>
-      <div class="org-sub">منظومة الإدارة المؤسسية — الإدارة العامة للموارد البشرية</div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <img src="${ASSOCIATION_LOGO_BLUE_DATA_URL}" alt="شعار جمعية خواطر أحلى شباب" style="height:54px;width:auto;object-fit:contain;" />
+      <div>
+        <div class="org-title">جمعية خواطر أحلى شباب (المشهرة برقم 7226)</div>
+        <div class="org-sub">منظومة الإدارة المؤسسية — الإدارة العامة للموارد البشرية</div>
+      </div>
     </div>
     <div class="doc-title-box">
       <div class="doc-main-title">كشف الحضور اليومي — ${categoryLabel}</div>
