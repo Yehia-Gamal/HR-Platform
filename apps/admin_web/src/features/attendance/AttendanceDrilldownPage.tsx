@@ -152,7 +152,7 @@ export function AttendanceDrilldownPage() {
         useCORS: true,
         logging: false,
         backgroundColor: '#0b1329',
-        windowWidth: element.scrollWidth,
+        windowWidth: Math.max(element.scrollWidth, 1100),
         ignoreElements: (el: Element) => el.getAttribute('data-hide-capture') === 'true',
       });
 
@@ -540,14 +540,16 @@ export function AttendanceDrilldownPage() {
 
         {/* ─── ترقيم الصفحات ─── */}
         {!query.isError && !query.isLoading && total > 0 ? (
-          <Pagination
-            currentPage={page}
-            totalPages={totalPages}
-            totalItems={total}
-            pageSize={limit}
-            onPageChange={(p) => updateParams({ page: String(p) })}
-            onPageSizeChange={(size) => updateParams({ size: String(size) })}
-          />
+          <div data-hide-capture="true">
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={total}
+              pageSize={limit}
+              onPageChange={(p) => updateParams({ page: String(p) })}
+              onPageSizeChange={(size) => updateParams({ size: String(size) })}
+            />
+          </div>
         ) : null}
       </div>
 
