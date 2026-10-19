@@ -181,22 +181,101 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
   const dateFormatted = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'full' }).format(new Date(`${dateIso}T00:00:00`));
   const nowFormatted = new Intl.DateTimeFormat('ar-EG', { timeStyle: 'short' }).format(new Date());
 
-  // 1. التقاط الصورة وتنزيلها كملف PNG عالي الدقة
+  // دالة مساعدة مركزية لالتقاط صورة فائقة الدقة لكامل الكشف من البداية وحتى التذييل بلا أي اقتطاع
+  const captureExecutiveCardCanvas = async (el: HTMLElement): Promise<HTMLCanvasElement> => {
+    const h2cModule = await import('html2canvas-pro');
+    const html2canvas = typeof h2cModule.default === 'function' ? h2cModule.default : (h2cModule as any);
+
+    // 1. التأكد التام من اكتمال تحميل الشعار والخطوط قبل الالتقاط
+    const images = Array.from(el.querySelectorAll('img'));
+    await Promise.all(
+      images.map((img) => {
+        if (img.complete) return Promise.resolve();
+        return new Promise((resolve) => {
+          img.onload = () => resolve(true);
+          img.onerror = () => resolve(true);
+        });
+      })
+    );
+    if (document.fonts) {
+      try {
+        await document.fonts.ready;
+      } catch {
+        // ignore
+      }
+    }
+
+    // 2. حساب الأبعاد الحقيقية الكاملة لكامل الكرت شاملاً كل الجداول حتى التذييل
+    const fullWidth = Math.max(el.scrollWidth, el.offsetWidth, 1040);
+    const fullHeight = Math.max(el.scrollHeight, el.offsetHeight);
+
+    // 3. إعادة ضبط التمرير في الحاوية الأب مؤقتاً لتفادي إزاحات التمرير
+    const scrollParent = el.parentElement;
+    const prevScrollTop = scrollParent ? scrollParent.scrollTop : 0;
+    if (scrollParent) {
+      scrollParent.scrollTop = 0;
+    }
+
+    try {
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: false,
+        logging: false,
+        backgroundColor: '#0b1329',
+        width: fullWidth,
+        height: fullHeight,
+        windowWidth: fullWidth,
+        windowHeight: fullHeight,
+        x: 0,
+        y: 0,
+        scrollX: 0,
+        scrollY: 0,
+        onclone: (clonedDoc: Document, clonedEl: HTMLElement) => {
+          // فك قيود الارتفاع وتجاوز المحتوى (overflow) في الشجرة المستنسخة لضمان رسم كامل المحتوى
+          clonedEl.style.height = `${fullHeight}px`;
+          clonedEl.style.minHeight = `${fullHeight}px`;
+          clonedEl.style.maxHeight = 'none';
+          clonedEl.style.overflow = 'visible';
+          clonedEl.style.position = 'static';
+          clonedEl.style.transform = 'none';
+
+          let curr: HTMLElement | null = clonedEl.parentElement;
+          while (curr && curr !== clonedDoc.body) {
+            curr.style.height = 'auto';
+            curr.style.minHeight = 'auto';
+            curr.style.maxHeight = 'none';
+            curr.style.overflow = 'visible';
+            curr.style.display = 'block';
+            curr.style.transform = 'none';
+            curr = curr.parentElement;
+          }
+
+          if (clonedDoc.body) {
+            clonedDoc.body.style.height = 'auto';
+            clonedDoc.body.style.minHeight = 'auto';
+            clonedDoc.body.style.maxHeight = 'none';
+            clonedDoc.body.style.overflow = 'visible';
+          }
+        },
+      });
+
+      return canvas;
+    } finally {
+      if (scrollParent) {
+        scrollParent.scrollTop = prevScrollTop;
+      }
+    }
+  };
+
+  // 1. التقاط الصورة وتنزيلها كملف PNG عالي الدقة لكامل الكشف
   const handleDownloadImage = async () => {
     const el = document.getElementById('executive-attendance-card');
     if (!el) return;
     setIsCapturing(true);
-    setToastMessage('جاري توليد الصورة التنفيذية بجودة فائقة...');
+    setToastMessage('جاري توليد الصورة التنفيذية لكامل الكشف بجودة فائقة...');
     try {
-      const h2cModule = await import('html2canvas-pro');
-      const html2canvas = typeof h2cModule.default === 'function' ? h2cModule.default : (h2cModule as any);
-      const canvas = await html2canvas(el, {
-        scale: 2.5,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#0b1329',
-        windowWidth: 1200,
-      });
+      const canvas = await captureExecutiveCardCanvas(el);
 
       canvas.toBlob((blob: Blob | null) => {
         if (!blob) {
@@ -211,7 +290,7 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
         a.click();
         document.body.removeChild(a);
         setTimeout(() => URL.revokeObjectURL(url), 10_000);
-        setToastMessage('تم تنزيل الصورة بنجاح ✅');
+        setToastMessage('تم تنزيل الصورة الكاملة بنجاح ✅');
         setTimeout(() => setToastMessage(null), 3500);
       }, 'image/png');
     } catch (err) {
@@ -227,17 +306,9 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
     const el = document.getElementById('executive-attendance-card');
     if (!el) return;
     setIsCapturing(true);
-    setToastMessage('جاري نسخ الصورة للحافظة...');
+    setToastMessage('جاري نسخ الصورة الكاملة للحافظة...');
     try {
-      const h2cModule = await import('html2canvas-pro');
-      const html2canvas = typeof h2cModule.default === 'function' ? h2cModule.default : (h2cModule as any);
-      const canvas = await html2canvas(el, {
-        scale: 2.5,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#0b1329',
-        windowWidth: 1200,
-      });
+      const canvas = await captureExecutiveCardCanvas(el);
 
       canvas.toBlob(async (blob: Blob | null) => {
         if (!blob) {
@@ -248,7 +319,7 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
           if (navigator.clipboard && 'write' in navigator.clipboard && typeof ClipboardItem !== 'undefined') {
             await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
             setCopiedType('image');
-            setToastMessage('تم نسخ الصورة للحافظة! يمكنك الآن لصقها (Ctrl + V) في واتساب مباشرة ✅');
+            setToastMessage('تم نسخ الصورة الكاملة للحافظة! يمكنك الآن لصقها (Ctrl + V) في واتساب مباشرة ✅');
             setTimeout(() => {
               setCopiedType(null);
               setToastMessage(null);
@@ -449,38 +520,62 @@ ${
               /* ─── البطاقة التنفيذية التي سيتم التقاطها كصورة (Executive Card) ─── */
               <div
                 id="executive-attendance-card"
-                className="w-full max-w-[1020px] rounded-2xl p-6 sm:p-8 shadow-2xl font-sans shrink-0"
+                className="w-full max-w-[1040px] rounded-2xl p-6 sm:p-8 shadow-2xl shrink-0"
                 dir="rtl"
-                style={{ minWidth: '850px', backgroundColor: '#0b1329', color: '#f8fafc', border: '1px solid rgba(255, 255, 255, 0.1)' }}
+                style={{
+                  minWidth: '880px',
+                  backgroundColor: '#0b1329',
+                  color: '#f8fafc',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  fontFamily: "'Cairo', 'Noto Sans Arabic', 'Segoe UI', Tahoma, Arial, sans-serif",
+                  letterSpacing: 'normal',
+                }}
               >
-                {/* 1. الترويسة الملكية للجمعية */}
-              <div className="flex items-center justify-between pb-5 border-b border-slate-800 mb-6">
-                <div className="flex items-center gap-3.5">
-                  <div className="size-12 rounded-2xl bg-sky-600 text-white flex items-center justify-center font-black text-xl shadow-lg">أحلى</div>
-                  <div>
-                    <h1 className="text-xl font-black text-white tracking-tight">جمعية خواطر أحلى شباب</h1>
-                    <p className="text-xs font-bold text-slate-400 mt-0.5">منظومة الإدارة والمتابعة المؤسسية · الإدارة التنفيذية</p>
+                {/* 1. الترويسة الملكية للجمعية مع الشعار الرسمي */}
+                <div className="flex items-center justify-between pb-5 border-b border-slate-800/90 mb-6 gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="size-16 rounded-2xl bg-slate-900/90 border border-slate-700/80 p-2 flex items-center justify-center shadow-xl shrink-0 ring-1 ring-white/10">
+                      <img
+                        src="/brand/association-logo-white.png"
+                        alt="شعار جمعية خواطر أحلى شباب"
+                        className="size-full object-contain"
+                        crossOrigin="anonymous"
+                      />
+                    </div>
+                    <div>
+                      <h1 className="text-xl sm:text-2xl font-black text-white leading-tight" style={{ letterSpacing: 'normal' }}>
+                        جمعية خواطر أحلى شباب
+                      </h1>
+                      <p className="text-xs font-bold text-slate-300 mt-1" style={{ letterSpacing: 'normal' }}>
+                        منظومة الإدارة والمتابعة المؤسسية · الإدارة التنفيذية
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-start bg-slate-900/90 border border-slate-700/80 rounded-2xl px-4 py-2.5 shadow-md shrink-0">
+                    <div className="flex items-center gap-2 text-xs font-black text-slate-100" style={{ letterSpacing: 'normal' }}>
+                      <Calendar className="size-4 text-sky-400" />
+                      <span>{dateFormatted}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[11px] font-bold text-slate-400 mt-1" style={{ letterSpacing: 'normal' }}>
+                      <Clock3 className="size-3.5 text-slate-400" />
+                      <span>توقيت الإصدار: {nowFormatted}</span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="text-start bg-slate-900 border border-slate-700/80 rounded-xl px-4 py-2">
-                  <div className="flex items-center gap-1.5 text-xs font-black text-slate-200">
-                    <Calendar className="size-3.5 text-sky-400" />
-                    <span>{dateFormatted}</span>
+                {/* عنوان الكشف الصريح المنسق */}
+                <div className="flex flex-col items-center justify-center mb-6 gap-1.5 text-center">
+                  <div className="inline-flex items-center gap-2.5 px-6 py-2 rounded-2xl bg-gradient-to-r from-sky-500/15 via-indigo-500/20 to-sky-500/15 border border-sky-400/30 shadow-inner">
+                    <span className="size-2 rounded-full bg-sky-400 animate-pulse" />
+                    <h2 className="text-base sm:text-lg font-black text-sky-300" style={{ letterSpacing: 'normal' }}>
+                      كشف المتابعة اليومية للحضور والانصراف
+                    </h2>
                   </div>
-                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 mt-0.5">
-                    <Clock3 className="size-3 text-slate-400" />
-                    <span>توقيت الإصدار: {nowFormatted}</span>
-                  </div>
+                  <p className="text-[11px] font-semibold text-slate-400" style={{ letterSpacing: 'normal' }}>
+                    بيان تنفيذي رسمي معتمد للإدارة التنفيذية وفق بيانات الحضور وبصمات الدوام والمأموريات الميدانية
+                  </p>
                 </div>
-              </div>
-
-              {/* عنوان الكشف الصريح */}
-              <div className="text-center mb-6">
-                <h2 className="text-base font-black text-sky-400 inline-block px-6 py-1.5 bg-sky-500/10 rounded-full border border-sky-500/30">
-                  كشف المتابعة اليومية للحضور والانصراف
-                </h2>
-              </div>
 
               {/* 2. شريط المؤشرات الرقمية (KPI Strip) */}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
