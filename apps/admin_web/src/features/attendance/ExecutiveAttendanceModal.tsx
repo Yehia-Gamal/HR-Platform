@@ -101,7 +101,7 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
       (i) =>
         (i.status === 'on_leave' ||
           Boolean(i.hasApprovedLeave) ||
-          (i.hasPendingRequest && i.pendingRequestType !== 'mission' && i.pendingRequestType !== 'permit')) &&
+          (i.hasPendingRequest && i.pendingRequestType === 'leave')) &&
         !i.hasMission &&
         i.pendingRequestType !== 'mission'
     )
@@ -121,6 +121,7 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
     items.filter(
       (i) =>
         (i.lateMinutes ?? 0) > 0 &&
+        Boolean(i.firstCheckIn) &&
         !i.hasMission &&
         !i.hasApprovedLeave &&
         i.status !== 'on_mission' &&
@@ -131,11 +132,12 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
   const absent = sortClinicStaffToEnd(
     items.filter(
       (i) =>
-        (i.status === 'absent' || i.status === 'unexcused_absent') &&
         !i.firstCheckIn &&
         !i.hasApprovedLeave &&
         !i.hasMission &&
-        !i.hasPendingRequest
+        i.status !== 'on_mission' &&
+        i.status !== 'on_leave' &&
+        !(i.hasPendingRequest && (i.pendingRequestType === 'leave' || i.pendingRequestType === 'mission'))
     )
   );
   const pendingRequests = items.filter((i) => Boolean(i.hasPendingRequest));
@@ -498,7 +500,16 @@ ${
                         {present.map((p, idx) => (
                           <tr key={p.employeeId} className={idx % 2 === 0 ? 'bg-slate-950/40' : 'bg-slate-900/40'}>
                             <td className="p-2 text-center text-slate-500 font-bold">{idx + 1}</td>
-                            <td className="p-2 font-black text-white">{p.employeeName}</td>
+                            <td className="p-2 font-black text-white">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span>{p.employeeName}</span>
+                                {isClinicMedicalStaff(p) ? (
+                                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 inline-flex items-center gap-0.5">
+                                    🩺 عيادات
+                                  </span>
+                                ) : null}
+                              </div>
+                            </td>
                             <td className="p-2 text-slate-300">
                               <span>{p.departmentName ?? '—'}</span>
                               {p.branchName ? <span className="text-slate-400 text-[10px] block">{p.branchName}</span> : null}
@@ -527,13 +538,13 @@ ${
                   <div className="bg-rose-900/70 border-b border-rose-500/20 text-white px-4 py-2 flex items-center justify-between text-xs font-black">
                     <div className="flex items-center gap-1.5">
                       <UserX className="size-4 text-rose-400" />
-                      <span>قائمة الغائبين بدون إذن</span>
+                      <span>قائمة الموظفين الغائبين</span>
                     </div>
                     <span className="bg-rose-800 px-2.5 py-0.5 rounded-full text-[11px]">{absent.length} موظف</span>
                   </div>
 
                   {absent.length === 0 ? (
-                    <div className="py-4 text-center text-xs text-slate-400 font-bold bg-slate-900/20">لا يوجد غياب غير مبرر لهذا اليوم.</div>
+                    <div className="py-4 text-center text-xs text-slate-400 font-bold bg-slate-900/20">لا يوجد غياب لهذا اليوم.</div>
                   ) : (
                     <table className="w-full text-[11px] border-collapse">
                       <thead>
@@ -549,14 +560,39 @@ ${
                         {absent.map((a, idx) => (
                           <tr key={a.employeeId} className={idx % 2 === 0 ? 'bg-slate-950/40' : 'bg-slate-900/40'}>
                             <td className="p-2 text-center text-slate-500 font-bold">{idx + 1}</td>
-                            <td className="p-2 font-black text-white">{a.employeeName}</td>
+                            <td className="p-2 font-black text-white">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span>{a.employeeName}</span>
+                                {isClinicMedicalStaff(a) ? (
+                                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 inline-flex items-center gap-0.5">
+                                    🩺 عيادات
+                                  </span>
+                                ) : null}
+                              </div>
+                            </td>
                             <td className="p-2 text-slate-300">
                               <span>{a.departmentName ?? '—'}</span>
                               {a.branchName ? <span className="text-slate-400 text-[10px] block">{a.branchName}</span> : null}
                             </td>
                             <td className="p-2 text-slate-300">{a.shiftName ?? '—'}</td>
                             <td className="p-2">
-                              <span className="inline-block px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold text-[10px]">غياب بدون إذن</span>
+                              {a.hasPendingRequest ? (
+                                <div className="flex flex-col gap-0.5">
+                                  <span className="inline-block px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold text-[10px] w-fit">
+                                    ⏳ طلب معلّق{a.pendingRequestNumber ? ` (#${a.pendingRequestNumber})` : ''}
+                                  </span>
+                                  {a.pendingRequestTitle ? (
+                                    <span className="text-slate-200 font-medium text-[10.5px]">📌 {a.pendingRequestTitle}</span>
+                                  ) : null}
+                                  {a.leaveReason ? (
+                                    <span className="text-slate-400 font-normal text-[10px]">💬 {a.leaveReason}</span>
+                                  ) : null}
+                                </div>
+                              ) : (
+                                <span className="inline-block px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold text-[10px]">
+                                  غياب بدون إذن
+                                </span>
+                              )}
                             </td>
                           </tr>
                         ))}
@@ -595,7 +631,16 @@ ${
                           return (
                             <tr key={item.employeeId} className={idx % 2 === 0 ? 'bg-slate-950/40' : 'bg-slate-900/40'}>
                               <td className="p-2 text-center text-slate-500 font-bold">{idx + 1}</td>
-                              <td className="p-2 font-black text-white">{item.employeeName}</td>
+                              <td className="p-2 font-black text-white">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span>{item.employeeName}</span>
+                                  {isClinicMedicalStaff(item) ? (
+                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 inline-flex items-center gap-0.5">
+                                      🩺 عيادات
+                                    </span>
+                                  ) : null}
+                                </div>
+                              </td>
                               <td className="p-2 text-slate-300">
                                 <span>{item.departmentName ?? '—'}</span>
                                 {item.branchName ? <span className="text-slate-400 text-[10px] block">{item.branchName}</span> : null}

@@ -31,6 +31,7 @@ import { useAttendanceDashboard } from './useAttendanceDashboard';
 import { useOrganizationLookups } from '../employees/useOrganizationLookups';
 import type { AttendanceRosterCategory } from '@ahla/shared-contracts';
 import { AppPieChart, ChartCard } from '../../ui/charts';
+import { ExecutiveAttendanceModal } from './ExecutiveAttendanceModal';
 
 function getBasePath() {
   if (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')) {
@@ -52,6 +53,7 @@ export function AttendancePage() {
   const [branchId, setBranchId] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showExecutiveModal, setShowExecutiveModal] = useState(false);
 
   const isToday = dateIso === cairoTodayIso();
 
@@ -151,6 +153,15 @@ export function AttendancePage() {
         description="انقر أي بطاقة لعرض قائمة الموظفين المعنيين."
         actions={
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="btn-primary btn-sm h-9 px-3.5 text-xs font-black rounded-xl inline-flex items-center gap-1.5 shadow-sm bg-gradient-to-r from-sky-600 to-indigo-600 text-white hover:from-sky-500 hover:to-indigo-500 transition-all ring-1 ring-sky-400/30"
+              onClick={() => setShowExecutiveModal(true)}
+              title="إعداد تقرير صورة تنفيذي شامل للمدير التنفيذي (من جاء ومن تغيب ومن في إجازة)"
+            >
+              <Camera className="size-4 text-white" />
+              <span>تقرير تنفيذي مصوّر</span>
+            </button>
             <button
               type="button"
               className="btn-secondary btn-sm h-9 px-3 text-xs font-bold rounded-xl border border-[var(--border)] inline-flex items-center gap-1.5 hover:border-[var(--primary)] transition-all"
@@ -511,9 +522,13 @@ export function AttendancePage() {
 
               <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs flex items-center justify-between gap-3">
                 <span className="text-[var(--text-muted)]">هل تحتاج إلى تفريغ مفصل لبيانات اليوم أو إرسال تقرير موجز للإدارة؟</span>
-                <Link to={`${getBasePath()}/attendance?tab=executive&date=${dateIso}`} className="btn-primary !text-xs !py-1 !px-2.5 font-bold shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowExecutiveModal(true)}
+                  className="btn-primary !text-xs !py-1 !px-2.5 font-bold shrink-0 bg-sky-600 hover:bg-sky-500 text-white rounded-lg shadow-xs"
+                >
                   فتح التقرير التنفيذي
-                </Link>
+                </button>
               </div>
             </div>
           </section>
@@ -536,6 +551,10 @@ export function AttendancePage() {
           </div>
         </div>
       ) : null}
+
+      {showExecutiveModal && (
+        <ExecutiveAttendanceModal dateIso={dateIso} onClose={() => setShowExecutiveModal(false)} />
+      )}
     </div>
   );
 }
