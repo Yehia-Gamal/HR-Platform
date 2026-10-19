@@ -153,7 +153,7 @@ class MobileCommands {
 
   Future<void> endMission({
     required String requestId,
-    required String report,
+    String? report,
     String? outcome,
     bool withCheckout = false,
     double? latitude,
@@ -161,6 +161,9 @@ class MobileCommands {
     double? accuracy,
     bool isMock = false,
   }) async {
+    final finalReport = (report == null || report.trim().isEmpty)
+        ? 'تم إنجاز المأمورية بنجاح'
+        : report.trim();
     await _withTimeout(
       ref
           .read(supabaseProvider)
@@ -168,7 +171,7 @@ class MobileCommands {
             'end_my_mission',
             params: {
               'p_request_id': requestId,
-              'p_report': report,
+              'p_report': finalReport,
               'p_outcome': outcome,
               'p_with_checkout': withCheckout,
               'p_lat': latitude,

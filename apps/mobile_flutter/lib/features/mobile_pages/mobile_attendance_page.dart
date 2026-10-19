@@ -241,6 +241,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
     // جارية بانتظار الإنهاء (الإنهاء = عودة للمجمع + موقع نطاق المجمع)،
     // وبعد الإنهاء يبقى زر الانصراف العادي متاحاً حتى بعد نهاية الدوام.
     final mission = value.missionToday;
+    final isMissionInProgress = !dayCompleted && mission != null && mission.execStatus == 'in_progress';
     Widget? missionCard;
     if (!dayCompleted && mission != null) {
       if (mission.execStatus == 'approved') {
@@ -249,13 +250,6 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
           startTime: mission.startTime,
           working: _working,
           onStart: () => _startMission(mission.requestId),
-          onCancel: () => _cancelMissionFlow(mission.requestId),
-        );
-      } else if (mission.execStatus == 'in_progress') {
-        missionCard = _MissionInProgressCard(
-          startedAt: mission.startedAt,
-          working: _working,
-          onEnd: () => _endMissionFlow(mission),
           onCancel: () => _cancelMissionFlow(mission.requestId),
         );
       } else if (mission.execStatus == 'pending') {
@@ -344,6 +338,13 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
           _DayCompletedCard(
             checkIn: value.todayCheckInAt,
             checkOut: value.todayCheckOutAt,
+          ),
+        ] else if (isMissionInProgress) ...[
+          _MissionInProgressCard(
+            startedAt: mission.startedAt,
+            working: _working,
+            onEnd: () => _endMissionFlow(mission),
+            onCancel: () => _cancelMissionFlow(mission.requestId),
           ),
         ] else ...[
           if (value.todayCheckInAt != null)
@@ -1008,9 +1009,9 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
     }
   }
 
-  /// إنهاء المأمورية مع تقرير إلزامي:
-  /// 1) إنهاء المأمورية والعودة للعمل (استمرار الدوام) دون تسجيل انصراف.
-  /// 2) أو إنهاء المأمورية مع الانصراف من العمل (من برة برة) مع أخذ موقع GPS مباشر.
+  /// إنهاء المأمورية (تقرير اختياري + خياران للعودة أو الانصراف):
+  /// 1) إنهاء المأمورية والعودة لمقر العمل (استمرار الدوام) ثم إتاحة زر بصمة الانصراف العادي.
+  /// 2) أو إنهاء المأمورية مع الانصراف المباشر من الموقع الحالي (من برة برة).
   Future<void> _endMissionFlow(MissionToday mission) async {
     final reportController = TextEditingController();
     final outcomeController = TextEditingController();
@@ -1019,7 +1020,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
       builder: (dialogContext) => AlertDialog(
         title: const Row(
           children: [
-            Icon(Icons.flag_circle_outlined),
+            Icon(Icons.flag_circle_outlined, color: AppColors.brandPrimary),
             SizedBox(width: 8),
             Text('إنهاء المأمورية'),
           ],
@@ -1030,7 +1031,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Text(
-                'سجّل تقرير إنجاز المهمة، ثم اختر ما إذا كنت ستعود للجمعية لمتابعة عملك، أم أن المأمورية امتدت لنهاية اليوم وتريد الانصراف من موقعك بالخارج.',
+                'سجّل تقرير إنجاز المهمة (اختياري - غير إلزامي)، ثم اختر ما إذا كنت ستعود لمقر العمل لمتابعة يومك، أم أن المأمورية امتدت وتريد الانصراف من موقعك الحالي مباشرة.',
                 style: TextStyle(fontSize: 13, height: 1.4),
               ),
               const SizedBox(height: 12),
@@ -1039,8 +1040,8 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
                 maxLines: 3,
                 maxLength: 500,
                 decoration: const InputDecoration(
-                  labelText: 'تقرير المأمورية *',
-                  hintText: 'ماذا أنجزت في المهمة؟',
+                  labelText: 'تقرير المأمورية (اختياري)',
+                  hintText: 'ماذا أنجزت في المهمة؟ (اختياري - يمكنك تركه فارغاً)',
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -1055,38 +1056,38 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
               ),
               const SizedBox(height: 16),
               OutlinedButton.icon(
-                onPressed: () {
-                  if (reportController.text.trim().length < 3) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('يرجى إدخال تقرير لا يقل عن 3 أحرف.')),
-                    );
-                    return;
-                  }
-                  Navigator.pop(dialogContext, false);
-                },
+                onPressed: () => Navigator.pop(dialogContext, false),
                 icon: const Icon(Icons.business_rounded),
                 label: const Text('إنهاء والعودة للجمعية (استمرار الدوام)'),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 4),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  'ستعود لمتابعة دوامك، ويظهر لك زر بصمة الانصراف العادي عند خروجك.',
+                  style: TextStyle(fontSize: 11, color: Colors.grey),
+                ),
+              ),
+              const SizedBox(height: 12),
               FilledButton.icon(
-                onPressed: () {
-                  if (reportController.text.trim().length < 3) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('يرجى إدخال تقرير لا يقل عن 3 أحرف.')),
-                    );
-                    return;
-                  }
-                  Navigator.pop(dialogContext, true);
-                },
+                onPressed: () => Navigator.pop(dialogContext, true),
                 icon: const Icon(Icons.logout_rounded),
-                label: const Text('إنهاء مع الانصراف من العمل (من برّة برّة)'),
+                label: const Text('إنهاء مع الانصراف من موقعي (من برّة برّة)'),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.statusSuccess,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  'يُسجَّل انصرافك فوراً وكأنك بصمت، دون الحاجة للذهاب للمقر.',
+                  style: TextStyle(fontSize: 11, color: Colors.grey),
                 ),
               ),
             ],
@@ -1113,16 +1114,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
       try {
         position = await LocationService.current();
       } catch (locErr) {
-        if (mounted) {
-          setState(() => _working = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('الانصراف من الخارج يتطلب تفعيل الـ GPS وأخذ موقع مباشر: ${humanizeError(locErr)}'),
-              backgroundColor: AppColors.statusDanger,
-            ),
-          );
-        }
-        return;
+        debugPrint('[endMissionFlow] GPS location note: $locErr');
       }
     }
 
@@ -1131,7 +1123,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
           .read(mobileCommandsProvider)
           .endMission(
             requestId: mission.requestId,
-            report: reportText,
+            report: reportText.isEmpty ? 'تم إنجاز المأمورية بنجاح' : reportText,
             outcome: outcomeText.isEmpty ? null : outcomeText,
             withCheckout: result,
             latitude: position?.latitude,
@@ -1147,7 +1139,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
             content: Text(
               result
                   ? 'تم إنهاء المأمورية وتسجيل بصمة انصراف ميدانية بنجاح.'
-                  : 'تم إنهاء المأمورية بنجاح — دوامك مستمر بالجمعية.',
+                  : 'تم إنهاء المأمورية بنجاح — دوامك مستمر، وزر الانصراف متاح الآن.',
             ),
             backgroundColor: AppColors.statusSuccess,
           ),
@@ -1788,43 +1780,83 @@ class _MissionInProgressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final startedLabel = startedAt == null
         ? null
         : DateFormat('h:mm a', 'ar').format(startedAt!.toLocal());
     return Card(
       clipBehavior: Clip.antiAlias,
+      elevation: 2,
       child: Column(
         children: [
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(color: scheme.tertiaryContainer),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF4338CA), Color(0xFF1E1B4B)],
+                begin: Alignment.topRight,
+                end: Alignment.bottomLeft,
+              ),
+            ),
             child: Column(
               children: [
-                Icon(
-                  Icons.route_outlined,
-                  color: scheme.onTertiaryContainer,
-                  size: 38,
+                const Icon(
+                  Icons.explore_rounded,
+                  color: Colors.white,
+                  size: 40,
                 ),
                 const SizedBox(height: 10),
-                Text(
-                  'المأمورية جارية الآن',
+                const Text(
+                  'إنهاء المأمورية',
                   style: TextStyle(
-                    color: scheme.onTertiaryContainer,
-                    fontSize: 20,
+                    color: Colors.white,
+                    fontSize: 22,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.25),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF34D399),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        startedLabel != null
+                            ? 'المأمورية جارية منذ $startedLabel'
+                            : 'مأمورية عمل جارية الآن',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
                 Text(
-                  startedLabel == null
-                      ? 'يمكنك إنهاء المهمة والعودة للعمل، أو إنهاؤها مع الانصراف إذا انتهى دوامك.'
-                      : 'بدأت الساعة $startedLabel — يمكنك إنهاؤها والعودة للعمل أو إنهائها مع الانصراف.',
+                  'دوامك محتسب كحضور مأمورية — اضغط أدناه عند إنجاز المهمة للعودة للجمعية أو تسجيل الانصراف المباشر.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: scheme.onTertiaryContainer.withValues(alpha: 0.85),
-                    fontSize: 13,
+                    color: Colors.white.withValues(alpha: 0.88),
+                    fontSize: 12.5,
+                    height: 1.4,
                   ),
                 ),
               ],
@@ -1841,15 +1873,20 @@ class _MissionInProgressCard extends StatelessWidget {
                     icon: working
                         ? const SizedBox.square(
                             dimension: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                           )
-                        : const Icon(Icons.task_alt_rounded),
-                    label: const Text('إنهاء المأمورية'),
+                        : const Icon(Icons.stop_circle_rounded),
+                    label: const Text('إنهاء المأمورية الآن'),
                     style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF4338CA),
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       textStyle: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                   ),
@@ -1861,11 +1898,14 @@ class _MissionInProgressCard extends StatelessWidget {
                     child: OutlinedButton.icon(
                       onPressed: working ? null : onCancel,
                       icon: const Icon(Icons.cancel_outlined, size: 18),
-                      label: const Text('إلغاء المأمورية'),
+                      label: const Text('إلغاء المأمورية (العودة للوضع الطبيعي)'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.statusDanger,
                         side: BorderSide(color: AppColors.statusDanger.withValues(alpha: 0.5)),
                         padding: const EdgeInsets.symmetric(vertical: 11),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                   ),

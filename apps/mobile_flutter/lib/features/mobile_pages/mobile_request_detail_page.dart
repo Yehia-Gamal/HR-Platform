@@ -1985,7 +1985,6 @@ class _EndMissionSheetState extends State<_EndMissionSheet> {
   late final _outcomeController = TextEditingController(
     text: widget.initialOutcome?.trim() ?? '',
   );
-  String? _error;
 
   @override
   void dispose() {
@@ -1996,13 +1995,10 @@ class _EndMissionSheetState extends State<_EndMissionSheet> {
 
   void _submit({required bool withCheckout}) {
     final report = _reportController.text.trim();
-    if (report.length < 3) {
-      setState(() => _error = 'التقرير إلزامي (ثلاثة أحرف على الأقل).');
-      return;
-    }
     final outcome = _outcomeController.text.trim();
+    final finalReport = report.isEmpty ? 'تم إنجاز ${widget.noun} بنجاح' : report;
     Navigator.pop(context, (
-      report: report,
+      report: finalReport,
       outcome: outcome.isEmpty ? null : outcome,
       withCheckout: withCheckout,
     ));
@@ -2042,13 +2038,9 @@ class _EndMissionSheetState extends State<_EndMissionSheet> {
             TextField(
               controller: _reportController,
               maxLines: 3,
-              onChanged: (_) {
-                if (_error != null) setState(() => _error = null);
-              },
               decoration: InputDecoration(
-                labelText: 'تقرير التنفيذ (إلزامي)',
-                hintText: 'ماذا أنجزت؟',
-                errorText: _error,
+                labelText: 'تقرير التنفيذ (اختياري)',
+                hintText: 'ماذا أنجزت؟ (اختياري - غير إلزامي)',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
