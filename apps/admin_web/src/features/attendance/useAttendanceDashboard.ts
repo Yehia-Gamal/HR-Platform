@@ -137,13 +137,68 @@ function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIs
   const dateLabel = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'full' }).format(Number.isNaN(dateObj.getTime()) ? new Date() : dateObj);
   const title = `كشف الحضور الرسمي — ${categoryLabel} — ${dateLabel}`;
 
+  const isMissionItem = (i: AttendanceRosterItem): boolean =>
+    i.status === 'on_mission' ||
+    Boolean(i.hasMission) ||
+    (Boolean(i.hasPendingRequest) && i.pendingRequestType === 'mission');
+
+  const isLeaveItem = (i: AttendanceRosterItem): boolean =>
+    (i.status === 'on_leave' ||
+      Boolean(i.hasApprovedLeave) ||
+      (Boolean(i.hasPendingRequest) && i.pendingRequestType !== 'mission')) &&
+    !isMissionItem(i);
+
   const presentCount = items.filter((i) => i.status === 'present' || i.status === 'late').length;
   const lateCount = items.filter((i) => i.status === 'late' || (i.lateMinutes != null && i.lateMinutes > 0)).length;
   const absentCount = items.filter((i) => (i.status === 'absent' || i.status === 'unexcused_absent') && !i.hasPendingRequest).length;
-  const leaveCount = items.filter((i) => i.hasApprovedLeave || i.hasMission || i.status === 'on_leave' || i.status === 'on_mission' || i.hasPendingRequest).length;
+  const missionCount = items.filter(isMissionItem).length;
+  const leaveCount = items.filter(isLeaveItem).length;
 
-  const rows = items
+  let displayItems = items;
+  if (category === 'present') {
+    displayItems = [...items].sort((a, b) => {
+      const getPriority = (item: AttendanceRosterItem): number => {
+        if ((item.lateMinutes ?? 0) > 0) return 3;
+        if (isMissionItem(item)) return 2;
+        return 1;
+      };
+      const pA = getPriority(a);
+      const pB = getPriority(b);
+      if (pA !== pB) return pA - pB;
+      if (pA === 3 && pB === 3) {
+        const diff = (b.lateMinutes ?? 0) - (a.lateMinutes ?? 0);
+        if (diff !== 0) return diff;
+      }
+      return (a.employeeName ?? '').localeCompare(b.employeeName ?? '', 'ar');
+    });
+  }
+
+  let lastPriority = 0;
+  const rows = displayItems
     .map((item, i) => {
+      let dividerHtml = '';
+      if (category === 'present') {
+        const priority = (item.lateMinutes ?? 0) > 0 ? 3 : isMissionItem(item) ? 2 : 1;
+        if (priority !== lastPriority) {
+          if (priority === 2) {
+            dividerHtml = `
+    <tr class="section-divider-row">
+      <td colspan="10" style="background:#f0f9ff;color:#0284c7;font-weight:800;padding:6px 10px;text-align:start;border-top:2px solid #38bdf8;border-bottom:1px solid #bae6fd">
+        ✈️ موظفون سجلوا حضوراً ثم خرجوا في مأموريات عمل ميدانية (زيارات ومهمات رسمية)
+      </td>
+    </tr>`;
+          } else if (priority === 3) {
+            dividerHtml = `
+    <tr class="section-divider-row">
+      <td colspan="10" style="background:#fffbeb;color:#b45309;font-weight:800;padding:6px 10px;text-align:start;border-top:2px solid #f59e0b;border-bottom:1px solid #fde68a">
+        ⚠️ المتأخرون عن موعد الوردية الرسمي (المسجلون بعد الموعد)
+      </td>
+    </tr>`;
+          }
+          lastPriority = priority;
+        }
+      }
+
       let statusBadgeClass = 'status-badge-neutral';
       let statusText = STATUS_LABELS_PDF[item.status ?? ''] ?? item.status ?? '—';
       if (item.status === 'present') {
@@ -201,7 +256,7 @@ function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIs
         excuseDisplay = item.reviewReason;
       }
 
-      return `
+      return `${dividerHtml}
     <tr>
       <td style="text-align:center;font-variant-numeric:tabular-nums;color:#6b7280">${i + 1}</td>
       <td style="font-weight:700;color:#111827">${item.employeeName}</td>
@@ -252,6 +307,7 @@ function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIs
   .stat-card.present { border-color: #a7f3d0; background: #ecfdf5; }
   .stat-card.late { border-color: #fde68a; background: #fffbeb; }
   .stat-card.absent { border-color: #fecaca; background: #fef2f2; }
+  .stat-card.mission { border-color: #bae6fd; background: #f0f9ff; }
   .stat-card.leave { border-color: #bfdbfe; background: #eff6ff; }
   .stat-label { font-size: 9px; font-weight: 700; color: #475569; }
   .stat-value { font-size: 12px; font-weight: 900; color: #0f172a; }
@@ -341,8 +397,12 @@ function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIs
       <span class="stat-label">غياب:</span>
       <span class="stat-value" style="color:#dc2626">${absentCount}</span>
     </div>
+    <div class="stat-card mission">
+      <span class="stat-label">مأموريات:</span>
+      <span class="stat-value" style="color:#0284c7">${missionCount}</span>
+    </div>
     <div class="stat-card leave">
-      <span class="stat-label">إجازات ومأموريات:</span>
+      <span class="stat-label">إجازات:</span>
       <span class="stat-value" style="color:#2563eb">${leaveCount}</span>
     </div>
   </div>
