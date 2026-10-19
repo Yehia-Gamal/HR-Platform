@@ -4,8 +4,10 @@ import {
   calculateTrueLateMinutes,
   classifyEmployee,
   computeDepartmentSummaries,
+  computeEndOfDayMetrics,
   computeExecutiveMetrics,
   formatShiftBadge,
+  generateComparativeAudit,
   generateSecurityVerificationCode,
   parseShiftWindow,
   sanitizeLeaveReason,
@@ -180,4 +182,73 @@ describe('executiveReportLogic', () => {
     expect(summaries[0].absent).toBe(1);
     expect(summaries[0].commitmentRate).toBe(50);
   });
+
+  it('حساب مؤشرات إغلاق نهاية اليوم: الانصراف المبكر، بصمة الانصراف الناقصة، وساعات العمل', () => {
+    // نهاية اليوم: الساعة 19:00 (7:00 م) = 19 * 60 = 1140 دقيقة
+    const endOfDayMinutes = 19 * 60;
+
+    // موظف انصرف مبكراً: ورديته تنتهي 6:00 م (18:00) وانصرف 4:30 م (16:30)
+    const earlyEmp = createMockItem({
+      employeeId: '55555555-5555-5555-5555-555555555555',
+      employeeName: 'سامي كمال',
+      departmentName: 'إدارة تكنولوجيا المعلومات',
+      status: 'present',
+      shiftName: 'الدوام الأساسي (10 ص – 6 م)',
+      firstCheckIn: '2026-10-19T10:00:00+03:00',
+      lastCheckOut: '2026-10-19T16:30:00+03:00',
+    });
+
+    // موظف حضر ولم يسجل انصراف والوردية انتهت (بصمة انصراف ناقصة)
+    const missingOutEmp = createMockItem({
+      employeeId: '66666666-6666-6666-6666-666666666666',
+      employeeName: 'إبراهيم حسن',
+      departmentName: 'إدارة المالية',
+      status: 'present',
+      shiftName: 'الدوام الأساسي (10 ص – 6 م)',
+      firstCheckIn: '2026-10-19T09:55:00+03:00',
+      lastCheckOut: null,
+    });
+
+    // موظف عمل ساعات إضافية (من 9:00 ص حتى 7:00 م = 10 ساعات)
+    const overtimeEmp = createMockItem({
+      employeeId: '77777777-7777-7777-7777-777777777777',
+      employeeName: 'عمر خالد',
+      departmentName: 'إدارة العمليات',
+      status: 'present',
+      shiftName: 'الدوام الأساسي (10 ص – 6 م)',
+      firstCheckIn: '2026-10-19T09:00:00+03:00',
+      lastCheckOut: '2026-10-19T19:00:00+03:00',
+    });
+
+    const classified = [
+      classifyEmployee(earlyEmp, endOfDayMinutes),
+      classifyEmployee(missingOutEmp, endOfDayMinutes),
+      classifyEmployee(overtimeEmp, endOfDayMinutes),
+    ];
+
+    const eod = computeEndOfDayMetrics(classified, endOfDayMinutes);
+
+    expect(eod.totalCheckedIn).toBe(3);
+    expect(eod.completedCheckouts).toBe(2);
+    expect(eod.missingCheckoutsCount).toBe(1);
+    expect(eod.missingCheckoutList[0].item.employeeName).toBe('إبراهيم حسن');
+
+    expect(eod.earlyDeparturesCount).toBe(1);
+    expect(eod.earlyDepartureList[0].item.employeeName).toBe('سامي كمال');
+    expect(eod.earlyDepartureList[0].earlyDepartureMinutes).toBe(90); // 1.5 hours early
+
+    expect(eod.overtimeCount).toBe(1);
+    expect(eod.overtimeList[0].item.employeeName).toBe('عمر خالد');
+    expect(eod.overtimeList[0].overtimeMinutes).toBe(120); // 2 hours overtime
+  });
+
+  it('توليد بنود التدقيق المقارن قبل وبعد التصحيح المنطقي', () => {
+    const metrics = computeExecutiveMetrics([]);
+    const audit = generateComparativeAudit(metrics);
+    expect(audit.length).toBeGreaterThanOrEqual(6);
+    expect(audit.some((a) => a.metric.includes('الغياب غير المبرر'))).toBe(true);
+    expect(audit.some((a) => a.metric.includes('الصف 21'))).toBe(true);
+    expect(audit.some((a) => a.metric.includes('الصف 5'))).toBe(true);
+  });
 });
+

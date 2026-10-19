@@ -192,4 +192,45 @@ describe('ExecutiveAttendanceModal', () => {
     // Security Verification Code
     expect(screen.getByText(/كود التحقق: EXEC-20261019-/)).toBeDefined();
   });
+
+  it('switches between Live Roster, End of Day, and Comparative Audit views', async () => {
+    const { fireEvent } = await import('@testing-library/react');
+
+    rosterHook = {
+      data: {
+        items: [
+          {
+            employeeId: 'emp-eod-1',
+            employeeName: 'كريم محمود',
+            departmentName: 'إدارة تكنولوجيا المعلومات',
+            status: 'present',
+            firstCheckIn: '2026-10-19T07:00:00Z',
+            lastCheckOut: '2026-10-19T13:30:00Z',
+            shiftName: 'الدوام الأساسي (10 ص – 6 م)',
+            lateMinutes: 0,
+          },
+        ],
+        total: 1,
+      },
+      isLoading: false,
+      isError: false,
+    };
+
+    render(<ExecutiveAttendanceModal dateIso="2026-10-19" onClose={() => undefined} />);
+
+    // 1. Initial live view
+    expect(screen.getByText('كشف المتابعة اليومية للحضور والانصراف')).toBeDefined();
+
+    // 2. Switch to End of Day
+    fireEvent.click(screen.getByText(/كشف إغلاق اليوم وساعات العمل/));
+    expect(screen.getByText('كشف إغلاق اليوم وساعات العمل والانصراف')).toBeDefined();
+    expect(screen.getByText('اكتمل انصرافهم')).toBeDefined();
+
+    // 3. Switch to Comparative Audit
+    fireEvent.click(screen.getByText(/مقارنة التدقيق المنطقي/));
+    expect(screen.getByText('مصفوفة التدقيق والتحقق المنطقي لكشف الحضور (قبل وبعد)')).toBeDefined();
+    expect(screen.getByText(/دليل التدقيق والتحقق للمدير التنفيذي/)).toBeDefined();
+    expect(screen.getByText(/الغياب غير المبرر/)).toBeDefined();
+  });
 });
+
