@@ -139,8 +139,8 @@ function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIs
 
   const presentCount = items.filter((i) => i.status === 'present' || i.status === 'late').length;
   const lateCount = items.filter((i) => i.status === 'late' || (i.lateMinutes != null && i.lateMinutes > 0)).length;
-  const absentCount = items.filter((i) => i.status === 'absent' || i.status === 'unexcused_absent').length;
-  const leaveCount = items.filter((i) => i.hasApprovedLeave || i.hasMission || i.status === 'on_leave' || i.status === 'on_mission').length;
+  const absentCount = items.filter((i) => (i.status === 'absent' || i.status === 'unexcused_absent') && !i.hasPendingRequest).length;
+  const leaveCount = items.filter((i) => i.hasApprovedLeave || i.hasMission || i.status === 'on_leave' || i.status === 'on_mission' || i.hasPendingRequest).length;
 
   const rows = items
     .map((item, i) => {
@@ -153,8 +153,13 @@ function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIs
         statusBadgeClass = 'status-badge-late';
         statusText = 'متأخر';
       } else if (item.status === 'absent' || item.status === 'unexcused_absent') {
-        statusBadgeClass = 'status-badge-absent';
-        statusText = item.status === 'unexcused_absent' ? 'غياب بدون إذن' : 'غائب';
+        if (item.hasPendingRequest) {
+          statusBadgeClass = 'status-badge-leave';
+          statusText = 'إجازة (قيد المراجعة)';
+        } else {
+          statusBadgeClass = 'status-badge-absent';
+          statusText = item.status === 'unexcused_absent' ? 'غياب بدون إذن' : 'غائب';
+        }
       } else if (item.status === 'on_leave' || item.hasApprovedLeave) {
         statusBadgeClass = 'status-badge-leave';
         statusText = item.leaveName ?? 'إجازة';
@@ -171,7 +176,9 @@ function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIs
       }
 
       let excuseDisplay = '—';
-      if (item.leaveName) {
+      if (item.hasPendingRequest && !item.hasApprovedLeave) {
+        excuseDisplay = `⏳ طلب معلّق: ${item.pendingRequestTitle ?? item.leaveName ?? 'إجازة'}${item.pendingRequestNumber ? ` (#${item.pendingRequestNumber})` : ''}`;
+      } else if (item.leaveName) {
         excuseDisplay = item.leaveName;
       } else if (item.hasMission) {
         excuseDisplay = item.leaveTitle ?? 'مأمورية معتمدة';
