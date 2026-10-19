@@ -2495,18 +2495,22 @@ class _StatusRow extends StatelessWidget {
           label,
           style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
         ),
-        const Spacer(),
-        if (trailing != null)
-          trailing!
-        else
-          Text(
-            value ?? '—',
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 13,
-              color: valueColor,
-            ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: trailing ??
+                Text(
+                  value ?? '—',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: valueColor,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
           ),
+        ),
       ],
     );
   }
