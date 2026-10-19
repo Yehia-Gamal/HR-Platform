@@ -25,7 +25,7 @@ import {
   X,
   AlertTriangle,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import {
   attendanceRosterCategorySchema,
@@ -49,9 +49,11 @@ import { useOrganizationLookups } from '../employees/useOrganizationLookups';
 import { useHrPrefix } from '../workspaces/access';
 import { exportAttendancePdf, useAttendanceRosterPage } from './useAttendanceDashboard';
 import { ExecutiveAttendanceModal } from './ExecutiveAttendanceModal';
+import { ManualMissingCheckoutModal } from './ManualMissingCheckoutModal';
 import {
   classifyEmployee,
   formatShiftBadge,
+  parseShiftWindow,
   sanitizeLeaveReason,
   sanitizeMissionPurpose,
 } from './executiveReportLogic';
@@ -141,9 +143,11 @@ export function AttendanceDrilldownPage() {
   const [isPrinting, setIsPrinting] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const [showExecutiveModal, setShowExecutiveModal] = useState(false);
+  const [showManualMissingModal, setShowManualMissingModal] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const isToday = dateIso === cairoTodayIso();
+  const isMissingCheckoutTab = category === 'missing_checkout';
 
   const handlePrint = async () => {
     setIsPrinting(true);
@@ -266,28 +270,29 @@ export function AttendanceDrilldownPage() {
     offset,
   });
 
+  const presentQuery = useAttendanceRosterPage({
+    category: 'present',
+    dateIso,
+    limit: 300,
+    offset: 0,
+    enabled: isMissingCheckoutTab,
+  });
+
   const isAttendanceExempt = (item: AttendanceRosterItem) =>
     item.status === 'exempt' ||
     item.employeeName.includes('الشيخ محمد') ||
     item.employeeName.includes('محمد عبدالباسط') ||
     item.employeeName.includes('ابو عمار');
 
-  const items = (query.data?.items ?? []).filter((i) => {
+  const baseItems = (query.data?.items ?? []).filter((i) => {
     if (category === 'absent' || category === 'unexcused_absent') {
       return !isAttendanceExempt(i);
     }
     return true;
   });
-  const total = query.data?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(total / limit));
-
-  const focusedId = useEntityFocus(items.length > 0);
-  const hrPrefix = useHrPrefix();
-  const currentCategory = CATEGORIES.find((c) => c.key === category) ?? CATEGORIES[0];
-  const isFiltered = Boolean(searchInput.trim() || branch || dept || sort !== 'name' || direction !== 'asc');
 
   // حساب التوقيت الحالي بالقاهرة لتصنيف الورديات والغياب بدقة
-  const currentMinutesFromMidnight = (() => {
+  const currentMinutesFromMidnight = useMemo(() => {
     if (!isToday) return 24 * 60;
     const now = new Date();
     const parts = new Intl.DateTimeFormat('en-GB', {
@@ -299,28 +304,77 @@ export function AttendanceDrilldownPage() {
     const h = parseInt(parts.find((p) => p.type === 'hour')?.value ?? '12', 10);
     const m = parseInt(parts.find((p) => p.type === 'minute')?.value ?? '0', 10);
     return h * 60 + m;
-  })();
+  }, [isToday]);
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [locallyMarkedIds, setLocallyMarkedIds] = useState<Set<string>>(new Set());
   const [isActionPending, setIsActionPending] = useState(false);
 
+  // دمج موظفي بصمة بلا انصراف: من الخادم + من تم وسمهم + من انتهت ورديتهم اليوم دون انصراف
+  const displayItems = useMemo(() => {
+    if (isMissingCheckoutTab) {
+      const map = new Map<string, AttendanceRosterItem>();
+      for (const item of baseItems) {
+        map.set(item.employeeId, item);
+      }
+      const presentList = presentQuery.data?.items ?? [];
+      for (const p of presentList) {
+        if (p.lastCheckOut) continue;
+        if (p.status === 'on_leave' || p.status === 'on_mission' || p.hasMission || p.hasApprovedLeave) continue;
+
+        const isMarked = locallyMarkedIds.has(p.employeeId);
+        const shiftWindow = parseShiftWindow(p.shiftName, p.shiftStartAt);
+        const isShiftEnded = isToday && Boolean(
+          shiftWindow &&
+          !shiftWindow.isNightShift &&
+          currentMinutesFromMidnight >= (shiftWindow.endHour * 60 + shiftWindow.endMinute)
+        );
+
+        if (isMarked || isShiftEnded) {
+          if (!map.has(p.employeeId)) {
+            map.set(p.employeeId, {
+              ...p,
+              status: 'missing_checkout',
+            });
+          }
+        }
+      }
+      return Array.from(map.values());
+    }
+    return baseItems;
+  }, [baseItems, isMissingCheckoutTab, presentQuery.data?.items, locallyMarkedIds, isToday, currentMinutesFromMidnight]);
+
+  const total = isMissingCheckoutTab ? Math.max(query.data?.total ?? 0, displayItems.length) : (query.data?.total ?? 0);
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+
+  const focusedId = useEntityFocus(displayItems.length > 0);
+  const hrPrefix = useHrPrefix();
+  const currentCategory = CATEGORIES.find((c) => c.key === category) ?? CATEGORIES[0];
+  const isFiltered = Boolean(searchInput.trim() || branch || dept || sort !== 'name' || direction !== 'asc');
+
   const handleMarkMissingCheckout = async (employeeIds: string[]) => {
     if (employeeIds.length === 0) return;
     setIsActionPending(true);
     try {
-      await Promise.all(
-        employeeIds.map((id) =>
-          rpc('set_employee_attendance_day_admin', {
-            p_employee_id: id,
-            p_work_date: dateIso,
-            p_day_type: 'work',
-            p_clear_check_out: true,
-            p_reason: 'انصرف من مقر العمل بدون بصمة',
-            p_notes: 'مشي بدون بصمة',
-          }),
-        ),
-      );
+      try {
+        await rpc('mark_attendance_missing_checkout', {
+          p_employee_ids: employeeIds,
+          p_work_date: dateIso,
+        });
+      } catch {
+        await Promise.all(
+          employeeIds.map((id) =>
+            rpc('set_employee_attendance_day_admin', {
+              p_employee_id: id,
+              p_work_date: dateIso,
+              p_day_type: 'work',
+              p_clear_check_out: true,
+              p_reason: 'انصرف من مقر العمل بدون بصمة',
+              p_notes: 'مشي بدون بصمة',
+            }),
+          ),
+        );
+      }
       setLocallyMarkedIds((prev) => {
         const next = new Set(prev);
         employeeIds.forEach((id) => next.add(id));
@@ -337,7 +391,7 @@ export function AttendanceDrilldownPage() {
           : `تم تسجيل (${employeeIds.length}) موظفين: انصراف بدون بصمة بنجاح ✅`,
       );
       setTimeout(() => setToastMessage(null), 4000);
-      await query.refetch();
+      await Promise.all([query.refetch(), presentQuery.refetch()]);
     } catch (err) {
       console.error('Failed to mark missing checkout', err);
       setToastMessage('تعذر تسجيل الانصراف بدون بصمة، يرجى المحاولة ثانية.');
@@ -350,10 +404,17 @@ export function AttendanceDrilldownPage() {
   const handleUnmarkMissingCheckout = async (employeeId: string) => {
     setIsActionPending(true);
     try {
-      await rpc('clear_employee_attendance_day_admin', {
-        p_employee_id: employeeId,
-        p_work_date: dateIso,
-      });
+      try {
+        await rpc('unmark_attendance_missing_checkout', {
+          p_employee_ids: [employeeId],
+          p_work_date: dateIso,
+        });
+      } catch {
+        await rpc('clear_employee_attendance_day_admin', {
+          p_employee_id: employeeId,
+          p_work_date: dateIso,
+        });
+      }
       setLocallyMarkedIds((prev) => {
         const next = new Set(prev);
         next.delete(employeeId);
@@ -361,7 +422,7 @@ export function AttendanceDrilldownPage() {
       });
       setToastMessage('تم إلغاء التحديد والعودة للنظام بنجاح ✅');
       setTimeout(() => setToastMessage(null), 3500);
-      await query.refetch();
+      await Promise.all([query.refetch(), presentQuery.refetch()]);
     } catch (err) {
       console.error('Failed to unmark missing checkout', err);
       setToastMessage('تعذر إلغاء التعديل.');
@@ -371,35 +432,13 @@ export function AttendanceDrilldownPage() {
     }
   };
 
-  const isEligibleForMissingCheckout = (item: AttendanceRosterItem) => {
-    return (
-      Boolean(item.firstCheckIn) &&
-      !item.lastCheckOut &&
-      item.status !== 'on_leave' &&
-      item.status !== 'on_mission' &&
-      !item.hasMission &&
-      !item.hasApprovedLeave &&
-      item.status !== 'missing_checkout' &&
-      !locallyMarkedIds.has(item.employeeId)
-    );
-  };
-
-  const eligibleItems = items.filter(isEligibleForMissingCheckout);
-  const allEligibleSelected = eligibleItems.length > 0 && eligibleItems.every((i) => selectedIds.has(i.employeeId));
+  const allEligibleSelected = isMissingCheckoutTab && displayItems.length > 0 && displayItems.every((i) => selectedIds.has(i.employeeId));
 
   const toggleSelectAll = () => {
     if (allEligibleSelected) {
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        eligibleItems.forEach((i) => next.delete(i.employeeId));
-        return next;
-      });
+      setSelectedIds(new Set());
     } else {
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        eligibleItems.forEach((i) => next.add(i.employeeId));
-        return next;
-      });
+      setSelectedIds(new Set(displayItems.map((i) => i.employeeId)));
     }
   };
 
@@ -507,6 +546,19 @@ export function AttendanceDrilldownPage() {
 
         {/* الجانب الأيسر: أزرار التصدير والإجراءات */}
         <div className="flex flex-wrap items-center gap-2 shrink-0">
+          {/* 0. زر تسجيل موظف مشي بدون بصمة خاص بفئة بصمة بلا انصراف */}
+          {isMissingCheckoutTab ? (
+            <button
+              type="button"
+              className="btn-primary btn-sm h-9 px-3.5 text-xs font-black rounded-xl inline-flex items-center gap-1.5 shadow-sm bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white transition-all ring-1 ring-amber-400/30"
+              onClick={() => setShowManualMissingModal(true)}
+              title="تسجيل موظف غادر مقر العمل اليوم دون تسجيل بصمة انصراف"
+            >
+              <Clock3 className="size-4" />
+              <span>+ تسجيل موظف «مشي بدون بصمة»</span>
+            </button>
+          ) : null}
+
           {/* 1. زر تقرير الصورة للمدير التنفيذي */}
           <button
             type="button"
@@ -654,27 +706,45 @@ export function AttendanceDrilldownPage() {
             <SkeletonCard className="h-14" />
             <SkeletonCard className="h-14" />
           </div>
-        ) : items.length === 0 ? (
-          <EmptyState
-            title={q ? 'لا نتائج للبحث الحالي' : 'لا عناصر في هذه الفئة'}
-            description={q ? 'جرّب البحث بكلمات أخرى أو عدّل الفلاتر.' : `لا يوجد موظفون ضمن فئة «${currentCategory.label}» لهذا اليوم.`}
-          />
+        ) : displayItems.length === 0 ? (
+          <div className="flex flex-col items-center gap-3">
+            <EmptyState
+              title={q ? 'لا نتائج للبحث الحالي' : 'لا عناصر في هذه الفئة'}
+              description={
+                isMissingCheckoutTab
+                  ? 'لا يوجد موظفون مسجلون ضمن فئة «بصمة بلا انصراف» لهذا اليوم. يمكنك إضافة من غادر دون بصمة عبر الزر أدناه.'
+                  : (q ? 'جرّب البحث بكلمات أخرى أو عدّل الفلاتر.' : `لا يوجد موظفون ضمن فئة «${currentCategory.label}» لهذا اليوم.`)
+              }
+            />
+            {isMissingCheckoutTab && !q ? (
+              <button
+                type="button"
+                onClick={() => setShowManualMissingModal(true)}
+                className="btn-primary btn-sm h-9 px-4 text-xs font-black rounded-xl inline-flex items-center gap-1.5 bg-amber-600 hover:bg-amber-500 text-white shadow-sm -mt-2 mb-4"
+              >
+                <Clock3 className="size-4" />
+                <span>+ تسجيل موظف «مشي بدون بصمة»</span>
+              </button>
+            ) : null}
+          </div>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]">
             <table className="data-table w-full">
               <thead className="sticky top-0 z-10 bg-[var(--surface-muted)]/95 backdrop-blur-xs">
                 <tr>
-                  <th className="w-10 text-center" data-hide-capture="true">
-                    <input
-                      type="checkbox"
-                      aria-label="تحديد جميع الموظفين المؤهلين"
-                      checked={allEligibleSelected}
-                      onChange={toggleSelectAll}
-                      disabled={eligibleItems.length === 0}
-                      className="rounded accent-[var(--primary)] size-4 cursor-pointer"
-                      title={eligibleItems.length > 0 ? 'تحديد جميع الموظفين المتواجدين' : 'لا يوجد موظفون متاح تحديدهم'}
-                    />
-                  </th>
+                  {isMissingCheckoutTab ? (
+                    <th className="w-10 text-center" data-hide-capture="true">
+                      <input
+                        type="checkbox"
+                        aria-label="تحديد جميع الموظفين"
+                        checked={allEligibleSelected}
+                        onChange={toggleSelectAll}
+                        disabled={displayItems.length === 0}
+                        className="rounded accent-[var(--primary)] size-4 cursor-pointer"
+                        title={displayItems.length > 0 ? 'تحديد جميع الموظفين في القائمة' : 'لا يوجد موظفون'}
+                      />
+                    </th>
+                  ) : null}
                   <th className="min-w-[210px]">الموظف</th>
                   <th>الحالة</th>
                   <th>الإدارة والفرع</th>
@@ -686,8 +756,7 @@ export function AttendanceDrilldownPage() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((item) => {
-                  const isEligible = isEligibleForMissingCheckout(item);
+                {displayItems.map((item) => {
                   const isMarked = item.status === 'missing_checkout' || locallyMarkedIds.has(item.employeeId);
                   return (
                     <Row
@@ -696,6 +765,7 @@ export function AttendanceDrilldownPage() {
                       focused={focusedId === item.employeeId}
                       isToday={isToday}
                       currentMinutesFromMidnight={currentMinutesFromMidnight}
+                      isMissingCheckoutTab={isMissingCheckoutTab}
                       isSelected={selectedIds.has(item.employeeId)}
                       onToggleSelect={(checked) => {
                         setSelectedIds((prev) => {
@@ -705,9 +775,7 @@ export function AttendanceDrilldownPage() {
                           return next;
                         });
                       }}
-                      isEligible={isEligible}
                       isMarked={isMarked}
-                      onMark={(ids) => void handleMarkMissingCheckout(ids)}
                       onUnmark={(id) => void handleUnmarkMissingCheckout(id)}
                       isActionPending={isActionPending}
                     />
@@ -733,8 +801,8 @@ export function AttendanceDrilldownPage() {
         ) : null}
       </div>
 
-      {/* ─── شريط الإجراء الجماعي العائم عند التحديد ─── */}
-      {selectedIds.size > 0 ? (
+      {/* ─── شريط الإجراء الجماعي العائم عند التحديد (خاص بفئة بصمة بلا انصراف) ─── */}
+      {isMissingCheckoutTab && selectedIds.size > 0 ? (
         <div
           data-hide-capture="true"
           className="fixed bottom-6 start-1/2 -translate-x-1/2 z-40 bg-[var(--surface-overlay,rgba(15,23,42,0.95))] text-white px-5 py-3 rounded-2xl shadow-2xl border border-[var(--border)] backdrop-blur-md flex flex-wrap items-center gap-3.5 animate-in fade-in slide-in-from-bottom-4"
@@ -763,6 +831,19 @@ export function AttendanceDrilldownPage() {
         </div>
       ) : null}
 
+      {/* ─── نافذة تسجيل موظف مشي بدون بصمة يدوياً ─── */}
+      {showManualMissingModal ? (
+        <ManualMissingCheckoutModal
+          dateIso={dateIso}
+          onClose={() => setShowManualMissingModal(false)}
+          onMark={handleMarkMissingCheckout}
+          isActionPending={isActionPending}
+          alreadyMarkedIds={locallyMarkedIds}
+          presentItems={presentQuery.data?.items ?? []}
+          isLoading={presentQuery.isLoading}
+        />
+      ) : null}
+
       {/* ─── نافذة تقرير الصورة للمدير التنفيذي ─── */}
       {showExecutiveModal && <ExecutiveAttendanceModal dateIso={dateIso} onClose={() => setShowExecutiveModal(false)} />}
     </div>
@@ -774,11 +855,10 @@ function Row({
   focused,
   isToday,
   currentMinutesFromMidnight,
+  isMissingCheckoutTab,
   isSelected,
   onToggleSelect,
-  isEligible,
   isMarked,
-  onMark,
   onUnmark,
   isActionPending,
 }: {
@@ -786,11 +866,10 @@ function Row({
   focused: boolean;
   isToday: boolean;
   currentMinutesFromMidnight: number;
+  isMissingCheckoutTab: boolean;
   isSelected: boolean;
   onToggleSelect: (checked: boolean) => void;
-  isEligible: boolean;
   isMarked: boolean;
-  onMark: (ids: string[]) => void;
   onUnmark: (id: string) => void;
   isActionPending: boolean;
 }) {
@@ -803,9 +882,9 @@ function Row({
 
   return (
     <tr data-focus-id={item.employeeId} className={focused ? 'entity-focus-highlight' : undefined}>
-      {/* 0. خانة التحديد */}
-      <td data-hide-capture="true" className="w-10 text-center">
-        {isEligible || isMarked ? (
+      {/* 0. خانة التحديد - تظهر فقط في فئة بصمة بلا انصراف */}
+      {isMissingCheckoutTab ? (
+        <td data-hide-capture="true" className="w-10 text-center">
           <input
             type="checkbox"
             checked={isSelected}
@@ -813,10 +892,8 @@ function Row({
             className="rounded accent-[var(--primary)] size-4 cursor-pointer"
             aria-label={`تحديد ${item.employeeName}`}
           />
-        ) : (
-          <span className="text-[var(--text-muted)] text-xs opacity-30">—</span>
-        )}
-      </td>
+        </td>
+      ) : null}
 
       {/* 1. الموظف: الصورة والاسم ورقم الهاتف / الكود والوردية */}
       <td>
@@ -1108,7 +1185,7 @@ function Row({
       {/* 8. الإجراءات وفتح الملف */}
       <td className="text-end" data-hide-capture="true">
         <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
-          {isMarked ? (
+          {isMissingCheckoutTab && isMarked ? (
             <button
               type="button"
               disabled={isActionPending}
@@ -1118,21 +1195,10 @@ function Row({
             >
               تراجع
             </button>
-          ) : isEligible ? (
-            <button
-              type="button"
-              disabled={isActionPending}
-              onClick={() => void onMark([item.employeeId])}
-              className="inline-flex items-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-xs font-bold text-amber-500 hover:bg-amber-500/20 transition-all shadow-xs"
-              title="تحديد أن الموظف غادر مقر العمل دون تسجيل بصمة انصراف"
-            >
-              <Clock3 className="size-3" />
-              <span>مشي بدون بصمة</span>
-            </button>
           ) : null}
           <Link
             to={`${hrPrefix}/employees/${item.employeeId}`}
-            className="btn-ghost btn-xs whitespace-nowrap text-xs font-bold text-[var(--primary)] hover:bg-[var(--primary)]/10 rounded-lg px-2 py-1"
+            className="btn-ghost btn-xs whitespace-nowrap text-xs font-bold text-[var(--primary)] hover:bg-[var(--primary)]/10 rounded-lg px-2.5 py-1"
           >
             فتح الملف
           </Link>

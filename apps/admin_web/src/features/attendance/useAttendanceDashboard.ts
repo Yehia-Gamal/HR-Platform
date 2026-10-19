@@ -60,6 +60,7 @@ export interface AttendanceRosterFilters {
   direction?: 'asc' | 'desc';
   limit?: number;
   offset?: number;
+  enabled?: boolean;
 }
 
 /**
@@ -71,7 +72,7 @@ export function useAttendanceRosterPage(filters: AttendanceRosterFilters) {
   const auth = useAuth();
   return useQuery({
     queryKey: ['attendance-roster-page', auth.isMock, filters],
-    enabled: auth.status === 'authenticated',
+    enabled: auth.status === 'authenticated' && (filters.enabled ?? true),
     staleTime: 30_000,
     queryFn: async (): Promise<AttendanceRosterPage> => {
       const cat = attendanceRosterCategorySchema.parse(filters.category);
