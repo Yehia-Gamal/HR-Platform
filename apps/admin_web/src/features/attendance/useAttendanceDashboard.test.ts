@@ -59,3 +59,12 @@ describe('attendance roster mocks vs expanded schema (0294)', () => {
     expect(page.offset).toBe(0);
   });
 });
+
+describe('executive daily report mocks vs schema', () => {
+  it('parses mockExecutiveDailyReport against executiveDailyReportSchema', async () => {
+    const { executiveDailyReportSchema } = await import('@ahla/shared-contracts');
+    const { mockExecutiveDailyReport } = await import('../mock/domainMocks');
+    expect(() => executiveDailyReportSchema.parse(mockExecutiveDailyReport)).not.toThrow();
+  });
+});
+

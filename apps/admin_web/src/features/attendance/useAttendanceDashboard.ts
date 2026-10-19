@@ -496,32 +496,11 @@ export function useExecutiveDailyReport(dateIso?: string) {
     staleTime: 60_000,
     queryFn: async (): Promise<ExecutiveDailyReport> => {
       if (auth.isMock) {
-        const mock = (await loadDomainMocks()).mockAttendanceDashboard;
-        // تحويل AttendanceDashboard إلى ExecutiveDailyReport للمعاينة
-        return {
+        const mocks = await loadDomainMocks();
+        return executiveDailyReportSchema.parse({
+          ...mocks.mockExecutiveDailyReport,
           date: targetDate,
-          employees: { active: mock.scheduled ?? 0, requiredToday: mock.scheduled ?? 0 },
-          attendance: {
-            present: mock.present ?? 0,
-            late: mock.late ?? 0,
-            absent: mock.absent ?? 0,
-            notYet: mock.missingCheckout ?? 0,
-            checkedOut: mock.present ?? 0,
-            missingCheckout: mock.missingCheckout ?? 0,
-          },
-          workStatus: {
-            approvedLeave: mock.onLeave ?? 0,
-            missions: mock.onMission ?? 0,
-            convoys: 0,
-            fundraising: 0,
-          },
-          requests: { pendingLeave: 0, pendingMission: 0 },
-          kpi: { atEmployee: 0, atManager: 0, atHr: 0, ready: 0, overdue: 0 },
-          cases: { new: 0, open: 0 },
-          followUp: { decisions: 0, missingReports: 0, activeLocationRequests: 0, unansweredLocationRequests: 0 },
-          sources: {},
-          generatedAt: new Date().toISOString(),
-        } as ExecutiveDailyReport;
+        });
       }
       const data = await rpc('get_v10_executive_daily_report', { p_date: targetDate });
       return executiveDailyReportSchema.parse(data);
@@ -543,11 +522,29 @@ export function useExecutiveDailyReportDetail(dateIso?: string) {
     queryFn: async (): Promise<ExecutiveDailyReportDetail> => {
       if (auth.isMock) {
         const mocks = await loadDomainMocks();
-        const summary = executiveDailyReportSchema.parse(mocks.mockAttendanceDashboard);
+        const summary = executiveDailyReportSchema.parse({
+          ...mocks.mockExecutiveDailyReport,
+          date: targetDate,
+        });
+        const mockEmployees = (mocks.mockAttendanceRoster.scheduled ?? []).map((r) => ({
+          employeeId: r.employeeId,
+          employeeName: r.employeeName,
+          employeeCode: r.employeeCode ?? null,
+          departmentName: r.departmentName ?? null,
+          jobTitle: 'أخصائي عمل ميداني',
+          managerName: 'أحمد محمود',
+          status: r.status ?? null,
+          lateMinutes: r.lateMinutes ?? null,
+          firstCheckIn: r.firstCheckIn ?? null,
+          lastCheckOut: r.lastCheckOut ?? null,
+          hasApprovedLeave: Boolean(r.hasApprovedLeave),
+          hasMission: Boolean(r.hasMission),
+          locationRequestStatus: r.locationRequestStatus ?? null,
+        }));
         return {
           dateIso: targetDate,
           summary,
-          employees: [],
+          employees: mockEmployees,
           missions: [],
           convoys: [],
           leaves: [],
