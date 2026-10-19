@@ -130,6 +130,14 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
   const dateFormatted = new Intl.DateTimeFormat(`ar-EG-u-nu-${numberSystem}`, { dateStyle: 'full' }).format(new Date(`${dateIso}T00:00:00`));
   const nowFormatted = new Intl.DateTimeFormat(`ar-EG-u-nu-${numberSystem}`, { timeStyle: 'short', timeZone: 'Africa/Cairo' }).format(new Date());
 
+  const fmtTime = (iso: string | null | undefined): string => formatTime12(iso, numberSystem);
+  const fmtNum = (val: number | string): string => {
+    if (numberSystem === 'arab') {
+      return String(val).replace(/\d/g, (d) => '٠١٢٣٤٥٦٧٨٩'[Number(d)]);
+    }
+    return String(val);
+  };
+
   // كود التحقق الأمني مع Hash رقمي للمحتوى
   const securityInfo = generateSecurityVerificationCode(
     dateIso,
@@ -314,9 +322,9 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
 • متوسط ساعات العمل اليومية: ${endOfDayMetrics.averageWorkHoursFormatted}
 ━━━━━━━━━━━━━━━━━━━━
 ${endOfDayMetrics.missingCheckoutsCount > 0 ? `⚠️ *بصمات الانصراف الناقصة (${endOfDayMetrics.missingCheckoutsCount}):*
-${endOfDayMetrics.missingCheckoutList.map((m, i) => `${i + 1}. ${m.item.employeeName} (${m.item.departmentName ?? '—'}) · حضور: ${formatTime12(m.firstCheckIn)} [⚠️ لم يسجل خروجاً]`).join('\n')}
-━━━━━━━━━━━━━━━━━━━━\n` : ''}${endOfDayMetrics.earlyDeparturesCount > 0 ? `⏱️ *الانصراف المبكر (${endOfDayMetrics.earlyDeparturesCount}):*
-${endOfDayMetrics.earlyDepartureList.map((e, i) => `${i + 1}. ${e.item.employeeName} (${e.item.departmentName ?? '—'}) · خروج: ${formatTime12(e.lastCheckOut)} [تبكير: ${e.formattedEarlyDeparture}]`).join('\n')}
+${endOfDayMetrics.missingCheckoutList.map((m, i) => `${fmtNum(i + 1)}. ${m.item.employeeName} (${m.item.departmentName ?? '—'}) · حضور: ${fmtTime(m.firstCheckIn)} [⚠️ لم يسجل خروجاً]`).join('\n')}
+━━━━━━━━━━━━━━━━━━━━\n` : ''}${endOfDayMetrics.earlyDeparturesCount > 0 ? `⏱️ *الانصراف المبكر (${fmtNum(endOfDayMetrics.earlyDeparturesCount)}):*
+${endOfDayMetrics.earlyDepartureList.map((e, i) => `${fmtNum(i + 1)}. ${e.item.employeeName} (${e.item.departmentName ?? '—'}) · خروج: ${fmtTime(e.lastCheckOut)} [تبكير: ${fmtNum(e.formattedEarlyDeparture)}]`).join('\n')}
 ━━━━━━━━━━━━━━━━━━━━\n` : ''}🔐 *كود التحقق الرقمي:* ${securityInfo.code}
 رابط التحقق: ${securityInfo.verifyUrl}`;
 
@@ -385,7 +393,7 @@ ${
   lateList.length === 0
     ? '✓ لا يوجد متأخرون'
     : lateList
-        .map((l, i) => `${i + 1}. ${l.item.employeeName} (${l.item.departmentName ?? '—'}) · بصمة: ${formatTime12(l.item.firstCheckIn)} [تأخير: ${l.formattedLate}]`)
+        .map((l, i) => `${fmtNum(i + 1)}. ${l.item.employeeName} (${l.item.departmentName ?? '—'}) · بصمة: ${fmtTime(l.item.firstCheckIn)} [تأخير: ${fmtNum(l.formattedLate)}]`)
         .join('\n')
 }
 
@@ -721,27 +729,27 @@ ${
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                   <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-center">
                     <span className="block text-[11px] font-bold text-slate-400 mb-1">قوة العمل المجدولة</span>
-                    <span className="text-2xl font-black text-white font-mono">{metrics.totalScheduledEmployees}</span>
+                    <span className="text-2xl font-black text-white font-mono">{fmtNum(metrics.totalScheduledEmployees)}</span>
                     <span className="text-[10px] text-slate-500 block mt-0.5">مطالبون بالحضور حتى الآن</span>
                   </div>
 
                   <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-center">
                     <span className="block text-[11px] font-bold text-emerald-300 mb-1">الحضور الفعلي</span>
-                    <span className="text-2xl font-black text-emerald-400 font-mono">{metrics.presentTotal}</span>
+                    <span className="text-2xl font-black text-emerald-400 font-mono">{fmtNum(metrics.presentTotal)}</span>
                     <span className="text-[10px] font-bold text-emerald-400/90 block mt-0.5 font-mono">
-                      نسبة: {metrics.attendancePercentage}%
+                      نسبة: {fmtNum(metrics.attendancePercentage)}%
                     </span>
                   </div>
 
                   <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-500/30 text-center">
                     <span className="block text-[11px] font-bold text-amber-300 mb-1">المتأخرون</span>
-                    <span className="text-2xl font-black text-amber-400 font-mono">{metrics.presentLate}</span>
+                    <span className="text-2xl font-black text-amber-400 font-mono">{fmtNum(metrics.presentLate)}</span>
                     <span className="text-[10px] text-amber-400/80 block mt-0.5">حضروا بعد الوردية</span>
                   </div>
 
                   <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-500/30 text-center">
                     <span className="block text-[11px] font-bold text-rose-300 mb-1">الغياب غير المبرر</span>
-                    <span className="text-2xl font-black text-rose-400 font-mono">{metrics.unexcusedAbsent}</span>
+                    <span className="text-2xl font-black text-rose-400 font-mono">{fmtNum(metrics.unexcusedAbsent)}</span>
                     <span className="text-[10px] text-rose-400/80 block mt-0.5">
                       {metrics.unexcusedAbsent > 0 ? 'بدأت ورديتهم ولم يحضروا' : 'لا يوجد غياب'}
                     </span>
@@ -750,22 +758,22 @@ ${
                   <div className="p-3 rounded-xl bg-sky-950/40 border border-sky-500/30 text-center">
                     <span className="block text-[11px] font-bold text-sky-300 mb-1">المأموريات</span>
                     <span className="text-2xl font-black text-sky-400 font-mono">
-                      {metrics.missionsApproved + metrics.missionsPendingLeft}
+                      {fmtNum(metrics.missionsApproved + metrics.missionsPendingLeft)}
                     </span>
                     <span className="text-[10px] text-sky-400/80 block mt-0.5">
-                      {metrics.missionsPendingLeft > 0 ? `${metrics.missionsApproved} معتمدة · ${metrics.missionsPendingLeft} معلقة` : 'ميدانية معتمدة'}
+                      {metrics.missionsPendingLeft > 0 ? `${fmtNum(metrics.missionsApproved)} معتمدة · ${fmtNum(metrics.missionsPendingLeft)} معلقة` : 'ميدانية معتمدة'}
                     </span>
                   </div>
 
                   <div className="p-3 rounded-xl bg-teal-950/40 border border-teal-500/30 text-center">
                     <span className="block text-[11px] font-bold text-teal-300 mb-1">الإجازات والراحات</span>
-                    <span className="text-2xl font-black text-teal-400 font-mono">{metrics.leavesTotal}</span>
+                    <span className="text-2xl font-black text-teal-400 font-mono">{fmtNum(metrics.leavesTotal)}</span>
                     <span className="text-[10px] text-teal-400/80 block mt-0.5">رسمية معتمدة</span>
                   </div>
                 </div>
 
                 {/* 4. الشارت البياني التوضيحي (Donut Chart) لتوزيع قوى العمل */}
-                <ExecutiveWorkforceChart metrics={metrics} isLight={false} />
+                <ExecutiveWorkforceChart metrics={metrics} isLight={false} numberSystem={numberSystem} />
 
                 {/* 5. مصفوفة ملخص انضباط الإدارات والأقسام (Department Matrix) */}
                 <div className="rounded-xl border border-slate-800 overflow-hidden bg-slate-900/50">
@@ -912,11 +920,11 @@ ${
                                 </bdi>
                               </td>
                               <td className="p-2 font-mono font-black text-amber-400">
-                                {formatTime12(c.item.firstCheckIn)}
+                                {fmtTime(c.item.firstCheckIn)}
                               </td>
                               <td className="p-2">
                                 <span className="inline-block px-2.5 py-1 rounded-lg bg-amber-500/25 text-amber-300 border border-amber-500/50 font-black text-xs font-mono shadow-xs">
-                                  ⚠️ تأخير {c.formattedLate}
+                                  ⚠️ تأخير {fmtNum(c.formattedLate)}
                                 </span>
                               </td>
                             </tr>
@@ -1068,7 +1076,7 @@ ${
                               <span className="font-bold text-white truncate">{p.item.employeeName}</span>
                             </div>
                             <span className="font-mono text-[11px] font-bold text-emerald-400 shrink-0">
-                              {formatTime12(p.item.firstCheckIn)}
+                              {fmtTime(p.item.firstCheckIn)}
                             </span>
                           </div>
                         ))}
@@ -1182,7 +1190,7 @@ ${
                                 {formatShiftBadge(m.item.shiftName)}
                               </bdi>
                             </td>
-                            <td className="p-2 font-mono font-bold text-emerald-400">{formatTime12(m.firstCheckIn)}</td>
+                            <td className="p-2 font-mono font-bold text-emerald-400">{fmtTime(m.firstCheckIn)}</td>
                             <td className="p-2">
                               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 font-bold text-[10px]">
                                 ⚠️ لم يسجل بصمة انصراف حتى الآن
@@ -1229,10 +1237,10 @@ ${
                                 {formatShiftBadge(e.item.shiftName)}
                               </bdi>
                             </td>
-                            <td className="p-2 font-mono font-bold text-amber-400">{formatTime12(e.lastCheckOut)}</td>
+                            <td className="p-2 font-mono font-bold text-amber-400">{fmtTime(e.lastCheckOut)}</td>
                             <td className="p-2">
                               <span className="inline-block px-2 py-0.5 rounded bg-amber-500/25 text-amber-300 border border-amber-500/50 font-bold text-[10.5px]">
-                                تبكير: {e.formattedEarlyDeparture}
+                                تبكير: {fmtNum(e.formattedEarlyDeparture)}
                               </span>
                             </td>
                           </tr>
@@ -1269,9 +1277,9 @@ ${
                             <td className="p-2 text-center text-slate-500 font-bold font-mono">{idx + 1}</td>
                             <td className="p-2 font-black text-white">{s.item.employeeName}</td>
                             <td className="p-2 text-slate-300">{s.item.departmentName ?? '—'}</td>
-                            <td className="p-2 font-mono font-bold text-emerald-400">{formatTime12(s.firstCheckIn)}</td>
-                            <td className="p-2 font-mono font-bold text-sky-400">{formatTime12(s.lastCheckOut)}</td>
-                            <td className="p-2 font-mono font-black text-slate-200">{s.formattedWorkHours}</td>
+                            <td className="p-2 font-mono font-bold text-emerald-400">{fmtTime(s.firstCheckIn)}</td>
+                            <td className="p-2 font-mono font-bold text-sky-400">{fmtTime(s.lastCheckOut)}</td>
+                            <td className="p-2 font-mono font-black text-slate-200">{fmtNum(s.formattedWorkHours)}</td>
                             <td className="p-2">
                               {s.isMissingCheckout ? (
                                 <span className="text-rose-400 font-bold text-[10px] bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/30">

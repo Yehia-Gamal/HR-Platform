@@ -232,5 +232,44 @@ describe('ExecutiveAttendanceModal', () => {
     expect(screen.getByText(/دليل التدقيق والتحقق للمدير التنفيذي/)).toBeDefined();
     expect(screen.getByText(/الغياب غير المبرر/)).toBeDefined();
   });
+
+  it('toggles number system between Latin (123) and Eastern Arabic (١٢٣)', async () => {
+    const { fireEvent } = await import('@testing-library/react');
+
+    rosterHook = {
+      data: {
+        items: [
+          {
+            employeeId: 'emp-nums-1',
+            employeeName: 'أحمد محمود',
+            departmentName: 'إدارة المالية',
+            status: 'present',
+            firstCheckIn: '2026-10-19T07:00:00Z',
+            lastCheckOut: null,
+            shiftName: 'الدوام الأساسي (10 ص – 6 م)',
+            lateMinutes: 0,
+          },
+        ],
+        total: 1,
+      },
+      isLoading: false,
+      isError: false,
+    };
+
+    render(<ExecutiveAttendanceModal dateIso="2026-10-19" onClose={() => undefined} />);
+
+    // Initially defaults to 123 (Latin numbers)
+    const toggleBtn = screen.getByTitle(/توحيد نمط الأرقام عبر التقرير/);
+    expect(toggleBtn).toBeDefined();
+    expect(screen.getByText('123')).toBeDefined();
+
+    // Click toggle to switch to Eastern Arabic
+    fireEvent.click(toggleBtn);
+    expect(screen.getByText('١٢٣')).toBeDefined();
+
+    // Click again to switch back to Latin
+    fireEvent.click(toggleBtn);
+    expect(screen.getByText('123')).toBeDefined();
+  });
 });
 

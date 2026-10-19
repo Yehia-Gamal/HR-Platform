@@ -3,6 +3,7 @@ import type { ExecutiveMetrics } from './executiveReportLogic';
 interface Props {
   metrics: ExecutiveMetrics;
   isLight?: boolean;
+  numberSystem?: 'latn' | 'arab';
 }
 
 interface ChartSlice {
@@ -14,8 +15,15 @@ interface ChartSlice {
   glowColor: string;
 }
 
-export function ExecutiveWorkforceChart({ metrics, isLight = false }: Props) {
+export function ExecutiveWorkforceChart({ metrics, isLight = false, numberSystem = 'latn' }: Props) {
   const total = Math.max(1, metrics.totalScheduledEmployees + metrics.shiftNotStartedYet);
+
+  const fmt = (v: number | string) => {
+    if (numberSystem === 'arab') {
+      return String(v).replace(/\d/g, (d) => '٠١٢٣٤٥٦٧٨٩'[Number(d)]);
+    }
+    return String(v);
+  };
 
   const slices: ChartSlice[] = [
     {
@@ -110,7 +118,7 @@ export function ExecutiveWorkforceChart({ metrics, isLight = false }: Props) {
         <div className="text-end">
           <span className="text-xs text-slate-400 block font-medium">نسبة الحضور الفعلي</span>
           <span className="text-xl font-black text-emerald-400 font-mono">
-            {metrics.attendancePercentage}%
+            {fmt(metrics.attendancePercentage)}%
           </span>
         </div>
       </div>
@@ -153,11 +161,11 @@ export function ExecutiveWorkforceChart({ metrics, isLight = false }: Props) {
           {/* قلب الدونات: نسبة الحضور والعدد الإجمالي */}
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
             <span className="text-2xl font-black text-white font-mono tracking-tight leading-none">
-              {metrics.presentTotal}
+              {fmt(metrics.presentTotal)}
             </span>
             <span className="text-[11px] font-bold text-emerald-400 mt-1">حاضر الآن</span>
             <span className="text-[10px] text-slate-400 mt-0.5 font-medium">
-              من {metrics.totalScheduledEmployees} مجدول
+              من {fmt(metrics.totalScheduledEmployees)} مجدول
             </span>
           </div>
         </div>
@@ -181,9 +189,9 @@ export function ExecutiveWorkforceChart({ metrics, isLight = false }: Props) {
                 <span className="text-xs font-bold text-slate-200">{slice.label}</span>
               </div>
               <div className="flex items-center gap-1.5 font-mono text-xs font-black">
-                <span className="text-white">{slice.count}</span>
+                <span className="text-white">{fmt(slice.count)}</span>
                 <span className="text-slate-400 font-normal text-[11px]">
-                  ({slice.pct}%)
+                  ({fmt(slice.pct)}%)
                 </span>
               </div>
             </div>

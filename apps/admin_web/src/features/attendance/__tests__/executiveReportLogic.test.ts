@@ -136,9 +136,15 @@ describe('executiveReportLogic', () => {
     expect(raw.purpose).not.toContain('نازل اشتري');
   });
 
-  it('تنسيق نصوص الورديات وتوحيد "3 ع" إلى "3 م"', () => {
+  it('تنسيق نصوص الورديات وتوحيد "3 ع" إلى "3 م" وتوضيح وسم العيادات', () => {
     const formatted = formatShiftBadge('فترة العيادات المسائية (3 ع – 11 م)');
     expect(formatted).toBe('فترة العيادات المسائية (3 م – 11 م)');
+
+    const clinicBadge = formatShiftBadge('عيادات (١)');
+    expect(clinicBadge).toBe('العيادات الطبية (الفترة المسائية 3 م – 11 م)');
+
+    const clinicBadgeHindi = formatShiftBadge('عيادات (1)');
+    expect(clinicBadgeHindi).toBe('العيادات الطبية (الفترة المسائية 3 م – 11 م)');
   });
 
   it('توليد كود أمني غير متوقع مرتبط بـ Hash المحتوى', () => {
