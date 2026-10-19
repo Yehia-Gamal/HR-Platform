@@ -89,21 +89,44 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
     });
   };
 
-  // فرز قائمة الحاضرين: الملتزمون في الموعد أولاً، ثم المتأخرون في نهاية القائمة مع إبرازهم
-  const sortPresentWithLateAtEnd = (list: AttendanceRosterItem[]): AttendanceRosterItem[] => {
-    return [...list].sort((a, b) => {
-      const aLate = (a.lateMinutes ?? 0) > 0 ? 1 : 0;
-      const bLate = (b.lateMinutes ?? 0) > 0 ? 1 : 0;
-      // 1. المتأخرون في نهاية القائمة
-      if (aLate !== bLate) return aLate - bLate;
+  // هل الموظف في مأمورية (معتمدة أو طلب معلق)؟
+  const isMissionItem = (i: AttendanceRosterItem): boolean => {
+    return i.status === 'on_mission' || Boolean(i.hasMission) || (Boolean(i.hasPendingRequest) && i.pendingRequestType === 'mission');
+  };
 
-      // 2. الطاقم الطبي في نهاية فئته
+  // هل الموظف في إجازة (معتمدة أو طلب معلق)؟
+  const isLeaveItem = (i: AttendanceRosterItem): boolean => {
+    return (
+      (i.status === 'on_leave' ||
+        Boolean(i.hasApprovedLeave) ||
+        (Boolean(i.hasPendingRequest) && i.pendingRequestType === 'leave')) &&
+      !isMissionItem(i)
+    );
+  };
+
+  // فرز قائمة الحاضرين:
+  // 1. الملتزمون في الموعد والمتواجدون بالمجمع أولاً
+  // 2. الموظفون الذين بصموا حضور ثم خرجوا في مأموريات عمل ميدانية (زي محمد سيد)
+  // 3. المتأخرون في نهاية القائمة مع إبرازهم
+  const sortPresentRoster = (list: AttendanceRosterItem[]): AttendanceRosterItem[] => {
+    return [...list].sort((a, b) => {
+      const getPriority = (item: AttendanceRosterItem): number => {
+        if ((item.lateMinutes ?? 0) > 0) return 3;
+        if (isMissionItem(item)) return 2;
+        return 1;
+      };
+
+      const pA = getPriority(a);
+      const pB = getPriority(b);
+      if (pA !== pB) return pA - pB;
+
+      // الطاقم الطبي في نهاية كل فئة
       const aClinic = isClinicMedicalStaff(a) ? 1 : 0;
       const bClinic = isClinicMedicalStaff(b) ? 1 : 0;
       if (aClinic !== bClinic) return aClinic - bClinic;
 
-      // 3. ترتيب المتأخرين تنازلياً حسب مدة التأخير
-      if (aLate && bLate) {
+      // ترتيب المتأخرين تنازلياً حسب مدة التأخير
+      if (pA === 3 && pB === 3) {
         const diff = (b.lateMinutes ?? 0) - (a.lateMinutes ?? 0);
         if (diff !== 0) return diff;
       }
@@ -115,52 +138,40 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
   const items = rawItems.filter((i) => !isAttendanceExempt(i));
   const totalScheduled = items.length;
 
-  // تصنيف الموظفين مع وضع الطاقم الطبي في نهاية كل جدول
-  const onMission = sortClinicStaffToEnd(
-    items.filter((i) => i.status === 'on_mission' || Boolean(i.hasMission) || (i.hasPendingRequest && i.pendingRequestType === 'mission'))
-  );
-  const onLeave = sortClinicStaffToEnd(
+  // تصنيف الموظفين
+  const onMission = sortClinicStaffToEnd(items.filter((i) => isMissionItem(i)));
+  const onLeave = sortClinicStaffToEnd(items.filter((i) => isLeaveItem(i)));
+
+  // الحضور الفعلي: كل من سجل بصمة حضور اليوم، أو حالته حضور/تأخير
+  // يشمل المتواجدين بالمجمع، وأيضاً من بصموا حضور وخرجوا في مأمورية ميدانية (مثل محمد سيد)
+  const present = sortPresentRoster(
     items.filter(
       (i) =>
-        (i.status === 'on_leave' ||
-          Boolean(i.hasApprovedLeave) ||
-          (i.hasPendingRequest && i.pendingRequestType === 'leave')) &&
-        !i.hasMission &&
-        i.pendingRequestType !== 'mission'
+        !isLeaveItem(i) &&
+        (Boolean(i.firstCheckIn) ||
+          i.status === 'present' ||
+          i.status === 'late' ||
+          i.status === 'missing_checkout')
     )
   );
-  const present = sortPresentWithLateAtEnd(
-    items.filter(
-      (i) =>
-        (i.status === 'present' || i.status === 'late' || i.status === 'missing_checkout' || Boolean(i.firstCheckIn)) &&
-        !i.hasMission &&
-        !i.hasApprovedLeave &&
-        i.status !== 'on_mission' &&
-        i.status !== 'on_leave' &&
-        !(i.hasPendingRequest && (i.pendingRequestType === 'leave' || i.pendingRequestType === 'mission'))
-    )
-  );
+
   const late = sortClinicStaffToEnd(
     items.filter(
       (i) =>
         (i.lateMinutes ?? 0) > 0 &&
         Boolean(i.firstCheckIn) &&
-        !i.hasMission &&
-        !i.hasApprovedLeave &&
-        i.status !== 'on_mission' &&
-        i.status !== 'on_leave' &&
-        !(i.hasPendingRequest && (i.pendingRequestType === 'leave' || i.pendingRequestType === 'mission'))
+        !isLeaveItem(i)
     )
   );
+
   const absent = sortClinicStaffToEnd(
     items.filter(
       (i) =>
         !i.firstCheckIn &&
-        !i.hasApprovedLeave &&
-        !i.hasMission &&
-        i.status !== 'on_mission' &&
-        i.status !== 'on_leave' &&
-        !(i.hasPendingRequest && (i.pendingRequestType === 'leave' || i.pendingRequestType === 'mission'))
+        !isLeaveItem(i) &&
+        !isMissionItem(i) &&
+        i.status !== 'present' &&
+        i.status !== 'late'
     )
   );
   const pendingRequests = items.filter((i) => Boolean(i.hasPendingRequest));
@@ -282,6 +293,8 @@ ${
           (p, i) =>
             `${i + 1}. ${p.employeeName} (${p.departmentName ?? '—'}) · ${p.firstCheckIn ? formatTime12(p.firstCheckIn) : 'حاضر'}${
               (p.lateMinutes ?? 0) > 0 ? ` [تأخير ${p.lateMinutes} دقيقة]` : ''
+            }${
+              isMissionItem(p) ? ` [✈️ خرج لمأمورية${(p.leaveTitle ?? p.pendingRequestTitle) ? `: ${p.leaveTitle ?? p.pendingRequestTitle}` : ''}]` : ''
             }`,
         )
         .join('\n')
@@ -496,114 +509,187 @@ ${
               <div className="space-y-6">
                 {/* أ) جدول الحاضرين */}
                 <div className="rounded-xl border border-slate-800 overflow-hidden bg-slate-900/40">
-                  <div className="bg-emerald-900/70 border-b border-emerald-500/20 text-white px-4 py-2 flex items-center justify-between text-xs font-black">
-                    <div className="flex items-center gap-1.5">
-                      <UserCheck className="size-4 text-emerald-400" />
-                      <span>قائمة الحاضرين (المتواجدون بالمجمع)</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      {late.length > 0 ? (
-                        <span className="bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full text-[10.5px]">
-                          {late.length} متأخر
-                        </span>
-                      ) : null}
-                      <span className="bg-emerald-800 px-2.5 py-0.5 rounded-full text-[11px]">{present.length} موظف</span>
-                    </div>
-                  </div>
+                  {(() => {
+                    const presentInComplexCount = present.filter((p) => !isMissionItem(p) && (p.lateMinutes ?? 0) <= 0).length;
+                    const presentMissionCount = present.filter((p) => isMissionItem(p) && (p.lateMinutes ?? 0) <= 0).length;
+                    const presentLateCount = present.filter((p) => (p.lateMinutes ?? 0) > 0).length;
 
-                  {present.length === 0 ? (
-                    <div className="py-4 text-center text-xs text-slate-400 font-bold bg-slate-900/20">لا يوجد حضور مسجل لهذا اليوم حتى الآن.</div>
-                  ) : (
-                    <table className="w-full text-[11px] border-collapse">
-                      <thead>
-                        <tr className="bg-slate-900/90 text-slate-300 border-b border-slate-800 text-start font-black">
-                          <th className="p-2 w-8 text-center">#</th>
-                          <th className="p-2">اسم الموظف</th>
-                          <th className="p-2">الإدارة والفرع</th>
-                          <th className="p-2">الوردية</th>
-                          <th className="p-2">وقت الحضور</th>
-                          <th className="p-2">وقت الانصراف</th>
-                          <th className="p-2">الحالة</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-800 font-medium">
-                        {(() => {
-                          const firstLateIndex = present.findIndex((p) => (p.lateMinutes ?? 0) > 0);
-                          return present.map((p, idx) => {
-                            const isLate = (p.lateMinutes ?? 0) > 0;
-                            const isFirstLate = firstLateIndex !== -1 && idx === firstLateIndex;
-                            return (
-                              <Fragment key={p.employeeId}>
-                                {isFirstLate && (
-                                  <tr className="bg-amber-950/70 border-y-2 border-amber-500/40 text-amber-300 font-black text-[10.5px]">
-                                    <td colSpan={7} className="p-2 px-3">
-                                      <div className="flex items-center justify-between">
-                                        <span className="flex items-center gap-1.5">
-                                          <Clock3 className="size-3.5 text-amber-400" />
-                                          <span>المتأخرون عن موعد الوردية الرسمية (المسجلون بعد الموعد)</span>
-                                        </span>
-                                        <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold">
-                                          {present.length - firstLateIndex} موظف
-                                        </span>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                )}
-                                <tr
-                                  className={
-                                    isLate
-                                      ? 'bg-amber-950/25 hover:bg-amber-950/40 border-s-2 border-amber-500'
-                                      : idx % 2 === 0
-                                      ? 'bg-slate-950/40'
-                                      : 'bg-slate-900/40'
-                                  }
-                                >
-                                  <td className="p-2 text-center text-slate-500 font-bold">{idx + 1}</td>
-                                  <td className="p-2 font-black text-white">
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                      <span>{p.employeeName}</span>
-                                      {isClinicMedicalStaff(p) ? (
-                                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 inline-flex items-center gap-0.5">
-                                          🩺 عيادات
-                                        </span>
-                                      ) : null}
-                                      {isLate ? (
-                                        <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                                          متأخر
-                                        </span>
-                                      ) : null}
-                                    </div>
-                                  </td>
-                                  <td className="p-2 text-slate-300">
-                                    <span>{p.departmentName ?? '—'}</span>
-                                    {p.branchName ? <span className="text-slate-400 text-[10px] block">{p.branchName}</span> : null}
-                                  </td>
-                                  <td className="p-2 text-slate-300">{p.shiftName ?? '—'}</td>
-                                  <td className={`p-2 font-bold ${isLate ? 'text-amber-300' : 'text-emerald-400'}`}>
-                                    {p.firstCheckIn ? formatTime12(p.firstCheckIn) : '—'}
-                                  </td>
-                                  <td className="p-2 text-emerald-300 font-bold">
-                                    {p.lastCheckOut ? formatTime12(p.lastCheckOut) : 'متواجد حالياً في المجمع'}
-                                  </td>
-                                  <td className="p-2">
-                                    {isLate ? (
-                                      <span className="inline-block px-2 py-0.5 rounded bg-amber-500/25 text-amber-300 border border-amber-500/40 font-black text-[10px] shadow-xs">
-                                        ⚠️ متأخر {formatMinutes(p.lateMinutes)}
-                                      </span>
-                                    ) : (
-                                      <span className="inline-block px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold text-[10px]">
-                                        في الموعد
-                                      </span>
-                                    )}
-                                  </td>
-                                </tr>
-                              </Fragment>
-                            );
-                          });
-                        })()}
-                      </tbody>
-                    </table>
-                  )}
+                    return (
+                      <>
+                        <div className="bg-emerald-900/70 border-b border-emerald-500/20 text-white px-4 py-2 flex items-center justify-between text-xs font-black">
+                          <div className="flex items-center gap-1.5">
+                            <UserCheck className="size-4 text-emerald-400" />
+                            <span>قائمة الحاضرين (المتواجدون بالمجمع والمأموريات)</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {presentInComplexCount > 0 ? (
+                              <span className="bg-emerald-800/80 text-emerald-200 border border-emerald-600/40 px-2 py-0.5 rounded-full text-[10.5px]">
+                                {presentInComplexCount} متواجد بالمجمع
+                              </span>
+                            ) : null}
+                            {presentMissionCount > 0 ? (
+                              <span className="bg-sky-500/20 text-sky-300 border border-sky-500/40 px-2 py-0.5 rounded-full text-[10.5px]">
+                                {presentMissionCount} في مأمورية
+                              </span>
+                            ) : null}
+                            {presentLateCount > 0 ? (
+                              <span className="bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full text-[10.5px]">
+                                {presentLateCount} متأخر
+                              </span>
+                            ) : null}
+                            <span className="bg-emerald-800 px-2.5 py-0.5 rounded-full text-[11px] font-black">{present.length} إجمالي الحضور</span>
+                          </div>
+                        </div>
+
+                        {present.length === 0 ? (
+                          <div className="py-4 text-center text-xs text-slate-400 font-bold bg-slate-900/20">لا يوجد حضور مسجل لهذا اليوم حتى الآن.</div>
+                        ) : (
+                          <table className="w-full text-[11px] border-collapse">
+                            <thead>
+                              <tr className="bg-slate-900/90 text-slate-300 border-b border-slate-800 text-start font-black">
+                                <th className="p-2 w-8 text-center">#</th>
+                                <th className="p-2">اسم الموظف</th>
+                                <th className="p-2">الإدارة والفرع</th>
+                                <th className="p-2">الوردية</th>
+                                <th className="p-2">وقت الحضور</th>
+                                <th className="p-2">الموقع / وقت الانصراف</th>
+                                <th className="p-2">الحالة</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-800 font-medium">
+                              {(() => {
+                                const firstMissionIndex = present.findIndex((p) => isMissionItem(p) && (p.lateMinutes ?? 0) <= 0);
+                                const firstLateIndex = present.findIndex((p) => (p.lateMinutes ?? 0) > 0);
+
+                                return present.map((p, idx) => {
+                                  const isLate = (p.lateMinutes ?? 0) > 0;
+                                  const isMission = isMissionItem(p);
+                                  const destination = p.leaveTitle ?? p.pendingRequestTitle ?? p.leaveName;
+                                  const isPendingMission = isMission && Boolean(p.hasPendingRequest);
+                                  const isFirstMission = firstMissionIndex !== -1 && idx === firstMissionIndex;
+                                  const isFirstLate = firstLateIndex !== -1 && idx === firstLateIndex;
+
+                                  return (
+                                    <Fragment key={p.employeeId}>
+                                      {isFirstMission && (
+                                        <tr className="bg-sky-950/70 border-y-2 border-sky-500/40 text-sky-300 font-black text-[10.5px]">
+                                          <td colSpan={7} className="p-2 px-3">
+                                            <div className="flex items-center justify-between">
+                                              <span className="flex items-center gap-1.5">
+                                                <Plane className="size-3.5 text-sky-400" />
+                                                <span>موظفون سجلوا حضوراً ثم خرجوا في مأموريات عمل ميدانية (زيارات ومهمات رسمية)</span>
+                                              </span>
+                                              <span className="text-[10px] bg-sky-500/20 text-sky-300 border border-sky-500/40 px-2 py-0.5 rounded-full font-bold">
+                                                {presentMissionCount} موظف
+                                              </span>
+                                            </div>
+                                          </td>
+                                        </tr>
+                                      )}
+                                      {isFirstLate && (
+                                        <tr className="bg-amber-950/70 border-y-2 border-amber-500/40 text-amber-300 font-black text-[10.5px]">
+                                          <td colSpan={7} className="p-2 px-3">
+                                            <div className="flex items-center justify-between">
+                                              <span className="flex items-center gap-1.5">
+                                                <Clock3 className="size-3.5 text-amber-400" />
+                                                <span>المتأخرون عن موعد الوردية الرسمية (المسجلون بعد الموعد)</span>
+                                              </span>
+                                              <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold">
+                                                {presentLateCount} موظف
+                                              </span>
+                                            </div>
+                                          </td>
+                                        </tr>
+                                      )}
+                                      <tr
+                                        className={
+                                          isLate
+                                            ? 'bg-amber-950/25 hover:bg-amber-950/40 border-s-2 border-amber-500'
+                                            : isMission
+                                            ? 'bg-sky-950/20 hover:bg-sky-950/35 border-s-2 border-sky-500'
+                                            : idx % 2 === 0
+                                            ? 'bg-slate-950/40'
+                                            : 'bg-slate-900/40'
+                                        }
+                                      >
+                                        <td className="p-2 text-center text-slate-500 font-bold">{idx + 1}</td>
+                                        <td className="p-2 font-black text-white">
+                                          <div className="flex items-center gap-1.5 flex-wrap">
+                                            <span>{p.employeeName}</span>
+                                            {isClinicMedicalStaff(p) ? (
+                                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 inline-flex items-center gap-0.5">
+                                                🩺 عيادات
+                                              </span>
+                                            ) : null}
+                                            {isLate ? (
+                                              <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                                                متأخر
+                                              </span>
+                                            ) : null}
+                                            {isMission ? (
+                                              <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-sky-500/20 text-sky-300 border border-sky-500/40 inline-flex items-center gap-0.5">
+                                                ✈️ مأمورية
+                                              </span>
+                                            ) : null}
+                                          </div>
+                                        </td>
+                                        <td className="p-2 text-slate-300">
+                                          <span>{p.departmentName ?? '—'}</span>
+                                          {p.branchName ? <span className="text-slate-400 text-[10px] block">{p.branchName}</span> : null}
+                                        </td>
+                                        <td className="p-2 text-slate-300">{p.shiftName ?? '—'}</td>
+                                        <td
+                                          className={`p-2 font-bold ${
+                                            isLate ? 'text-amber-300' : isMission ? 'text-sky-300' : 'text-emerald-400'
+                                          }`}
+                                        >
+                                          {p.firstCheckIn ? formatTime12(p.firstCheckIn) : '—'}
+                                        </td>
+                                        <td className="p-2 font-bold">
+                                          {p.lastCheckOut ? (
+                                            <span className="text-slate-300">{formatTime12(p.lastCheckOut)}</span>
+                                          ) : isMission ? (
+                                            <div className="flex flex-col gap-0.5">
+                                              <span className="text-sky-300 flex items-center gap-1 text-[11px]">
+                                                <Plane className="size-3 text-sky-400 inline" />
+                                                خرج في مأمورية ميدانية
+                                              </span>
+                                              {destination ? (
+                                                <span className="text-slate-400 text-[10px] font-normal truncate max-w-[210px]" title={destination}>
+                                                  📍 {destination}
+                                                </span>
+                                              ) : null}
+                                            </div>
+                                          ) : (
+                                            <span className="text-emerald-300">متواجد حالياً في المجمع</span>
+                                          )}
+                                        </td>
+                                        <td className="p-2">
+                                          {isLate ? (
+                                            <span className="inline-block px-2 py-0.5 rounded bg-amber-500/25 text-amber-300 border border-amber-500/40 font-black text-[10px] shadow-xs">
+                                              ⚠️ متأخر {formatMinutes(p.lateMinutes)}
+                                            </span>
+                                          ) : isMission ? (
+                                            <span className="inline-block px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/40 font-bold text-[10px]">
+                                              {isPendingMission ? `⏳ طلب مأمورية${p.pendingRequestNumber ? ` (#${p.pendingRequestNumber})` : ''}` : '✈️ مأمورية معتمدة'}
+                                            </span>
+                                          ) : (
+                                            <span className="inline-block px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold text-[10px]">
+                                              في الموعد
+                                            </span>
+                                          )}
+                                        </td>
+                                      </tr>
+                                    </Fragment>
+                                  );
+                                });
+                              })()}
+                            </tbody>
+                          </table>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
 
                 {/* ب) جدول الغائبين */}
@@ -753,6 +839,11 @@ ${
                                     ) : (
                                       <span className="text-slate-400 font-normal text-[10.5px]">مأمورية رسمية</span>
                                     )}
+                                    {item.firstCheckIn ? (
+                                      <span className="text-emerald-400 font-bold text-[10px] block mt-0.5">
+                                        ✓ سجل حضور صباحاً ({formatTime12(item.firstCheckIn)}) ثم خرج لمأمورية
+                                      </span>
+                                    ) : null}
                                   </div>
                                 ) : (
                                   <div className="flex flex-col gap-0.5">

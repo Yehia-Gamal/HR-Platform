@@ -119,5 +119,48 @@ describe('ExecutiveAttendanceModal', () => {
     expect(screen.getByText(/📍 كورنيش المعادي/)).toBeDefined();
     expect(screen.getByText(/💬 الغرض: صرف شيكات وإيداع تبرعات/)).toBeDefined();
   });
+
+  it('includes employee who checked in and went out on mission in Table 1 with mission destination', () => {
+    rosterHook = {
+      data: {
+        items: [
+          {
+            employeeId: 'emp-mohamed-sayed',
+            employeeName: 'محمد سيد محمد',
+            departmentName: 'إدارة اللوجستيك',
+            branchName: 'مجمع أحلى شباب - منيل شيحة',
+            status: 'present',
+            firstCheckIn: '2026-10-19T06:57:39Z',
+            lastCheckOut: null,
+            shiftName: 'الدوام الأساسي (10 ص – 6 م)',
+            lateMinutes: 0,
+            hasPendingRequest: true,
+            pendingRequestNumber: 599,
+            pendingRequestType: 'mission',
+            pendingRequestTitle: 'نازل اشتري طفايات الحريق مجمع المنيل',
+            leaveTitle: 'نازل اشتري طفايات الحريق مجمع المنيل',
+            leaveReason: 'شراء طفايات الحريق لمجمع منيل شيحة',
+          },
+        ],
+        total: 1,
+      },
+      isLoading: false,
+      isError: false,
+    };
+
+    render(<ExecutiveAttendanceModal dateIso="2026-10-19" onClose={() => undefined} />);
+
+    // In Table 1: Mohamed Sayed is listed
+    expect(screen.getAllByText('محمد سيد محمد').length).toBeGreaterThanOrEqual(1);
+
+    // Shows mission divider banner
+    expect(screen.getByText(/موظفون سجلوا حضوراً ثم خرجوا في مأموريات عمل ميدانية/)).toBeDefined();
+
+    // Destination is shown (in Table 1 and Table 3)
+    expect(screen.getAllByText(/📍 نازل اشتري طفايات الحريق مجمع المنيل/).length).toBe(2);
+
+    // Does NOT say "متواجد حالياً في المجمع" for Mohamed Sayed
+    expect(screen.queryByText('متواجد حالياً في المجمع')).toBeNull();
+  });
 });
 

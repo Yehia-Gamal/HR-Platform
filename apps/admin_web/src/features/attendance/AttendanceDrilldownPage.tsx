@@ -561,6 +561,8 @@ export function AttendanceDrilldownPage() {
 
 function Row({ item, focused, isToday }: { item: AttendanceRosterItem; focused: boolean; isToday: boolean }) {
   const hrPrefix = useHrPrefix();
+  const isMission = item.status === 'on_mission' || Boolean(item.hasMission) || (Boolean(item.hasPendingRequest) && item.pendingRequestType === 'mission');
+  const missionTitle = item.leaveTitle ?? item.pendingRequestTitle ?? item.leaveName;
   const hasExcuse = Boolean(item.hasApprovedLeave) || Boolean(item.hasMission);
   const isWorkingNow = isToday && Boolean(item.firstCheckIn) && !item.lastCheckOut;
 
@@ -591,7 +593,12 @@ function Row({ item, focused, isToday }: { item: AttendanceRosterItem; focused: 
 
       {/* 2. الحالة مع مؤشر العمل الحي */}
       <td>
-        {isWorkingNow && item.status === 'present' ? (
+        {isWorkingNow && isMission ? (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-sky-500/10 text-sky-400 border border-sky-500/25">
+            <Plane className="size-3 text-sky-400" />
+            بصم حضور — في مأمورية
+          </span>
+        ) : isWorkingNow && item.status === 'present' ? (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-emerald-500/10 text-emerald-500 border border-emerald-500/25">
             <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
             حاضر (في العمل)
@@ -680,10 +687,20 @@ function Row({ item, focused, isToday }: { item: AttendanceRosterItem; focused: 
             {item.lastCheckOut ? (
               <span className="font-bold text-[var(--text)]">{formatTime(item.lastCheckOut)}</span>
             ) : isToday ? (
-              <span className="inline-flex items-center gap-1 font-bold text-emerald-500 text-[11px]" title="سجل حضور صباحاً ومتواجد حالياً في المجمع">
-                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                متواجد حالياً في المجمع
-              </span>
+              isMission ? (
+                <span
+                  className="inline-flex items-center gap-1 font-bold text-sky-400 text-[11px]"
+                  title={`سجل حضور وخرج لمأمورية: ${missionTitle ?? 'مأمورية رسمية'}`}
+                >
+                  <Plane className="size-3 text-sky-400" />
+                  خرج في مأمورية {missionTitle ? `(${missionTitle})` : ''}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 font-bold text-emerald-500 text-[11px]" title="سجل حضور صباحاً ومتواجد حالياً في المجمع">
+                  <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  متواجد حالياً في المجمع
+                </span>
+              )
             ) : (
               <span className="text-[var(--text-muted)]">—</span>
             )}

@@ -177,7 +177,13 @@ function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIs
       if (item.lastCheckOut) {
         checkOutDisplay = _fmt(item.lastCheckOut);
       } else if (item.firstCheckIn) {
-        checkOutDisplay = '<span style="color:#059669;font-weight:700">متواجد حالياً في المجمع</span>';
+        const isMission = item.status === 'on_mission' || Boolean(item.hasMission) || (Boolean(item.hasPendingRequest) && item.pendingRequestType === 'mission');
+        if (isMission) {
+          const dest = item.leaveTitle ?? item.pendingRequestTitle;
+          checkOutDisplay = `<span style="color:#0284c7;font-weight:700">✈️ خرج لمأمورية${dest ? ` (${dest})` : ''}</span>`;
+        } else {
+          checkOutDisplay = '<span style="color:#059669;font-weight:700">متواجد حالياً في المجمع</span>';
+        }
       }
 
       let excuseDisplay = '—';
