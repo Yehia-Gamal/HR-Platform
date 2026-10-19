@@ -162,5 +162,32 @@ describe('ExecutiveAttendanceModal', () => {
     // Does NOT say "متواجد حالياً في المجمع" for Mohamed Sayed
     expect(screen.queryByText('متواجد حالياً في المجمع')).toBeNull();
   });
+
+  it('renders official association logo image and refined header typography', () => {
+    rosterHook = {
+      data: {
+        items: [],
+        total: 0,
+      },
+      isLoading: false,
+      isError: false,
+    };
+
+    render(<ExecutiveAttendanceModal dateIso="2026-10-19" onClose={() => undefined} />);
+
+    // Logo image is present
+    const logoImg = screen.getByAltText('شعار جمعية خواطر أحلى شباب') as HTMLImageElement;
+    expect(logoImg).toBeDefined();
+    expect(logoImg.src).toContain('/brand/association-logo-white.png');
+
+    // Title and association name
+    expect(screen.getByText('جمعية خواطر أحلى شباب')).toBeDefined();
+    expect(screen.getByText('كشف المتابعة اليومية للحضور والانصراف')).toBeDefined();
+    expect(screen.getByText(/بيان تنفيذي رسمي معتمد للإدارة التنفيذية/)).toBeDefined();
+
+    // Word "أحلى" standalone badge is replaced by logo
+    expect(screen.queryByText('أحلى')).toBeNull();
+  });
 });
+
 
