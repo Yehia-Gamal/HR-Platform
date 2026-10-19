@@ -15,7 +15,7 @@ vi.mock('../useAttendanceDashboard', async (importOriginal) => {
 import { ExecutiveAttendanceModal } from '../ExecutiveAttendanceModal';
 
 describe('ExecutiveAttendanceModal', () => {
-  it('renders executive summary statistics and grouped tables for executive director', () => {
+  it('renders executive summary statistics, Donut chart, and department matrix for executive director', () => {
     rosterHook = {
       data: {
         items: [
@@ -26,7 +26,7 @@ describe('ExecutiveAttendanceModal', () => {
             status: 'present',
             firstCheckIn: '2026-10-18T07:00:00Z',
             lastCheckOut: null,
-            shiftName: 'الصباحية',
+            shiftName: 'الدوام الأساسي (10 ص – 6 م)',
             lateMinutes: 0,
           },
           {
@@ -36,7 +36,7 @@ describe('ExecutiveAttendanceModal', () => {
             status: 'absent',
             firstCheckIn: null,
             lastCheckOut: null,
-            shiftName: 'الصباحية',
+            shiftName: 'الدوام الأساسي (10 ص – 6 م)',
             hasPendingRequest: true,
             pendingRequestNumber: 588,
             pendingRequestTitle: 'بدل راحة اسبوعية',
@@ -61,13 +61,19 @@ describe('ExecutiveAttendanceModal', () => {
     render(<ExecutiveAttendanceModal dateIso="2026-10-18" onClose={() => undefined} />);
 
     // Header and title
-    expect(screen.getByText('تقرير الحضور التنفيذي (جاهز للمدير التنفيذي)')).toBeDefined();
+    expect(screen.getByText('تقرير الحضور التنفيذي المعتمد')).toBeDefined();
     expect(screen.getByText('كشف المتابعة اليومية للحضور والانصراف')).toBeDefined();
 
-    // Stats
-    expect(screen.getByText('إجمالي قوة العمل')).toBeDefined();
+    // Stats and KPIs
+    expect(screen.getByText(/قوة العمل/)).toBeDefined();
     expect(screen.getByText('الحضور الفعلي')).toBeDefined();
-    expect(screen.getByText('الغياب')).toBeDefined();
+
+    // Donut Chart
+    expect(screen.getByText('توزيع قوى العمل اليوم')).toBeDefined();
+    expect(screen.getByText('نظرة بصرية شاملة على توزيع الحالات والانضباط الميداني')).toBeDefined();
+
+    // Department matrix
+    expect(screen.getByText(/مصفوفة الانضباط وتوزيع القوى/)).toBeDefined();
 
     // Table rows
     expect(screen.getByText('أحمد علي')).toBeDefined();
@@ -77,10 +83,11 @@ describe('ExecutiveAttendanceModal', () => {
     // Action buttons
     expect(screen.getByText('حفظ كصورة (PNG)')).toBeDefined();
     expect(screen.getByText('نسخ الصورة لواتساب')).toBeDefined();
+    expect(screen.getByText('طباعة / PDF (A4)')).toBeDefined();
     expect(screen.getByText('نسخ نص واتساب')).toBeDefined();
   });
 
-  it('renders pending mission with badge, destination, and purpose', () => {
+  it('renders pending mission with badge, destination, and purpose without duplication', () => {
     rosterHook = {
       data: {
         items: [
@@ -92,7 +99,7 @@ describe('ExecutiveAttendanceModal', () => {
             status: 'absent',
             firstCheckIn: null,
             lastCheckOut: null,
-            shiftName: 'الصباحية',
+            shiftName: 'الدوام الأساسي (10 ص – 6 م)',
             hasPendingRequest: true,
             pendingRequestNumber: 594,
             pendingRequestType: 'mission',
@@ -113,14 +120,14 @@ describe('ExecutiveAttendanceModal', () => {
     expect(screen.getByText('حاتم محمد سالم')).toBeDefined();
 
     // Badge showing pending mission with request number
-    expect(screen.getByText('⏳ طلب مأمورية معلّق (#594)')).toBeDefined();
+    expect(screen.getByText(/طلب معلّق \(خرج قبل الاعتماد\) #594/)).toBeDefined();
 
     // Destination and purpose
     expect(screen.getByText(/📍 كورنيش المعادي/)).toBeDefined();
     expect(screen.getByText(/💬 الغرض: صرف شيكات وإيداع تبرعات/)).toBeDefined();
   });
 
-  it('includes employee who checked in and went out on mission in Table 1 with mission destination', () => {
+  it('includes employee who checked in and went out on mission in unified mission section', () => {
     rosterHook = {
       data: {
         items: [
@@ -137,8 +144,8 @@ describe('ExecutiveAttendanceModal', () => {
             hasPendingRequest: true,
             pendingRequestNumber: 599,
             pendingRequestType: 'mission',
-            pendingRequestTitle: 'نازل اشتري طفايات الحريق مجمع المنيل',
-            leaveTitle: 'نازل اشتري طفايات الحريق مجمع المنيل',
+            pendingRequestTitle: 'شراء طفايات الحريق مجمع المنيل',
+            leaveTitle: 'شراء طفايات الحريق مجمع المنيل',
             leaveReason: 'شراء طفايات الحريق لمجمع منيل شيحة',
           },
         ],
@@ -150,20 +157,17 @@ describe('ExecutiveAttendanceModal', () => {
 
     render(<ExecutiveAttendanceModal dateIso="2026-10-19" onClose={() => undefined} />);
 
-    // In Table 1: Mohamed Sayed is listed
-    expect(screen.getAllByText('محمد سيد محمد').length).toBeGreaterThanOrEqual(1);
+    // Mohamed Sayed is listed
+    expect(screen.getByText('محمد سيد محمد')).toBeDefined();
 
-    // Shows mission divider banner
-    expect(screen.getByText(/موظفون سجلوا حضوراً ثم خرجوا في مأموريات عمل ميدانية/)).toBeDefined();
+    // Shows in unified mission section
+    expect(screen.getByText(/قائمة المأموريات والتكليفات الميدانية الرسمية/)).toBeDefined();
 
-    // Destination is shown (in Table 1 and Table 3)
-    expect(screen.getAllByText(/📍 نازل اشتري طفايات الحريق مجمع المنيل/).length).toBe(2);
-
-    // Does NOT say "متواجد حالياً في المجمع" for Mohamed Sayed
-    expect(screen.queryByText('متواجد حالياً في المجمع')).toBeNull();
+    // Destination is shown
+    expect(screen.getByText(/📍 شراء طفايات الحريق مجمع المنيل/)).toBeDefined();
   });
 
-  it('renders official association logo image and refined header typography', () => {
+  it('renders official association logo image, verified security code and refined header typography', () => {
     rosterHook = {
       data: {
         items: [],
@@ -185,9 +189,7 @@ describe('ExecutiveAttendanceModal', () => {
     expect(screen.getByText('كشف المتابعة اليومية للحضور والانصراف')).toBeDefined();
     expect(screen.getByText(/بيان تنفيذي رسمي معتمد للإدارة التنفيذية/)).toBeDefined();
 
-    // Word "أحلى" standalone badge is replaced by logo
-    expect(screen.queryByText('أحلى')).toBeNull();
+    // Security Verification Code
+    expect(screen.getByText(/كود التحقق: EXEC-20261019-/)).toBeDefined();
   });
 });
-
-

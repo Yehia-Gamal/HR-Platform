@@ -1,9 +1,39 @@
 import { Fragment, useEffect, useState } from 'react';
-import { Calendar, Camera, Check, CheckCircle2, Clock3, Copy, Download, Loader2, MessageSquare, Plane, UserCheck, UserX, Users, X } from 'lucide-react';
+import {
+  AlertTriangle,
+  Calendar,
+  Camera,
+  Check,
+  CheckCircle2,
+  Clock3,
+  Copy,
+  Download,
+  Loader2,
+  MessageSquare,
+  Plane,
+  Printer,
+  ShieldCheck,
+  UserCheck,
+  UserX,
+  Users,
+  X,
+} from 'lucide-react';
 import { useAttendanceRosterPage } from './useAttendanceDashboard';
 import { DialogPortal } from '../../ui/DialogPortal';
 import type { AttendanceRosterItem } from '@ahla/shared-contracts';
 import { ASSOCIATION_LOGO_WHITE_DATA_URL } from './brandAssets';
+import { cairoTodayIso } from '../../core/cairoTime';
+import {
+  classifyEmployee,
+  computeDepartmentSummaries,
+  computeExecutiveMetrics,
+  formatShiftBadge,
+  generateSecurityVerificationCode,
+  sanitizeLeaveReason,
+  sanitizeMissionPurpose,
+  type ClassifiedEmployee,
+} from './executiveReportLogic';
+import { ExecutiveWorkforceChart } from './ExecutiveWorkforceChart';
 
 function formatTime12(iso: string | null | undefined): string {
   if (!iso) return '—';
@@ -14,15 +44,6 @@ function formatTime12(iso: string | null | undefined): string {
   }
 }
 
-function formatMinutes(minutes: number | null | undefined): string {
-  if (minutes == null || minutes <= 0) return '—';
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  if (h === 0) return `${m} د`;
-  if (m === 0) return `${h} س`;
-  return `${h} س و ${m} د`;
-}
-
 interface Props {
   dateIso: string;
   onClose: () => void;
@@ -31,7 +52,7 @@ interface Props {
 export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
   const [isCapturing, setIsCapturing] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [copiedType, setCopiedType] = useState<'image' | 'text' | null>(null);
+  const [copiedType, setCopiedType] = useState<'image' | 'text' | 'print' | null>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -60,134 +81,59 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
     item.employeeName.includes('محمد عبدالباسط') ||
     item.employeeName.includes('ابو عمار');
 
-  // تمييز الطاقم الطبي للعيادات لوضعهم في نهاية أي جدول (مع استثناء مديريهم مثل مصطفى أحمد ويوسف رسمي)
-  const isClinicMedicalStaff = (item: AttendanceRosterItem) => {
-    if (item.isClinicMedicalStaff !== undefined && item.isClinicMedicalStaff !== null) {
-      return item.isClinicMedicalStaff;
-    }
-    const dept = item.departmentName ?? '';
-    const job = item.jobTitle ?? '';
-    const isManager =
-      item.employeeId === '4120ce3a-8999-453e-8d9d-acd8f3b5f04c' || // مصطفى أحمد كمال الدين
-      item.employeeId === 'a3b0a2ca-6cbd-49f6-87ed-2f63fa1055c6' || // يوسف رسمي شعبان
-      job.includes('مدير') ||
-      job.includes('أدارة') ||
-      job.includes('ادارة') ||
-      job.includes('مسؤول') ||
-      item.employeeName.includes('مصطفي أحمد كمال') ||
-      item.employeeName.includes('يوسف رسمي');
-
-    if (isManager) return false;
-    return dept.includes('العيادات') || job === 'تمريض' || job === 'دكتورة المعمل' || job === 'موظف استقبال';
-  };
-
-  const sortClinicStaffToEnd = <T extends AttendanceRosterItem>(list: T[]): T[] => {
-    return [...list].sort((a, b) => {
-      const aClinic = isClinicMedicalStaff(a) ? 1 : 0;
-      const bClinic = isClinicMedicalStaff(b) ? 1 : 0;
-      if (aClinic !== bClinic) return aClinic - bClinic;
-      return (a.employeeName ?? '').localeCompare(b.employeeName ?? '', 'ar');
-    });
-  };
-
-  // هل الموظف في مأمورية (معتمدة أو طلب معلق)؟
-  const isMissionItem = (i: AttendanceRosterItem): boolean => {
-    return i.status === 'on_mission' || Boolean(i.hasMission) || (Boolean(i.hasPendingRequest) && i.pendingRequestType === 'mission');
-  };
-
-  // هل الموظف في إجازة (معتمدة أو طلب معلق)؟
-  const isLeaveItem = (i: AttendanceRosterItem): boolean => {
-    return (
-      (i.status === 'on_leave' ||
-        Boolean(i.hasApprovedLeave) ||
-        (Boolean(i.hasPendingRequest) && i.pendingRequestType === 'leave')) &&
-      !isMissionItem(i)
-    );
-  };
-
-  // فرز قائمة الحاضرين:
-  // 1. الملتزمون في الموعد والمتواجدون بالمجمع أولاً
-  // 2. الموظفون الذين بصموا حضور ثم خرجوا في مأموريات عمل ميدانية (زي محمد سيد)
-  // 3. المتأخرون في نهاية القائمة مع إبرازهم
-  const sortPresentRoster = (list: AttendanceRosterItem[]): AttendanceRosterItem[] => {
-    return [...list].sort((a, b) => {
-      const getPriority = (item: AttendanceRosterItem): number => {
-        if ((item.lateMinutes ?? 0) > 0) return 3;
-        if (isMissionItem(item)) return 2;
-        return 1;
-      };
-
-      const pA = getPriority(a);
-      const pB = getPriority(b);
-      if (pA !== pB) return pA - pB;
-
-      // الطاقم الطبي في نهاية كل فئة
-      const aClinic = isClinicMedicalStaff(a) ? 1 : 0;
-      const bClinic = isClinicMedicalStaff(b) ? 1 : 0;
-      if (aClinic !== bClinic) return aClinic - bClinic;
-
-      // ترتيب المتأخرين تنازلياً حسب مدة التأخير
-      if (pA === 3 && pB === 3) {
-        const diff = (b.lateMinutes ?? 0) - (a.lateMinutes ?? 0);
-        if (diff !== 0) return diff;
-      }
-
-      return (a.employeeName ?? '').localeCompare(b.employeeName ?? '', 'ar');
-    });
-  };
-
   const items = rawItems.filter((i) => !isAttendanceExempt(i));
-  const totalScheduled = items.length;
 
-  // تصنيف الموظفين
-  const onMission = sortClinicStaffToEnd(items.filter((i) => isMissionItem(i)));
-  const onLeave = sortClinicStaffToEnd(items.filter((i) => isLeaveItem(i)));
+  // حساب التوقيت الحالي بالقاهرة بالدقائق من منتصف الليل
+  // إذا كان تاريخ الكشف سابقاً لليوم، تُعتبر جميع الورديات قد بدأت وانتهت
+  const isToday = dateIso === cairoTodayIso();
+  const currentMinutesFromMidnight = (() => {
+    if (!isToday) return 24 * 60; // يوم سابق: كل الورديات بدأت
+    const now = new Date();
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Africa/Cairo',
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: false,
+    }).formatToParts(now);
+    const h = parseInt(parts.find((p) => p.type === 'hour')?.value ?? '12', 10);
+    const m = parseInt(parts.find((p) => p.type === 'minute')?.value ?? '0', 10);
+    return h * 60 + m;
+  })();
 
-  // الحضور الفعلي: كل من سجل بصمة حضور اليوم، أو حالته حضور/تأخير
-  // يشمل المتواجدين بالمجمع، وأيضاً من بصموا حضور وخرجوا في مأمورية ميدانية (مثل محمد سيد)
-  const present = sortPresentRoster(
-    items.filter(
-      (i) =>
-        !isLeaveItem(i) &&
-        (Boolean(i.firstCheckIn) ||
-          i.status === 'present' ||
-          i.status === 'late' ||
-          i.status === 'missing_checkout')
-    )
+  // تصنيف الموظفين وفق المنطق الرياضي الصارم
+  const classified: ClassifiedEmployee[] = items.map((item) =>
+    classifyEmployee(item, currentMinutesFromMidnight)
   );
 
-  const late = sortClinicStaffToEnd(
-    items.filter(
-      (i) =>
-        (i.lateMinutes ?? 0) > 0 &&
-        Boolean(i.firstCheckIn) &&
-        !isLeaveItem(i)
-    )
-  );
+  // حساب المؤشرات والنسب التنفيذية
+  const metrics = computeExecutiveMetrics(classified);
+  const departmentSummaries = computeDepartmentSummaries(classified);
 
-  const absent = sortClinicStaffToEnd(
-    items.filter(
-      (i) =>
-        !i.firstCheckIn &&
-        !isLeaveItem(i) &&
-        !isMissionItem(i) &&
-        i.status !== 'present' &&
-        i.status !== 'late'
-    )
-  );
-  const pendingRequests = items.filter((i) => Boolean(i.hasPendingRequest));
-
-  const attendancePct = totalScheduled > 0 ? Math.round((present.length / totalScheduled) * 100) : 0;
+  // تصفية القوائم حسب التصنيف
+  const unexcusedAbsentList = classified.filter((c) => c.category === 'unexcused_absent');
+  const lateList = classified.filter((c) => c.category === 'present_late');
+  const missionPendingList = classified.filter((c) => c.category === 'present_mission_pending' || c.category === 'mission_pending');
+  const missionApprovedList = classified.filter((c) => c.category === 'present_mission_approved' || c.category === 'mission_approved');
+  const leaveList = classified.filter((c) => c.category === 'leave_approved' || c.category === 'leave_pending');
+  const upcomingShiftList = classified.filter((c) => c.category === 'shift_not_started');
+  const onTimePresentList = classified.filter((c) => c.category === 'present_on_time');
 
   const dateFormatted = new Intl.DateTimeFormat('ar-EG', { dateStyle: 'full' }).format(new Date(`${dateIso}T00:00:00`));
-  const nowFormatted = new Intl.DateTimeFormat('ar-EG', { timeStyle: 'short' }).format(new Date());
+  const nowFormatted = new Intl.DateTimeFormat('ar-EG', { timeStyle: 'short', timeZone: 'Africa/Cairo' }).format(new Date());
 
-  // دالة مساعدة مركزية لالتقاط صورة فائقة الدقة لكامل الكشف من البداية وحتى التذييل بلا أي اقتطاع
+  // كود التحقق الأمني مع Hash رقمي للمحتوى
+  const securityInfo = generateSecurityVerificationCode(
+    dateIso,
+    metrics.totalScheduledEmployees,
+    metrics.presentTotal,
+    metrics.unexcusedAbsent
+  );
+
+  // دالة التقاط الكرت كصورة فائقة الدقة للواتساب
   const captureExecutiveCardCanvas = async (el: HTMLElement): Promise<HTMLCanvasElement> => {
     const h2cModule = await import('html2canvas-pro');
     const html2canvas = typeof h2cModule.default === 'function' ? h2cModule.default : (h2cModule as any);
 
-    // 1. التأكد التام من اكتمال تحميل الشعار والخطوط قبل الالتقاط
     const images = Array.from(el.querySelectorAll('img'));
     await Promise.all(
       images.map((img) => {
@@ -206,16 +152,12 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
       }
     }
 
-    // 2. حساب الأبعاد الحقيقية الكاملة لكامل الكرت شاملاً كل الجداول حتى التذييل
     const fullWidth = Math.max(el.scrollWidth, el.offsetWidth, 1040);
     const fullHeight = Math.max(el.scrollHeight, el.offsetHeight);
 
-    // 3. إعادة ضبط التمرير في الحاوية الأب مؤقتاً لتفادي إزاحات التمرير
     const scrollParent = el.parentElement;
     const prevScrollTop = scrollParent ? scrollParent.scrollTop : 0;
-    if (scrollParent) {
-      scrollParent.scrollTop = 0;
-    }
+    if (scrollParent) scrollParent.scrollTop = 0;
 
     try {
       const canvas = await html2canvas(el, {
@@ -233,7 +175,6 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
         scrollX: 0,
         scrollY: 0,
         onclone: (clonedDoc: Document, clonedEl: HTMLElement) => {
-          // فك قيود الارتفاع وتجاوز المحتوى (overflow) في الشجرة المستنسخة لضمان رسم كامل المحتوى
           clonedEl.style.height = `${fullHeight}px`;
           clonedEl.style.minHeight = `${fullHeight}px`;
           clonedEl.style.maxHeight = 'none';
@@ -263,13 +204,11 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
 
       return canvas;
     } finally {
-      if (scrollParent) {
-        scrollParent.scrollTop = prevScrollTop;
-      }
+      if (scrollParent) scrollParent.scrollTop = prevScrollTop;
     }
   };
 
-  // 1. التقاط الصورة وتنزيلها كملف PNG عالي الدقة لكامل الكشف
+  // 1. تنزيل الصورة كملف PNG
   const handleDownloadImage = async () => {
     const el = document.getElementById('executive-attendance-card');
     if (!el) return;
@@ -277,7 +216,6 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
     setToastMessage('جاري توليد الصورة التنفيذية لكامل الكشف بجودة فائقة...');
     try {
       const canvas = await captureExecutiveCardCanvas(el);
-
       canvas.toBlob((blob: Blob | null) => {
         if (!blob) {
           setToastMessage('تعذر حفظ الصورة.');
@@ -302,7 +240,7 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
     }
   };
 
-  // 2. نسخ الصورة للحافظة للصقها مباشرة في واتساب (Ctrl + V)
+  // 2. نسخ الصورة للحافظة
   const handleCopyImage = async () => {
     const el = document.getElementById('executive-attendance-card');
     if (!el) return;
@@ -310,7 +248,6 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
     setToastMessage('جاري نسخ الصورة الكاملة للحافظة...');
     try {
       const canvas = await captureExecutiveCardCanvas(el);
-
       canvas.toBlob(async (blob: Blob | null) => {
         if (!blob) {
           setToastMessage('تعذر نسخ الصورة.');
@@ -320,13 +257,12 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
           if (navigator.clipboard && 'write' in navigator.clipboard && typeof ClipboardItem !== 'undefined') {
             await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
             setCopiedType('image');
-            setToastMessage('تم نسخ الصورة الكاملة للحافظة! يمكنك الآن لصقها (Ctrl + V) في واتساب مباشرة ✅');
+            setToastMessage('تم نسخ الصورة للحافظة! يمكنك الآن لصقها (Ctrl + V) في واتساب مباشرة ✅');
             setTimeout(() => {
               setCopiedType(null);
               setToastMessage(null);
             }, 4500);
           } else {
-            // البديل: تحميل الملف إذا كان المتصفح لا يدعم نسخ الصور
             handleDownloadImage();
           }
         } catch {
@@ -341,88 +277,89 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
     }
   };
 
-  // 3. نسخ ملخص واتساب نصي
+  // 3. طباعة / فتح نسخة PDF فاتحة (A4)
+  const handlePrintA4Light = () => {
+    window.print();
+  };
+
+  // 4. نسخ ملخص واتساب المنسق بالأرقام الصحيحة
   const handleCopyWhatsAppText = () => {
-    const text = `📋 *تقرير الحضور والانصراف التنفيذي اليومي*
+    const text = `📋 *كشف المتابعة اليومية للحضور والانصراف (المدير التنفيذي)*
 📅 *اليوم:* ${dateFormatted}
 🏢 *جمعية خواطر أحلى شباب - الإدارة التنفيذية*
-⏰ *توقيت التقرير:* ${nowFormatted}
+⏰ *توقيت الإصدار:* ${nowFormatted}
 ━━━━━━━━━━━━━━━━━━━━
-📊 *المؤشرات الإجمالية:*
-• إجمالي قوة العمل: ${totalScheduled} موظف
-• الحضور الفعلي: ${present.length} موظف (${attendancePct}%)
-• المتأخرون: ${late.length} موظف
-• الغياب: ${absent.length} موظف
-• المأموريات الرسمية: ${onMission.length} موظف
-• الإجازات الرسمية: ${onLeave.length} موظف
-${pendingRequests.length > 0 ? `• طلبات معلّقة قيد المراجعة: ${pendingRequests.length} طلب` : ''}
+${metrics.needsDecisionCount > 0 ? `🚨 *يحتاج قرار فوري من الإدارة (${metrics.needsDecisionCount} حالات):*
+• ${metrics.missionsPendingLeft} خرجوا لمأمورية قبل الاعتماد (طلبات معلقة)
+• ${metrics.unexcusedAbsent} غياب بدون إذن
+• ${metrics.presentLate} متأخرون عن الموعد
+━━━━━━━━━━━━━━━━━━━━\n` : ''}📊 *المؤشرات الإجمالية المعتمدة:*
+• قوة العمل المجدولة (المطالبة): ${metrics.totalScheduledEmployees} موظف
+• الحضور الفعلي: ${metrics.presentTotal} موظف (نسبة: ${metrics.attendancePercentage}%)
+• الحاضرون في الموعد: ${metrics.presentOnTime} موظف
+• المتأخرون: ${metrics.presentLate} موظف
+• المأموريات الرسمية المعتمدة: ${metrics.missionsApproved} موظف
+• إجازات معتمدة ومعلقة: ${metrics.leavesTotal} موظف
+• غياب بدون إذن: ${metrics.unexcusedAbsent} موظف
+${metrics.shiftNotStartedYet > 0 ? `• فترات مسائية لم تبدأ بعد (عيادات): ${metrics.shiftNotStartedYet} موظف` : ''}
 ━━━━━━━━━━━━━━━━━━━━
-🟢 *الحاضرون (${present.length}):*
+🔴 *الغياب بدون إذن (${unexcusedAbsentList.length}):*
 ${
-  present.length === 0
-    ? '— لا يوجد حضور مسجل —'
-    : present
-        .map(
-          (p, i) =>
-            `${i + 1}. ${p.employeeName} (${p.departmentName ?? '—'}) · ${p.firstCheckIn ? formatTime12(p.firstCheckIn) : 'حاضر'}${
-              (p.lateMinutes ?? 0) > 0 ? ` [تأخير ${p.lateMinutes} دقيقة]` : ''
-            }${
-              isMissionItem(p) ? ` [✈️ خرج لمأمورية${(p.leaveTitle ?? p.pendingRequestTitle) ? `: ${p.leaveTitle ?? p.pendingRequestTitle}` : ''}]` : ''
-            }`,
-        )
+  unexcusedAbsentList.length === 0
+    ? '✓ لا يوجد غياب غير مبرر لهذا اليوم'
+    : unexcusedAbsentList
+        .map((a, i) => `${i + 1}. ${a.item.employeeName} (${a.item.departmentName ?? '—'}) · ${a.item.shiftName ?? 'دوام رسمي'}`)
         .join('\n')
 }
 
-🔴 *الغائبون (${absent.length}):*
+⏱️ *المتأخرون عن موعد الوردية (${lateList.length}):*
 ${
-  absent.length === 0
-    ? '— لا يوجد غياب مسجل —'
-    : absent
-        .map((a, i) => `${i + 1}. ${a.employeeName} (${a.departmentName ?? '—'})${a.hasPendingRequest ? ` [⚠️ لديه طلب معلق: ${a.pendingRequestTitle}]` : ''}`)
+  lateList.length === 0
+    ? '✓ لا يوجد متأخرون'
+    : lateList
+        .map((l, i) => `${i + 1}. ${l.item.employeeName} (${l.item.departmentName ?? '—'}) · بصمة: ${formatTime12(l.item.firstCheckIn)} [تأخير: ${l.formattedLate}]`)
         .join('\n')
 }
 
-✈️ *المأموريات الرسمية والتكليفات (${onMission.length}):*
+⚠️ *خرجوا في مأموريات قبل الاعتماد (طلبات معلقة) (${missionPendingList.length}):*
 ${
-  onMission.length === 0
-    ? '— لا توجد مأموريات مسجلة —'
-    : onMission
+  missionPendingList.length === 0
+    ? '✓ لا توجد مأموريات معلقة'
+    : missionPendingList
         .map((m, i) => {
-          const isPending = Boolean(m.hasPendingRequest) && !m.hasApprovedLeave;
-          const statusLabel = isPending ? 'طلب مأمورية معلّق' : 'مأمورية معتمدة';
-          const reqNum = m.pendingRequestNumber ?? m.leaveRequestNumber;
-          const reqPart = reqNum ? ` (#${reqNum})` : '';
-          const destination = m.leaveTitle ?? m.pendingRequestTitle ?? m.leaveName;
-          const destPart = destination ? ` [📍 ${destination}]` : '';
-          const reasonPart = m.leaveReason ? ` - الغرض: ${m.leaveReason}` : '';
-          const checkInPart = m.firstCheckIn ? ` (سجل حضور ${formatTime12(m.firstCheckIn)})` : '';
-          return `${i + 1}. ${m.employeeName} (${m.departmentName ?? '—'}) · ${statusLabel}${reqPart}${destPart}${reasonPart}${checkInPart}`;
+          const { destination, purpose } = sanitizeMissionPurpose(m.item.leaveTitle ?? m.item.pendingRequestTitle, m.item.leaveReason);
+          return `${i + 1}. ${m.item.employeeName} (${m.item.departmentName ?? '—'}) · طلب #${m.item.pendingRequestNumber ?? ''} [📍 ${destination} - ${purpose}]`;
         })
         .join('\n')
 }
 
-🏖️ *الإجازات والراحات الرسمية (${onLeave.length}):*
+✈️ *المأموريات الرسمية المعتمدة (${missionApprovedList.length}):*
 ${
-  onLeave.length === 0
-    ? '— لا توجد إجازات مسجلة —'
-    : onLeave
-        .map((l, i) => {
-          const isPending = Boolean(l.hasPendingRequest) && !l.hasApprovedLeave;
-          const statusLabel = isPending ? 'طلب إجازة معلّق' : (l.leaveName ?? 'إجازة معتمدة');
-          const reqNum = l.pendingRequestNumber ?? l.leaveRequestNumber;
-          const reqPart = reqNum ? ` (#${reqNum})` : '';
-          const titlePart = l.leaveTitle && l.leaveTitle !== l.leaveName && l.leaveTitle !== l.leaveReason ? ` [${l.leaveTitle}]` : '';
-          const reasonPart = l.leaveReason ? ` - سبب: ${l.leaveReason}` : '';
-          return `${i + 1}. ${l.employeeName} (${l.departmentName ?? '—'}) · ${statusLabel}${reqPart}${titlePart}${reasonPart}`;
+  missionApprovedList.length === 0
+    ? '— لا توجد مأموريات معتمدة —'
+    : missionApprovedList
+        .map((m, i) => {
+          const { destination, purpose } = sanitizeMissionPurpose(m.item.leaveTitle, m.item.leaveReason);
+          return `${i + 1}. ${m.item.employeeName} (${m.item.departmentName ?? '—'}) · معتمدة [📍 ${destination} - ${purpose}]`;
         })
         .join('\n')
 }
+
+🏖️ *الإجازات والراحات (${leaveList.length}):*
+${
+  leaveList.length === 0
+    ? '— لا توجد إجازات —'
+    : leaveList
+        .map((l, i) => `${i + 1}. ${l.item.employeeName} (${l.item.departmentName ?? '—'}) · ${l.item.leaveName ?? 'إجازة رسمية'}`)
+        .join('\n')
+}
 ━━━━━━━━━━━━━━━━━━━━
-*صادر عن منظومة الموارد البشرية والمتابعة الميدانية*`;
+🔐 *كود التحقق الرقمي:* ${securityInfo.code}
+رابط التحقق: ${securityInfo.verifyUrl}`;
 
     navigator.clipboard.writeText(text);
     setCopiedType('text');
-    setToastMessage('تم نسخ ملخص واتساب للحافظة ✅');
+    setToastMessage('تم نسخ ملخص واتساب المنسق والمصحح للحافظة ✅');
     setTimeout(() => {
       setCopiedType(null);
       setToastMessage(null);
@@ -447,13 +384,13 @@ ${
                 <Camera className="size-5" />
               </div>
               <div>
-                <h2 className="text-sm sm:text-base font-black text-white">تقرير الحضور التنفيذي (جاهز للمدير التنفيذي)</h2>
-                <p className="text-[11px] text-slate-400">معاينة الصورة التنفيذية الرسمية قبل الإرسال للمدير التنفيذي</p>
+                <h2 className="text-sm sm:text-base font-black text-white">تقرير الحضور التنفيذي المعتمد</h2>
+                <p className="text-[11px] text-slate-400">حسابات دقيقة · استبعاد غير المجدولين · كشف بصري متكامل</p>
               </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              {/* زر نسخ الصورة */}
+              {/* زر نسخ الصورة لواتساب */}
               <button
                 type="button"
                 onClick={() => void handleCopyImage()}
@@ -465,7 +402,7 @@ ${
                 <span>نسخ الصورة لواتساب</span>
               </button>
 
-              {/* زر حفظ الصورة كملف PNG */}
+              {/* زر حفظ كصورة PNG */}
               <button
                 type="button"
                 onClick={() => void handleDownloadImage()}
@@ -477,13 +414,25 @@ ${
                 <span>حفظ كصورة (PNG)</span>
               </button>
 
-              {/* زر نسخ النص */}
+              {/* زر طباعة / PDF فاتح (A4) */}
+              <button
+                type="button"
+                onClick={handlePrintA4Light}
+                disabled={query.isLoading}
+                className="btn-secondary btn-sm h-9 px-3 text-xs font-bold rounded-xl inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-amber-500 transition-all"
+                title="طباعة أو تصدير نسخة PDF رسمية بنسخة بيضاء فاتحة A4"
+              >
+                <Printer className="size-4 text-amber-400" />
+                <span>طباعة / PDF (A4)</span>
+              </button>
+
+              {/* زر نسخ نص واتساب */}
               <button
                 type="button"
                 onClick={handleCopyWhatsAppText}
                 disabled={query.isLoading}
                 className="btn-secondary btn-sm h-9 px-3 text-xs font-bold rounded-xl inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 hover:border-emerald-500 transition-all"
-                title="نسخ نص التقرير المنسق لإرساله كتابياً عبر واتساب"
+                title="نسخ ملخص الأرقام المعتمدة كتابياً لواتساب"
               >
                 {copiedType === 'text' ? <Check className="size-4 text-emerald-400" /> : <MessageSquare className="size-4 text-emerald-400" />}
                 <span>نسخ نص واتساب</span>
@@ -501,7 +450,7 @@ ${
             </div>
           </header>
 
-          {/* إشعار عائم في حال النسخ أو الحفظ */}
+          {/* إشعار عائم */}
           {toastMessage && (
             <div className="bg-sky-600 text-white text-xs font-bold px-4 py-2 text-center shrink-0 animate-fade-in flex items-center justify-center gap-2">
               <span>{toastMessage}</span>
@@ -513,7 +462,7 @@ ${
             {query.isLoading ? (
               <div className="py-20 flex flex-col items-center justify-center gap-3 text-slate-400">
                 <Loader2 className="size-8 animate-spin text-sky-400" />
-                <p className="text-xs font-bold">جاري تجميع بيانات الحضور والانصراف التنفيذية...</p>
+                <p className="text-xs font-bold">جاري تجميع وتدقيق بيانات الحضور التنفيذية...</p>
               </div>
             ) : query.isError ? (
               <div className="py-16 text-center text-red-400 text-xs font-bold">تعذر استخراج بيانات الكشف. يرجى إعادة المحاولة.</div>
@@ -521,7 +470,7 @@ ${
               /* ─── البطاقة التنفيذية التي سيتم التقاطها كصورة (Executive Card) ─── */
               <div
                 id="executive-attendance-card"
-                className="w-full max-w-[1040px] rounded-2xl p-6 sm:p-8 shadow-2xl shrink-0"
+                className="w-full max-w-[1040px] rounded-2xl p-6 sm:p-8 shadow-2xl shrink-0 space-y-6"
                 dir="rtl"
                 style={{
                   minWidth: '880px',
@@ -529,11 +478,10 @@ ${
                   color: '#f8fafc',
                   border: '1px solid rgba(255, 255, 255, 0.12)',
                   fontFamily: "'Cairo', 'Noto Sans Arabic', 'Segoe UI', Tahoma, Arial, sans-serif",
-                  letterSpacing: 'normal',
                 }}
               >
                 {/* 1. الترويسة الملكية للجمعية مع الشعار الرسمي */}
-                <div className="flex items-center justify-between pb-5 border-b border-slate-800/90 mb-6 gap-4">
+                <div className="flex items-center justify-between pb-5 border-b border-slate-800/90 gap-4">
                   <div className="flex items-center gap-4">
                     <div className="size-20 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-700/80 p-2 flex items-center justify-center shadow-2xl shrink-0 ring-1 ring-white/10">
                       <img
@@ -543,21 +491,21 @@ ${
                       />
                     </div>
                     <div>
-                      <h1 className="text-xl sm:text-2xl font-black text-white leading-tight" style={{ letterSpacing: 'normal' }}>
+                      <h1 className="text-xl sm:text-2xl font-black text-white leading-tight">
                         جمعية خواطر أحلى شباب
                       </h1>
-                      <p className="text-xs font-bold text-slate-300 mt-1" style={{ letterSpacing: 'normal' }}>
+                      <p className="text-xs font-bold text-slate-300 mt-1">
                         منظومة الإدارة والمتابعة المؤسسية · الإدارة التنفيذية
                       </p>
                     </div>
                   </div>
 
                   <div className="text-start bg-slate-900/90 border border-slate-700/80 rounded-2xl px-4 py-2.5 shadow-md shrink-0">
-                    <div className="flex items-center gap-2 text-xs font-black text-slate-100" style={{ letterSpacing: 'normal' }}>
+                    <div className="flex items-center gap-2 text-xs font-black text-slate-100 font-mono">
                       <Calendar className="size-4 text-sky-400" />
                       <span>{dateFormatted}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-[11px] font-bold text-slate-400 mt-1" style={{ letterSpacing: 'normal' }}>
+                    <div className="flex items-center gap-2 text-[11px] font-bold text-slate-400 mt-1 font-mono">
                       <Clock3 className="size-3.5 text-slate-400" />
                       <span>توقيت الإصدار: {nowFormatted}</span>
                     </div>
@@ -565,485 +513,463 @@ ${
                 </div>
 
                 {/* عنوان الكشف الصريح المنسق */}
-                <div className="flex flex-col items-center justify-center mb-6 gap-1.5 text-center">
+                <div className="flex flex-col items-center justify-center gap-1.5 text-center">
                   <div className="inline-flex items-center gap-2.5 px-6 py-2 rounded-2xl bg-gradient-to-r from-sky-500/15 via-indigo-500/20 to-sky-500/15 border border-sky-400/30 shadow-inner">
                     <span className="size-2 rounded-full bg-sky-400 animate-pulse" />
-                    <h2 className="text-base sm:text-lg font-black text-sky-300" style={{ letterSpacing: 'normal' }}>
+                    <h2 className="text-base sm:text-lg font-black text-sky-300">
                       كشف المتابعة اليومية للحضور والانصراف
                     </h2>
                   </div>
-                  <p className="text-[11px] font-semibold text-slate-400" style={{ letterSpacing: 'normal' }}>
-                    بيان تنفيذي رسمي معتمد للإدارة التنفيذية وفق بيانات الحضور وبصمات الدوام والمأموريات الميدانية
+                  <p className="text-[11px] font-semibold text-slate-400">
+                    بيان تنفيذي رسمي معتمد للإدارة التنفيذية وفق مواعيد الورديات وبصمات الدوام والمأموريات الميدانية
                   </p>
                 </div>
 
-              {/* 2. شريط المؤشرات الرقمية (KPI Strip) */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-                <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-center">
-                  <span className="block text-[11px] font-bold text-slate-400 mb-1">إجمالي قوة العمل</span>
-                  <span className="text-2xl font-black text-white">{totalScheduled}</span>
-                  <span className="text-[10px] text-slate-500 block mt-0.5">موظف مجدول</span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-center">
-                  <span className="block text-[11px] font-bold text-emerald-300 mb-1">الحضور الفعلي</span>
-                  <span className="text-2xl font-black text-emerald-400">{present.length}</span>
-                  <span className="text-[10px] font-bold text-emerald-400/80 block mt-0.5">نسبة: {attendancePct}%</span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-500/30 text-center">
-                  <span className="block text-[11px] font-bold text-amber-300 mb-1">المتأخرون</span>
-                  <span className="text-2xl font-black text-amber-400">{late.length}</span>
-                  <span className="text-[10px] text-amber-400/80 block mt-0.5">حضروا بعد الموعد</span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-500/30 text-center">
-                  <span className="block text-[11px] font-bold text-rose-300 mb-1">الغياب</span>
-                  <span className="text-2xl font-black text-rose-400">{absent.length}</span>
-                  <span className="text-[10px] text-rose-400/80 block mt-0.5">{absent.length > 0 ? 'لم يسجلوا حضوراً' : 'لا يوجد غياب'}</span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-sky-950/40 border border-sky-500/30 text-center">
-                  <span className="block text-[11px] font-bold text-sky-300 mb-1">المأموريات</span>
-                  <span className="text-2xl font-black text-sky-400">{onMission.length}</span>
-                  <span className="text-[10px] text-sky-400/80 block mt-0.5">ميدانية ورسمية</span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-teal-950/40 border border-teal-500/30 text-center">
-                  <span className="block text-[11px] font-bold text-teal-300 mb-1">الإجازات</span>
-                  <span className="text-2xl font-black text-teal-400">{onLeave.length}</span>
-                  <span className="text-[10px] text-teal-400/80 block mt-0.5">معتمدة ومعلقة</span>
-                </div>
-              </div>
-
-              {/* 3. الجداول التنفيذية الأربعة */}
-              <div className="space-y-6">
-                {/* أ) جدول الحاضرين */}
-                <div className="rounded-xl border border-slate-800 overflow-hidden bg-slate-900/40">
-                  {(() => {
-                    const presentInComplexCount = present.filter((p) => !isMissionItem(p) && (p.lateMinutes ?? 0) <= 0).length;
-                    const presentMissionCount = present.filter((p) => isMissionItem(p) && (p.lateMinutes ?? 0) <= 0).length;
-                    const presentLateCount = present.filter((p) => (p.lateMinutes ?? 0) > 0).length;
-
-                    return (
-                      <>
-                        <div className="bg-emerald-900/70 border-b border-emerald-500/20 text-white px-4 py-2 flex items-center justify-between text-xs font-black">
-                          <div className="flex items-center gap-1.5">
-                            <UserCheck className="size-4 text-emerald-400" />
-                            <span>قائمة الحاضرين (المتواجدون بالمجمع والمأموريات)</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            {presentInComplexCount > 0 ? (
-                              <span className="bg-emerald-800/80 text-emerald-200 border border-emerald-600/40 px-2 py-0.5 rounded-full text-[10.5px]">
-                                {presentInComplexCount} متواجد بالمجمع
-                              </span>
-                            ) : null}
-                            {presentMissionCount > 0 ? (
-                              <span className="bg-sky-500/20 text-sky-300 border border-sky-500/40 px-2 py-0.5 rounded-full text-[10.5px]">
-                                {presentMissionCount} في مأمورية
-                              </span>
-                            ) : null}
-                            {presentLateCount > 0 ? (
-                              <span className="bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full text-[10.5px]">
-                                {presentLateCount} متأخر
-                              </span>
-                            ) : null}
-                            <span className="bg-emerald-800 px-2.5 py-0.5 rounded-full text-[11px] font-black">{present.length} إجمالي الحضور</span>
-                          </div>
+                {/* 2. شريط "يحتاج قرار فوري" (Action Required Bar) */}
+                {metrics.needsDecisionCount > 0 ? (
+                  <div className="rounded-2xl p-4 bg-gradient-to-r from-amber-950/80 via-rose-950/60 to-amber-950/80 border border-amber-500/40 shadow-lg flex flex-wrap items-center justify-between gap-3 text-amber-200">
+                    <div className="flex items-center gap-3">
+                      <div className="size-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
+                        <AlertTriangle className="size-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs sm:text-sm font-black text-white flex items-center gap-2">
+                          <span>حالات استثنائية تتطلب قراراً إدارياً فورياً ({metrics.needsDecisionCount})</span>
+                        </h4>
+                        <div className="flex items-center gap-3 text-[11px] font-bold text-amber-300/90 mt-0.5 flex-wrap">
+                          {metrics.missionsPendingLeft > 0 && (
+                            <span className="bg-amber-500/20 px-2 py-0.5 rounded-full border border-amber-500/30">
+                              ⚠️ {metrics.missionsPendingLeft} خرجوا لمأمورية قبل الاعتماد (طلب معلق)
+                            </span>
+                          )}
+                          {metrics.unexcusedAbsent > 0 && (
+                            <span className="bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full border border-rose-500/30">
+                              🔴 {metrics.unexcusedAbsent} غياب بدون إذن بعد بدء الوردية
+                            </span>
+                          )}
+                          {metrics.presentLate > 0 && (
+                            <span className="bg-amber-500/20 px-2 py-0.5 rounded-full border border-amber-500/30">
+                              ⏱️ {metrics.presentLate} مسجلون بعد موعد الوردية
+                            </span>
+                          )}
                         </div>
-
-                        {present.length === 0 ? (
-                          <div className="py-4 text-center text-xs text-slate-400 font-bold bg-slate-900/20">لا يوجد حضور مسجل لهذا اليوم حتى الآن.</div>
-                        ) : (
-                          <table className="w-full text-[11px] border-collapse">
-                            <thead>
-                              <tr className="bg-slate-900/90 text-slate-300 border-b border-slate-800 text-start font-black">
-                                <th className="p-2 w-8 text-center">#</th>
-                                <th className="p-2">اسم الموظف</th>
-                                <th className="p-2">الإدارة والفرع</th>
-                                <th className="p-2">الوردية</th>
-                                <th className="p-2">وقت الحضور</th>
-                                <th className="p-2">الموقع / وقت الانصراف</th>
-                                <th className="p-2">الحالة</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-800 font-medium">
-                              {(() => {
-                                const firstMissionIndex = present.findIndex((p) => isMissionItem(p) && (p.lateMinutes ?? 0) <= 0);
-                                const firstLateIndex = present.findIndex((p) => (p.lateMinutes ?? 0) > 0);
-
-                                return present.map((p, idx) => {
-                                  const isLate = (p.lateMinutes ?? 0) > 0;
-                                  const isMission = isMissionItem(p);
-                                  const destination = p.leaveTitle ?? p.pendingRequestTitle ?? p.leaveName;
-                                  const isPendingMission = isMission && Boolean(p.hasPendingRequest);
-                                  const isFirstMission = firstMissionIndex !== -1 && idx === firstMissionIndex;
-                                  const isFirstLate = firstLateIndex !== -1 && idx === firstLateIndex;
-
-                                  return (
-                                    <Fragment key={p.employeeId}>
-                                      {isFirstMission && (
-                                        <tr className="bg-sky-950/70 border-y-2 border-sky-500/40 text-sky-300 font-black text-[10.5px]">
-                                          <td colSpan={7} className="p-2 px-3">
-                                            <div className="flex items-center justify-between">
-                                              <span className="flex items-center gap-1.5">
-                                                <Plane className="size-3.5 text-sky-400" />
-                                                <span>موظفون سجلوا حضوراً ثم خرجوا في مأموريات عمل ميدانية (زيارات ومهمات رسمية)</span>
-                                              </span>
-                                              <span className="text-[10px] bg-sky-500/20 text-sky-300 border border-sky-500/40 px-2 py-0.5 rounded-full font-bold">
-                                                {presentMissionCount} موظف
-                                              </span>
-                                            </div>
-                                          </td>
-                                        </tr>
-                                      )}
-                                      {isFirstLate && (
-                                        <tr className="bg-amber-950/70 border-y-2 border-amber-500/40 text-amber-300 font-black text-[10.5px]">
-                                          <td colSpan={7} className="p-2 px-3">
-                                            <div className="flex items-center justify-between">
-                                              <span className="flex items-center gap-1.5">
-                                                <Clock3 className="size-3.5 text-amber-400" />
-                                                <span>المتأخرون عن موعد الوردية الرسمية (المسجلون بعد الموعد)</span>
-                                              </span>
-                                              <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold">
-                                                {presentLateCount} موظف
-                                              </span>
-                                            </div>
-                                          </td>
-                                        </tr>
-                                      )}
-                                      <tr
-                                        className={
-                                          isLate
-                                            ? 'bg-amber-950/25 hover:bg-amber-950/40 border-s-2 border-amber-500'
-                                            : isMission
-                                            ? 'bg-sky-950/20 hover:bg-sky-950/35 border-s-2 border-sky-500'
-                                            : idx % 2 === 0
-                                            ? 'bg-slate-950/40'
-                                            : 'bg-slate-900/40'
-                                        }
-                                      >
-                                        <td className="p-2 text-center text-slate-500 font-bold">{idx + 1}</td>
-                                        <td className="p-2 font-black text-white">
-                                          <div className="flex items-center gap-1.5 flex-wrap">
-                                            <span>{p.employeeName}</span>
-                                            {isClinicMedicalStaff(p) ? (
-                                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 inline-flex items-center gap-0.5">
-                                                🩺 عيادات
-                                              </span>
-                                            ) : null}
-                                            {isLate ? (
-                                              <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                                                متأخر
-                                              </span>
-                                            ) : null}
-                                            {isMission ? (
-                                              <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-sky-500/20 text-sky-300 border border-sky-500/40 inline-flex items-center gap-0.5">
-                                                ✈️ مأمورية
-                                              </span>
-                                            ) : null}
-                                          </div>
-                                        </td>
-                                        <td className="p-2 text-slate-300">
-                                          <span>{p.departmentName ?? '—'}</span>
-                                          {p.branchName ? <span className="text-slate-400 text-[10px] block">{p.branchName}</span> : null}
-                                        </td>
-                                        <td className="p-2 text-slate-300">{p.shiftName ?? '—'}</td>
-                                        <td
-                                          className={`p-2 font-bold ${
-                                            isLate ? 'text-amber-300' : isMission ? 'text-sky-300' : 'text-emerald-400'
-                                          }`}
-                                        >
-                                          {p.firstCheckIn ? formatTime12(p.firstCheckIn) : '—'}
-                                        </td>
-                                        <td className="p-2 font-bold">
-                                          {p.lastCheckOut ? (
-                                            <span className="text-slate-300">{formatTime12(p.lastCheckOut)}</span>
-                                          ) : isMission ? (
-                                            <div className="flex flex-col gap-0.5">
-                                              <span className="text-sky-300 flex items-center gap-1 text-[11px]">
-                                                <Plane className="size-3 text-sky-400 inline" />
-                                                خرج في مأمورية ميدانية
-                                              </span>
-                                              {destination ? (
-                                                <span className="text-slate-400 text-[10px] font-normal truncate max-w-[210px]" title={destination}>
-                                                  📍 {destination}
-                                                </span>
-                                              ) : null}
-                                            </div>
-                                          ) : (
-                                            <span className="text-emerald-300">متواجد حالياً في المجمع</span>
-                                          )}
-                                        </td>
-                                        <td className="p-2">
-                                          {isLate ? (
-                                            <span className="inline-block px-2 py-0.5 rounded bg-amber-500/25 text-amber-300 border border-amber-500/40 font-black text-[10px] shadow-xs">
-                                              ⚠️ متأخر {formatMinutes(p.lateMinutes)}
-                                            </span>
-                                          ) : isMission ? (
-                                            <span className="inline-block px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/40 font-bold text-[10px]">
-                                              {isPendingMission ? `⏳ طلب مأمورية${p.pendingRequestNumber ? ` (#${p.pendingRequestNumber})` : ''}` : '✈️ مأمورية معتمدة'}
-                                            </span>
-                                          ) : (
-                                            <span className="inline-block px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold text-[10px]">
-                                              في الموعد
-                                            </span>
-                                          )}
-                                        </td>
-                                      </tr>
-                                    </Fragment>
-                                  );
-                                });
-                              })()}
-                            </tbody>
-                          </table>
-                        )}
-                      </>
-                    );
-                  })()}
-                </div>
-
-                {/* ب) جدول الغائبين */}
-                <div className="rounded-xl border border-slate-800 overflow-hidden bg-slate-900/40">
-                  <div className="bg-rose-900/70 border-b border-rose-500/20 text-white px-4 py-2 flex items-center justify-between text-xs font-black">
-                    <div className="flex items-center gap-1.5">
-                      <UserX className="size-4 text-rose-400" />
-                      <span>قائمة الموظفين الغائبين</span>
+                      </div>
                     </div>
-                    <span className="bg-rose-800 px-2.5 py-0.5 rounded-full text-[11px]">{absent.length} موظف</span>
+                    <span className="text-[11px] font-black bg-amber-500 text-slate-950 px-3 py-1 rounded-xl shadow-xs shrink-0">
+                      مطلوب توجيه تنفيذي
+                    </span>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl p-3 bg-emerald-950/40 border border-emerald-500/30 flex items-center gap-2 text-emerald-300 text-xs font-bold">
+                    <CheckCircle2 className="size-4 text-emerald-400 shrink-0" />
+                    <span>الانضباط الميداني مكتمل بنسبة 100% — لا توجد أي استثناءات معلقة تتطلب تدخلاً عاجلاً.</span>
+                  </div>
+                )}
+
+                {/* 3. شريط المؤشرات الرقمية المدققة رياضياً (KPI Strip) */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                  <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-center">
+                    <span className="block text-[11px] font-bold text-slate-400 mb-1">قوة العمل المجدولة</span>
+                    <span className="text-2xl font-black text-white font-mono">{metrics.totalScheduledEmployees}</span>
+                    <span className="text-[10px] text-slate-500 block mt-0.5">مطالبون بالحضور حتى الآن</span>
                   </div>
 
-                  {absent.length === 0 ? (
-                    <div className="py-4 text-center text-xs text-slate-400 font-bold bg-slate-900/20">لا يوجد غياب لهذا اليوم.</div>
-                  ) : (
-                    <table className="w-full text-[11px] border-collapse">
+                  <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-center">
+                    <span className="block text-[11px] font-bold text-emerald-300 mb-1">الحضور الفعلي</span>
+                    <span className="text-2xl font-black text-emerald-400 font-mono">{metrics.presentTotal}</span>
+                    <span className="text-[10px] font-bold text-emerald-400/90 block mt-0.5 font-mono">
+                      نسبة: {metrics.attendancePercentage}%
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-500/30 text-center">
+                    <span className="block text-[11px] font-bold text-amber-300 mb-1">المتأخرون</span>
+                    <span className="text-2xl font-black text-amber-400 font-mono">{metrics.presentLate}</span>
+                    <span className="text-[10px] text-amber-400/80 block mt-0.5">حضروا بعد الوردية</span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-500/30 text-center">
+                    <span className="block text-[11px] font-bold text-rose-300 mb-1">الغياب غير المبرر</span>
+                    <span className="text-2xl font-black text-rose-400 font-mono">{metrics.unexcusedAbsent}</span>
+                    <span className="text-[10px] text-rose-400/80 block mt-0.5">
+                      {metrics.unexcusedAbsent > 0 ? 'بدأت ورديتهم ولم يحضروا' : 'لا يوجد غياب'}
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-sky-950/40 border border-sky-500/30 text-center">
+                    <span className="block text-[11px] font-bold text-sky-300 mb-1">المأموريات</span>
+                    <span className="text-2xl font-black text-sky-400 font-mono">
+                      {metrics.missionsApproved + metrics.missionsPendingLeft}
+                    </span>
+                    <span className="text-[10px] text-sky-400/80 block mt-0.5">
+                      {metrics.missionsPendingLeft > 0 ? `${metrics.missionsApproved} معتمدة · ${metrics.missionsPendingLeft} معلقة` : 'ميدانية معتمدة'}
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-teal-950/40 border border-teal-500/30 text-center">
+                    <span className="block text-[11px] font-bold text-teal-300 mb-1">الإجازات والراحات</span>
+                    <span className="text-2xl font-black text-teal-400 font-mono">{metrics.leavesTotal}</span>
+                    <span className="text-[10px] text-teal-400/80 block mt-0.5">رسمية معتمدة</span>
+                  </div>
+                </div>
+
+                {/* 4. الشارت البياني التوضيحي (Donut Chart) لتوزيع قوى العمل */}
+                <ExecutiveWorkforceChart metrics={metrics} isLight={false} />
+
+                {/* 5. مصفوفة ملخص انضباط الإدارات والأقسام (Department Matrix) */}
+                <div className="rounded-xl border border-slate-800 overflow-hidden bg-slate-900/50">
+                  <div className="bg-slate-950 px-4 py-2.5 border-b border-slate-800 flex items-center justify-between text-xs font-black">
+                    <div className="flex items-center gap-2 text-slate-200">
+                      <Users className="size-4 text-sky-400" />
+                      <span>مصفوفة الانضباط وتوزيع القوى حسب الإدارات والأقسام</span>
+                    </div>
+                    <span className="text-slate-400 font-normal text-[11px]">
+                      {departmentSummaries.length} إدارات تشغيلية
+                    </span>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-[11px] border-collapse text-start">
                       <thead>
-                        <tr className="bg-slate-900/90 text-slate-300 border-b border-slate-800 text-start font-black">
-                          <th className="p-2 w-8 text-center">#</th>
-                          <th className="p-2">اسم الموظف</th>
-                          <th className="p-2">الإدارة والفرع</th>
-                          <th className="p-2">الوردية المقررة</th>
-                          <th className="p-2">موقف العذر والطلب</th>
+                        <tr className="bg-slate-900/80 text-slate-300 border-b border-slate-800 font-black">
+                          <th className="p-2.5">الإدارة / القسم</th>
+                          <th className="p-2.5 text-center">المجدولون</th>
+                          <th className="p-2.5 text-center">حاضر</th>
+                          <th className="p-2.5 text-center">غائب</th>
+                          <th className="p-2.5 text-center">مأمورية</th>
+                          <th className="p-2.5 text-center">إجازة</th>
+                          <th className="p-2.5 text-center">نسبة الالتزام</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-800 font-medium">
-                        {absent.map((a, idx) => (
-                          <tr key={a.employeeId} className={idx % 2 === 0 ? 'bg-slate-950/40' : 'bg-slate-900/40'}>
-                            <td className="p-2 text-center text-slate-500 font-bold">{idx + 1}</td>
-                            <td className="p-2 font-black text-white">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <span>{a.employeeName}</span>
-                                {isClinicMedicalStaff(a) ? (
-                                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 inline-flex items-center gap-0.5">
-                                    🩺 عيادات
-                                  </span>
-                                ) : null}
-                              </div>
+                      <tbody className="divide-y divide-slate-800/80 font-medium">
+                        {departmentSummaries.map((dept, i) => (
+                          <tr key={dept.departmentName} className={i % 2 === 0 ? 'bg-slate-950/30' : 'bg-slate-900/30'}>
+                            <td className="p-2.5 font-bold text-white">{dept.departmentName}</td>
+                            <td className="p-2.5 text-center font-mono font-bold text-slate-300">{dept.total}</td>
+                            <td className="p-2.5 text-center font-mono font-black text-emerald-400">{dept.present}</td>
+                            <td className="p-2.5 text-center font-mono font-black text-rose-400">
+                              {dept.absent > 0 ? dept.absent : <span className="text-slate-600">—</span>}
                             </td>
-                            <td className="p-2 text-slate-300">
-                              <span>{a.departmentName ?? '—'}</span>
-                              {a.branchName ? <span className="text-slate-400 text-[10px] block">{a.branchName}</span> : null}
+                            <td className="p-2.5 text-center font-mono text-sky-400">
+                              {dept.mission > 0 ? dept.mission : <span className="text-slate-600">—</span>}
                             </td>
-                            <td className="p-2 text-slate-300">{a.shiftName ?? '—'}</td>
-                            <td className="p-2">
-                              {a.hasPendingRequest ? (
-                                <div className="flex flex-col gap-0.5">
-                                  <span className="inline-block px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold text-[10px] w-fit">
-                                    ⏳ طلب معلّق{a.pendingRequestNumber ? ` (#${a.pendingRequestNumber})` : ''}
-                                  </span>
-                                  {a.pendingRequestTitle ? (
-                                    <span className="text-slate-200 font-medium text-[10.5px]">📌 {a.pendingRequestTitle}</span>
-                                  ) : null}
-                                  {a.leaveReason ? (
-                                    <span className="text-slate-400 font-normal text-[10px]">💬 {a.leaveReason}</span>
-                                  ) : null}
+                            <td className="p-2.5 text-center font-mono text-teal-400">
+                              {dept.leave > 0 ? dept.leave : <span className="text-slate-600">—</span>}
+                            </td>
+                            <td className="p-2.5 text-center">
+                              <div className="inline-flex items-center gap-2">
+                                <span className="font-mono font-black text-xs text-slate-200">{dept.commitmentRate}%</span>
+                                <div className="w-16 h-1.5 rounded-full bg-slate-800 overflow-hidden shrink-0">
+                                  <div
+                                    className={`h-full rounded-full ${
+                                      dept.commitmentRate >= 90
+                                        ? 'bg-emerald-400'
+                                        : dept.commitmentRate >= 75
+                                        ? 'bg-amber-400'
+                                        : 'bg-rose-500'
+                                    }`}
+                                    style={{ width: `${dept.commitmentRate}%` }}
+                                  />
                                 </div>
-                              ) : (
-                                <span className="inline-block px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold text-[10px]">
-                                  غياب بدون إذن
-                                </span>
-                              )}
+                              </div>
                             </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
-                  )}
+                  </div>
                 </div>
 
-                {/* ج) جدول المأموريات الرسمية والتكليفات الخارجية (لوحدها) */}
-                <div className="rounded-xl border border-slate-800 overflow-hidden bg-slate-900/40">
-                  <div className="bg-sky-900/70 border-b border-sky-500/20 text-white px-4 py-2 flex items-center justify-between text-xs font-black">
-                    <div className="flex items-center gap-1.5">
-                      <Plane className="size-4 text-sky-400" />
-                      <span>قائمة المأموريات والتكليفات الرسمية الميدانية</span>
-                    </div>
-                    <span className="bg-sky-800 px-2.5 py-0.5 rounded-full text-[11px] font-black">{onMission.length} مأمورية</span>
-                  </div>
-
-                  {onMission.length === 0 ? (
-                    <div className="py-4 text-center text-xs text-slate-400 font-bold bg-slate-900/20">لا توجد مأموريات عمل مسجلة لهذا اليوم.</div>
-                  ) : (
-                    <table className="w-full text-[11px] border-collapse">
-                      <thead>
-                        <tr className="bg-slate-900/90 text-slate-300 border-b border-slate-800 text-start font-black">
-                          <th className="p-2 w-8 text-center">#</th>
-                          <th className="p-2">اسم الموظف</th>
-                          <th className="p-2">الإدارة والفرع</th>
-                          <th className="p-2">حالة المأمورية</th>
-                          <th className="p-2">وجهة المأمورية والغرض الرسمي</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-800 font-medium">
-                        {onMission.map((item, idx) => {
-                          const isPending = Boolean(item.hasPendingRequest) && !item.hasApprovedLeave;
-                          const reqNum = item.pendingRequestNumber ?? item.leaveRequestNumber;
-                          const reqSuffix = reqNum ? ` (#${reqNum})` : '';
-
-                          return (
-                            <tr key={item.employeeId} className={idx % 2 === 0 ? 'bg-slate-950/40' : 'bg-slate-900/40'}>
-                              <td className="p-2 text-center text-slate-500 font-bold">{idx + 1}</td>
-                              <td className="p-2 font-black text-white">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span>{item.employeeName}</span>
-                                  {isClinicMedicalStaff(item) ? (
-                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 inline-flex items-center gap-0.5">
-                                      🩺 عيادات
-                                    </span>
-                                  ) : null}
-                                </div>
-                              </td>
-                              <td className="p-2 text-slate-300">
-                                <span>{item.departmentName ?? '—'}</span>
-                                {item.branchName ? <span className="text-slate-400 text-[10px] block">{item.branchName}</span> : null}
+                {/* 6. الجداول التنفيذية المخصصة (الاستثناءات أولاً) */}
+                <div className="space-y-6">
+                  {/* أ) جدول الغياب غير المبرر (الغياب الحقيقي فقط) */}
+                  {unexcusedAbsentList.length > 0 && (
+                    <div className="rounded-xl border border-rose-500/40 overflow-hidden bg-rose-950/20">
+                      <div className="bg-rose-900/80 border-b border-rose-500/30 text-white px-4 py-2 flex items-center justify-between text-xs font-black">
+                        <div className="flex items-center gap-2">
+                          <UserX className="size-4 text-rose-400" />
+                          <span>قائمة الغياب غير المبرر (بدأت ورديتهم وتجاوزوا فترة السماح)</span>
+                        </div>
+                        <span className="bg-rose-800 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-black">
+                          {unexcusedAbsentList.length} موظف
+                        </span>
+                      </div>
+                      <table className="w-full text-[11px] border-collapse text-start">
+                        <thead>
+                          <tr className="bg-slate-900/90 text-slate-300 border-b border-slate-800 font-black">
+                            <th className="p-2 w-8 text-center">#</th>
+                            <th className="p-2">اسم الموظف</th>
+                            <th className="p-2">الإدارة</th>
+                            <th className="p-2">الوردية المقررة</th>
+                            <th className="p-2">موقف المتابعة والاتصال</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800 font-medium">
+                          {unexcusedAbsentList.map((c, idx) => (
+                            <tr key={c.item.employeeId} className="bg-slate-950/50 hover:bg-slate-900/50">
+                              <td className="p-2 text-center text-slate-500 font-bold font-mono">{idx + 1}</td>
+                              <td className="p-2 font-black text-white">{c.item.employeeName}</td>
+                              <td className="p-2 text-slate-300">{c.item.departmentName ?? '—'}</td>
+                              <td className="p-2 text-slate-200">
+                                <bdi dir="ltr" className="font-mono text-xs font-bold text-slate-200">
+                                  {formatShiftBadge(c.item.shiftName)}
+                                </bdi>
                               </td>
                               <td className="p-2">
-                                <span
-                                  className={`inline-block px-1.5 py-0.5 rounded font-black text-[10px] ${
-                                    isPending
-                                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                                      : 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
-                                  }`}
-                                >
-                                  {isPending ? `⏳ طلب مأمورية معلّق${reqSuffix}` : `✈️ مأمورية رسمية${reqSuffix}`}
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 font-bold text-[10px]">
+                                  ⚠️ غياب بلا إذن — جاري المتابعة الهاتفية
                                 </span>
                               </td>
-                              <td className="p-2 text-slate-200 font-bold">
-                                <div className="flex flex-col gap-0.5">
-                                  {item.leaveTitle || item.leaveName || item.pendingRequestTitle ? (
-                                    <span className="text-white font-black text-[11px]">
-                                      📍 {item.leaveTitle ?? item.pendingRequestTitle ?? item.leaveName}
-                                    </span>
-                                  ) : null}
-                                  {item.leaveReason ? (
-                                    <span className="text-slate-300 font-medium text-[10.5px]">💬 الغرض: {item.leaveReason}</span>
-                                  ) : (
-                                    <span className="text-slate-400 font-normal text-[10.5px]">مأمورية رسمية</span>
-                                  )}
-                                  {item.firstCheckIn ? (
-                                    <span className="text-emerald-400 font-bold text-[10px] block mt-0.5">
-                                      ✓ سجل حضور صباحاً ({formatTime12(item.firstCheckIn)}) ثم خرج لمأمورية
-                                    </span>
-                                  ) : null}
-                                </div>
-                              </td>
                             </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-
-                {/* د) جدول الإجازات والراحات الرسمية (بعد منها) */}
-                <div className="rounded-xl border border-slate-800 overflow-hidden bg-slate-900/40">
-                  <div className="bg-teal-900/70 border-b border-teal-500/20 text-white px-4 py-2 flex items-center justify-between text-xs font-black">
-                    <div className="flex items-center gap-1.5">
-                      <Calendar className="size-4 text-teal-400" />
-                      <span>قائمة الإجازات والراحات الرسمية والطلبات</span>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
-                    <span className="bg-teal-800 px-2.5 py-0.5 rounded-full text-[11px] font-black">{onLeave.length} إجازة</span>
-                  </div>
+                  )}
 
-                  {onLeave.length === 0 ? (
-                    <div className="py-4 text-center text-xs text-slate-400 font-bold bg-slate-900/20">لا توجد إجازات مسجلة لهذا اليوم.</div>
-                  ) : (
-                    <table className="w-full text-[11px] border-collapse">
-                      <thead>
-                        <tr className="bg-slate-900/90 text-slate-300 border-b border-slate-800 text-start font-black">
-                          <th className="p-2 w-8 text-center">#</th>
-                          <th className="p-2">اسم الموظف</th>
-                          <th className="p-2">الإدارة والفرع</th>
-                          <th className="p-2">نوع الإجازة والمعاملة</th>
-                          <th className="p-2">السبب والبيان الرسمي</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-800 font-medium">
-                        {onLeave.map((item, idx) => {
-                          const isPending = Boolean(item.hasPendingRequest) && !item.hasApprovedLeave;
-                          const reqNum = item.pendingRequestNumber ?? item.leaveRequestNumber;
-                          const reqSuffix = reqNum ? ` (#${reqNum})` : '';
-
-                          return (
-                            <tr key={item.employeeId} className={idx % 2 === 0 ? 'bg-slate-950/40' : 'bg-slate-900/40'}>
-                              <td className="p-2 text-center text-slate-500 font-bold">{idx + 1}</td>
-                              <td className="p-2 font-black text-white">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span>{item.employeeName}</span>
-                                  {isClinicMedicalStaff(item) ? (
-                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 inline-flex items-center gap-0.5">
-                                      🩺 عيادات
-                                    </span>
-                                  ) : null}
-                                </div>
+                  {/* ب) جدول المتأخرين عن موعد الوردية */}
+                  {lateList.length > 0 && (
+                    <div className="rounded-xl border border-amber-500/40 overflow-hidden bg-amber-950/20">
+                      <div className="bg-amber-900/80 border-b border-amber-500/30 text-white px-4 py-2 flex items-center justify-between text-xs font-black">
+                        <div className="flex items-center gap-2">
+                          <Clock3 className="size-4 text-amber-400" />
+                          <span>المتأخرون عن موعد الوردية الرسمية (محسوبة بالدقائق الصريحة)</span>
+                        </div>
+                        <span className="bg-amber-800 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-black">
+                          {lateList.length} موظف
+                        </span>
+                      </div>
+                      <table className="w-full text-[11px] border-collapse text-start">
+                        <thead>
+                          <tr className="bg-slate-900/90 text-slate-300 border-b border-slate-800 font-black">
+                            <th className="p-2 w-8 text-center">#</th>
+                            <th className="p-2">اسم الموظف</th>
+                            <th className="p-2">الإدارة</th>
+                            <th className="p-2">الوردية المقررة</th>
+                            <th className="p-2">وقت البصمة</th>
+                            <th className="p-2">مدة التأخير الفعلية</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800 font-medium">
+                          {lateList.map((c, idx) => (
+                            <tr key={c.item.employeeId} className="bg-amber-950/20 hover:bg-amber-950/35">
+                              <td className="p-2 text-center text-slate-500 font-bold font-mono">{idx + 1}</td>
+                              <td className="p-2 font-black text-white">{c.item.employeeName}</td>
+                              <td className="p-2 text-slate-300">{c.item.departmentName ?? '—'}</td>
+                              <td className="p-2 text-slate-200">
+                                <bdi dir="ltr" className="font-mono text-xs font-bold text-slate-200">
+                                  {formatShiftBadge(c.item.shiftName)}
+                                </bdi>
                               </td>
-                              <td className="p-2 text-slate-300">
-                                <span>{item.departmentName ?? '—'}</span>
-                                {item.branchName ? <span className="text-slate-400 text-[10px] block">{item.branchName}</span> : null}
+                              <td className="p-2 font-mono font-black text-amber-400">
+                                {formatTime12(c.item.firstCheckIn)}
                               </td>
                               <td className="p-2">
-                                <span
-                                  className={`inline-block px-1.5 py-0.5 rounded font-black text-[10px] ${
-                                    isPending
-                                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                                      : 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
-                                  }`}
-                                >
-                                  {isPending ? `⏳ طلب إجازة معلّق${reqSuffix}` : `${item.leaveName ?? 'إجازة معتمدة'}${reqSuffix}`}
+                                <span className="inline-block px-2.5 py-1 rounded-lg bg-amber-500/25 text-amber-300 border border-amber-500/50 font-black text-xs font-mono shadow-xs">
+                                  ⚠️ تأخير {c.formattedLate}
                                 </span>
                               </td>
-                              <td className="p-2 text-slate-200 font-bold">
-                                <div className="flex flex-col gap-0.5">
-                                  {item.leaveTitle && item.leaveTitle !== item.leaveName && item.leaveTitle !== item.leaveReason ? (
-                                    <span className="text-white font-black text-[11px]">📌 {item.leaveTitle}</span>
-                                  ) : null}
-                                  {item.leaveReason ? (
-                                    <span className="text-slate-300 font-medium text-[10.5px]">💬 السبب: {item.leaveReason}</span>
-                                  ) : (
-                                    <span className="text-slate-400 font-normal text-[10.5px]">— معتمدة ومسجلة نظامياً</span>
-                                  )}
-                                </div>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* ج) جدول المأموريات (فصل المعلق عن المعتمد) */}
+                  {(missionPendingList.length > 0 || missionApprovedList.length > 0) && (
+                    <div className="rounded-xl border border-sky-500/30 overflow-hidden bg-slate-900/40">
+                      <div className="bg-sky-900/80 border-b border-sky-500/20 text-white px-4 py-2 flex items-center justify-between text-xs font-black">
+                        <div className="flex items-center gap-2">
+                          <Plane className="size-4 text-sky-400" />
+                          <span>قائمة المأموريات والتكليفات الميدانية الرسمية</span>
+                        </div>
+                        <span className="bg-sky-800 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-black">
+                          {missionPendingList.length + missionApprovedList.length} مأمورية
+                        </span>
+                      </div>
+                      <table className="w-full text-[11px] border-collapse text-start">
+                        <thead>
+                          <tr className="bg-slate-900/90 text-slate-300 border-b border-slate-800 font-black">
+                            <th className="p-2 w-8 text-center">#</th>
+                            <th className="p-2">اسم الموظف</th>
+                            <th className="p-2">الإدارة</th>
+                            <th className="p-2">حالة المأمورية</th>
+                            <th className="p-2">الوجهة والغرض الميداني الرسمي</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800 font-medium">
+                          {/* المعلقة أولاً لإبرازها */}
+                          {missionPendingList.map((m, idx) => {
+                            const { destination, purpose } = sanitizeMissionPurpose(
+                              m.item.leaveTitle ?? m.item.pendingRequestTitle,
+                              m.item.leaveReason
+                            );
+                            return (
+                              <tr key={m.item.employeeId} className="bg-amber-950/25 border-s-2 border-amber-500">
+                                <td className="p-2 text-center text-slate-500 font-bold font-mono">{idx + 1}</td>
+                                <td className="p-2 font-black text-white">{m.item.employeeName}</td>
+                                <td className="p-2 text-slate-300">{m.item.departmentName ?? '—'}</td>
+                                <td className="p-2">
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/25 text-amber-300 border border-amber-500/50 font-black text-[10.5px]">
+                                    ⏳ طلب معلّق (خرج قبل الاعتماد) #{m.item.pendingRequestNumber ?? ''}
+                                  </span>
+                                </td>
+                                <td className="p-2 text-slate-200">
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="text-white font-bold text-xs">📍 {destination}</span>
+                                    <span className="text-slate-300 text-[10.5px]">💬 الغرض: {purpose}</span>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+
+                          {/* المعتمدة ثانياً */}
+                          {missionApprovedList.map((m, idx) => {
+                            const { destination, purpose } = sanitizeMissionPurpose(m.item.leaveTitle, m.item.leaveReason);
+                            return (
+                              <tr key={m.item.employeeId} className="bg-slate-950/40">
+                                <td className="p-2 text-center text-slate-500 font-bold font-mono">
+                                  {missionPendingList.length + idx + 1}
+                                </td>
+                                <td className="p-2 font-black text-white">{m.item.employeeName}</td>
+                                <td className="p-2 text-slate-300">{m.item.departmentName ?? '—'}</td>
+                                <td className="p-2">
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-500/20 text-sky-300 border border-sky-500/30 font-bold text-[10.5px]">
+                                    ✈️ مأمورية رسمية معتمدة
+                                  </span>
+                                </td>
+                                <td className="p-2 text-slate-200">
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="text-white font-bold text-xs">📍 {destination}</span>
+                                    <span className="text-slate-300 text-[10.5px]">💬 الغرض: {purpose}</span>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* د) جدول الإجازات والراحات الرسمية مع حجب التفاصيل الطبية */}
+                  {leaveList.length > 0 && (
+                    <div className="rounded-xl border border-teal-500/30 overflow-hidden bg-slate-900/40">
+                      <div className="bg-teal-900/80 border-b border-teal-500/20 text-white px-4 py-2 flex items-center justify-between text-xs font-black">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="size-4 text-teal-400" />
+                          <span>قائمة الإجازات والراحات الرسمية المسجلة</span>
+                        </div>
+                        <span className="bg-teal-800 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-black">
+                          {leaveList.length} إجازة
+                        </span>
+                      </div>
+                      <table className="w-full text-[11px] border-collapse text-start">
+                        <thead>
+                          <tr className="bg-slate-900/90 text-slate-300 border-b border-slate-800 font-black">
+                            <th className="p-2 w-8 text-center">#</th>
+                            <th className="p-2">اسم الموظف</th>
+                            <th className="p-2">الإدارة</th>
+                            <th className="p-2">نوع الإجازة والمعاملة</th>
+                            <th className="p-2">البيان الرسمي</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800 font-medium">
+                          {leaveList.map((l, idx) => (
+                            <tr key={l.item.employeeId} className="bg-slate-950/40">
+                              <td className="p-2 text-center text-slate-500 font-bold font-mono">{idx + 1}</td>
+                              <td className="p-2 font-black text-white">{l.item.employeeName}</td>
+                              <td className="p-2 text-slate-300">{l.item.departmentName ?? '—'}</td>
+                              <td className="p-2">
+                                <span className="inline-block px-2 py-0.5 rounded font-black text-[10.5px] bg-teal-500/20 text-teal-300 border border-teal-500/30">
+                                  {l.isPendingLeave ? '⏳ طلب إجازة معلّق' : `${l.item.leaveName ?? 'إجازة اعتيادية'} (معتمدة)`}
+                                </span>
+                              </td>
+                              <td className="p-2 text-slate-300 font-medium">
+                                {sanitizeLeaveReason(l.item.leaveReason, l.item.leaveName)}
                               </td>
                             </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* هـ) جدول الحاضرين في الموعد (الملتزمون) - جدول مصغر ومركز لمنع الضوضاء */}
+                  <div className="rounded-xl border border-slate-800 overflow-hidden bg-slate-900/40">
+                    <div className="bg-emerald-950/80 border-b border-emerald-500/20 text-white px-4 py-2 flex items-center justify-between text-xs font-black">
+                      <div className="flex items-center gap-2 text-emerald-300">
+                        <UserCheck className="size-4 text-emerald-400" />
+                        <span>قائمة الحاضرين الملتزمين في الموعد ({onTimePresentList.length} موظف متواجد بالمجمع)</span>
+                      </div>
+                      <span className="text-[11px] text-emerald-400/90 font-mono">100% التزام بالوردية</span>
+                    </div>
+                    <div className="p-3 bg-slate-950/40">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                        {onTimePresentList.map((p, idx) => (
+                          <div
+                            key={p.item.employeeId}
+                            className="flex items-center justify-between p-2 rounded-lg bg-slate-900/70 border border-slate-800/80 text-xs"
+                          >
+                            <div className="flex items-center gap-2 truncate">
+                              <span className="text-slate-500 font-mono text-[10px] w-4">{idx + 1}</span>
+                              <span className="font-bold text-white truncate">{p.item.employeeName}</span>
+                            </div>
+                            <span className="font-mono text-[11px] font-bold text-emerald-400 shrink-0">
+                              {formatTime12(p.item.firstCheckIn)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* و) فترات مسائية تبدأ لاحقاً (لتأكيد عدم غيابهم) */}
+                  {upcomingShiftList.length > 0 && (
+                    <div className="rounded-xl border border-indigo-500/30 overflow-hidden bg-indigo-950/20">
+                      <div className="bg-indigo-900/70 border-b border-indigo-500/20 text-white px-4 py-2 flex items-center justify-between text-xs font-black">
+                        <div className="flex items-center gap-2 text-indigo-300">
+                          <Clock3 className="size-4 text-indigo-400" />
+                          <span>دوام مسائي لم يبدأ بعد ({upcomingShiftList.length} موظف - يبدأ دوامهم في موعده)</span>
+                        </div>
+                        <span className="bg-indigo-800/80 px-2 py-0.5 rounded-full text-[10.5px]">غير محسوبين غياباً</span>
+                      </div>
+                      <div className="p-3 bg-slate-950/30 flex flex-wrap gap-2 text-xs">
+                        {upcomingShiftList.map((u) => (
+                          <span
+                            key={u.item.employeeId}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-300"
+                          >
+                            <span className="font-bold text-white">{u.item.employeeName}</span>
+                            <span className="text-slate-500">·</span>
+                            <bdi dir="ltr" className="font-mono text-[11px] text-indigo-300">
+                              {formatShiftBadge(u.item.shiftName)}
+                            </bdi>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </div>
-              </div>
 
-              {/* 4. تذييل التقرير الرسمي */}
-              <div className="mt-8 pt-4 border-t border-slate-800 flex items-center justify-between text-[11px] font-bold text-slate-400">
-                <span>صادر عن منظومة الموارد البشرية والمتابعة الميدانية · جمعية خواطر أحلى شباب</span>
-                <span className="text-slate-400">تقرير رسمي معتمد للإرسال للإدارة التنفيذية</span>
-                <span className="font-mono text-[10px]">كود التحقق: {dateIso.replace(/-/g, '')}-EXEC</span>
+                {/* 7. تذييل التقرير الرسمي مع التوثيق الأمني الرقمي */}
+                <div className="pt-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 text-[11px] font-bold text-slate-400">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="size-4 text-emerald-400 shrink-0" />
+                    <span>صادر وموثق رقمياً عن منظومة الموارد البشرية · جمعية خواطر أحلى شباب</span>
+                  </div>
+                  <div className="flex items-center gap-3 font-mono text-[10.5px]">
+                    <span className="text-slate-300 font-bold">كود التحقق: {securityInfo.code}</span>
+                    <span className="text-slate-600">|</span>
+                    <span className="text-slate-400">Hash: {securityInfo.shortHash}</span>
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  </DialogPortal>
+    </DialogPortal>
   );
 }
