@@ -23,6 +23,7 @@ import {
   UserX,
   Users,
   X,
+  AlertTriangle,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
@@ -36,6 +37,7 @@ import {
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useEntityFocus } from '../../core/useEntityFocus';
 import { cairoTodayIso } from '../../core/cairoTime';
+import { rpc } from '../../core/rpc';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { Pagination } from '../../ui/Pagination';
@@ -273,6 +275,108 @@ export function AttendanceDrilldownPage() {
   const hrPrefix = useHrPrefix();
   const currentCategory = CATEGORIES.find((c) => c.key === category) ?? CATEGORIES[0];
   const isFiltered = Boolean(searchInput.trim() || branch || dept || sort !== 'name' || direction !== 'asc');
+
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [locallyMarkedIds, setLocallyMarkedIds] = useState<Set<string>>(new Set());
+  const [isActionPending, setIsActionPending] = useState(false);
+
+  const handleMarkMissingCheckout = async (employeeIds: string[]) => {
+    if (employeeIds.length === 0) return;
+    setIsActionPending(true);
+    try {
+      await Promise.all(
+        employeeIds.map((id) =>
+          rpc('set_employee_attendance_day_admin', {
+            p_employee_id: id,
+            p_work_date: dateIso,
+            p_day_type: 'work',
+            p_clear_check_out: true,
+            p_reason: 'انصرف من مقر العمل بدون بصمة',
+            p_notes: 'مشي بدون بصمة',
+          }),
+        ),
+      );
+      setLocallyMarkedIds((prev) => {
+        const next = new Set(prev);
+        employeeIds.forEach((id) => next.add(id));
+        return next;
+      });
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        employeeIds.forEach((id) => next.delete(id));
+        return next;
+      });
+      setToastMessage(
+        employeeIds.length === 1
+          ? 'تم تسجيل الموظف: انصراف بدون بصمة بنجاح ✅'
+          : `تم تسجيل (${employeeIds.length}) موظفين: انصراف بدون بصمة بنجاح ✅`,
+      );
+      setTimeout(() => setToastMessage(null), 4000);
+      await query.refetch();
+    } catch (err) {
+      console.error('Failed to mark missing checkout', err);
+      setToastMessage('تعذر تسجيل الانصراف بدون بصمة، يرجى المحاولة ثانية.');
+      setTimeout(() => setToastMessage(null), 3000);
+    } finally {
+      setIsActionPending(false);
+    }
+  };
+
+  const handleUnmarkMissingCheckout = async (employeeId: string) => {
+    setIsActionPending(true);
+    try {
+      await rpc('clear_employee_attendance_day_admin', {
+        p_employee_id: employeeId,
+        p_work_date: dateIso,
+      });
+      setLocallyMarkedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(employeeId);
+        return next;
+      });
+      setToastMessage('تم إلغاء التحديد والعودة للنظام بنجاح ✅');
+      setTimeout(() => setToastMessage(null), 3500);
+      await query.refetch();
+    } catch (err) {
+      console.error('Failed to unmark missing checkout', err);
+      setToastMessage('تعذر إلغاء التعديل.');
+      setTimeout(() => setToastMessage(null), 3000);
+    } finally {
+      setIsActionPending(false);
+    }
+  };
+
+  const isEligibleForMissingCheckout = (item: AttendanceRosterItem) => {
+    return (
+      Boolean(item.firstCheckIn) &&
+      !item.lastCheckOut &&
+      item.status !== 'on_leave' &&
+      item.status !== 'on_mission' &&
+      !item.hasMission &&
+      !item.hasApprovedLeave &&
+      item.status !== 'missing_checkout' &&
+      !locallyMarkedIds.has(item.employeeId)
+    );
+  };
+
+  const eligibleItems = items.filter(isEligibleForMissingCheckout);
+  const allEligibleSelected = eligibleItems.length > 0 && eligibleItems.every((i) => selectedIds.has(i.employeeId));
+
+  const toggleSelectAll = () => {
+    if (allEligibleSelected) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        eligibleItems.forEach((i) => next.delete(i.employeeId));
+        return next;
+      });
+    } else {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        eligibleItems.forEach((i) => next.add(i.employeeId));
+        return next;
+      });
+    }
+  };
 
   function handleClearFilters() {
     setSearchInput('');
@@ -535,6 +639,17 @@ export function AttendanceDrilldownPage() {
             <table className="data-table w-full">
               <thead className="sticky top-0 z-10 bg-[var(--surface-muted)]/95 backdrop-blur-xs">
                 <tr>
+                  <th className="w-10 text-center" data-hide-capture="true">
+                    <input
+                      type="checkbox"
+                      aria-label="تحديد جميع الموظفين المؤهلين"
+                      checked={allEligibleSelected}
+                      onChange={toggleSelectAll}
+                      disabled={eligibleItems.length === 0}
+                      className="rounded accent-[var(--primary)] size-4 cursor-pointer"
+                      title={eligibleItems.length > 0 ? 'تحديد جميع الموظفين المتواجدين' : 'لا يوجد موظفون متاح تحديدهم'}
+                    />
+                  </th>
                   <th className="min-w-[210px]">الموظف</th>
                   <th>الحالة</th>
                   <th>الإدارة والفرع</th>
@@ -542,13 +657,36 @@ export function AttendanceDrilldownPage() {
                   <th>الحضور / الانصراف</th>
                   <th>الموقع</th>
                   <th>العذر والبيان</th>
-                  <th className="text-end" aria-label="فتح الملف" data-hide-capture="true"></th>
+                  <th className="text-end" aria-label="الإجراءات" data-hide-capture="true">الإجراءات</th>
                 </tr>
               </thead>
               <tbody>
-                {items.map((item) => (
-                  <Row key={item.employeeId} item={item} focused={focusedId === item.employeeId} isToday={isToday} />
-                ))}
+                {items.map((item) => {
+                  const isEligible = isEligibleForMissingCheckout(item);
+                  const isMarked = item.status === 'missing_checkout' || locallyMarkedIds.has(item.employeeId);
+                  return (
+                    <Row
+                      key={item.employeeId}
+                      item={item}
+                      focused={focusedId === item.employeeId}
+                      isToday={isToday}
+                      isSelected={selectedIds.has(item.employeeId)}
+                      onToggleSelect={(checked) => {
+                        setSelectedIds((prev) => {
+                          const next = new Set(prev);
+                          if (checked) next.add(item.employeeId);
+                          else next.delete(item.employeeId);
+                          return next;
+                        });
+                      }}
+                      isEligible={isEligible}
+                      isMarked={isMarked}
+                      onMark={(ids) => void handleMarkMissingCheckout(ids)}
+                      onUnmark={(id) => void handleUnmarkMissingCheckout(id)}
+                      isActionPending={isActionPending}
+                    />
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -569,21 +707,88 @@ export function AttendanceDrilldownPage() {
         ) : null}
       </div>
 
+      {/* ─── شريط الإجراء الجماعي العائم عند التحديد ─── */}
+      {selectedIds.size > 0 ? (
+        <div
+          data-hide-capture="true"
+          className="fixed bottom-6 start-1/2 -translate-x-1/2 z-40 bg-[var(--surface-overlay,rgba(15,23,42,0.95))] text-white px-5 py-3 rounded-2xl shadow-2xl border border-[var(--border)] backdrop-blur-md flex flex-wrap items-center gap-3.5 animate-in fade-in slide-in-from-bottom-4"
+        >
+          <div className="text-xs font-black">
+            تم تحديد <span className="text-amber-400 font-black text-sm px-1">{selectedIds.size}</span> موظف
+          </div>
+          <div className="h-4 w-px bg-slate-700 hidden sm:block" />
+          <button
+            type="button"
+            disabled={isActionPending}
+            onClick={() => void handleMarkMissingCheckout(Array.from(selectedIds))}
+            className="btn-primary btn-sm bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-black rounded-xl inline-flex items-center gap-1.5 shadow-md border border-amber-400/30"
+          >
+            {isActionPending ? <Loader2 className="size-3.5 animate-spin" /> : <Clock3 className="size-3.5" />}
+            <span>تسجيل «مشي بدون بصمة» للمحددين ({selectedIds.size})</span>
+          </button>
+          <button
+            type="button"
+            disabled={isActionPending}
+            onClick={() => setSelectedIds(new Set())}
+            className="btn-ghost btn-sm text-slate-300 hover:text-white text-xs font-bold rounded-xl"
+          >
+            إلغاء التحديد
+          </button>
+        </div>
+      ) : null}
+
       {/* ─── نافذة تقرير الصورة للمدير التنفيذي ─── */}
       {showExecutiveModal && <ExecutiveAttendanceModal dateIso={dateIso} onClose={() => setShowExecutiveModal(false)} />}
     </div>
   );
 }
 
-function Row({ item, focused, isToday }: { item: AttendanceRosterItem; focused: boolean; isToday: boolean }) {
+function Row({
+  item,
+  focused,
+  isToday,
+  isSelected,
+  onToggleSelect,
+  isEligible,
+  isMarked,
+  onMark,
+  onUnmark,
+  isActionPending,
+}: {
+  item: AttendanceRosterItem;
+  focused: boolean;
+  isToday: boolean;
+  isSelected: boolean;
+  onToggleSelect: (checked: boolean) => void;
+  isEligible: boolean;
+  isMarked: boolean;
+  onMark: (ids: string[]) => void;
+  onUnmark: (id: string) => void;
+  isActionPending: boolean;
+}) {
   const hrPrefix = useHrPrefix();
   const isMission = item.status === 'on_mission' || Boolean(item.hasMission) || (Boolean(item.hasPendingRequest) && item.pendingRequestType === 'mission');
   const missionTitle = item.leaveTitle ?? item.pendingRequestTitle ?? item.leaveName;
   const hasExcuse = Boolean(item.hasApprovedLeave) || Boolean(item.hasMission);
-  const isWorkingNow = isToday && Boolean(item.firstCheckIn) && !item.lastCheckOut;
+  const isWorkingNow = isToday && Boolean(item.firstCheckIn) && !item.lastCheckOut && !isMarked;
 
   return (
     <tr data-focus-id={item.employeeId} className={focused ? 'entity-focus-highlight' : undefined}>
+      {/* 0. خانة التحديد */}
+      <td data-hide-capture="true" className="w-10 text-center">
+        {isEligible || isMarked ? (
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={(e) => onToggleSelect(e.target.checked)}
+            className="rounded accent-[var(--primary)] size-4 cursor-pointer"
+            aria-label={`تحديد ${item.employeeName}`}
+          />
+        ) : (
+          <span className="text-[var(--text-muted)] text-xs opacity-30">—</span>
+        )}
+      </td>
+
       {/* 1. الموظف: الصورة والاسم ورقم الهاتف / الكود */}
       <td>
         <div className="flex items-center gap-3">
@@ -609,7 +814,15 @@ function Row({ item, focused, isToday }: { item: AttendanceRosterItem; focused: 
 
       {/* 2. الحالة مع مؤشر العمل الحي */}
       <td>
-        {isWorkingNow && isMission ? (
+        {isMarked ? (
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-amber-500/10 text-amber-500 border border-amber-500/25"
+            title="سجل حضوراً ثم غادر مقر العمل دون تسجيل بصمة انصراف"
+          >
+            <Clock3 className="size-3 text-amber-500" />
+            بصمة بلا انصراف (غادر)
+          </span>
+        ) : isWorkingNow && isMission ? (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-sky-500/10 text-sky-400 border border-sky-500/25">
             <Plane className="size-3 text-sky-400" />
             بصم حضور — في مأمورية
@@ -718,6 +931,11 @@ function Row({ item, focused, isToday }: { item: AttendanceRosterItem; focused: 
             <span className="text-[var(--text-muted)] text-[10px]">←</span>
             {item.lastCheckOut ? (
               <span className="font-bold text-[var(--text)]">{formatTime(item.lastCheckOut)}</span>
+            ) : isMarked ? (
+              <span className="inline-flex items-center gap-1 font-bold text-amber-500 text-[11px]" title="غادر مقر العمل دون تسجيل بصمة انصراف">
+                <Clock3 className="size-3 text-amber-500" />
+                انصرف بدون بصمة
+              </span>
             ) : isToday ? (
               isMission ? (
                 <span
@@ -756,7 +974,11 @@ function Row({ item, focused, isToday }: { item: AttendanceRosterItem; focused: 
 
       {/* 7. العذر والملاحظات */}
       <td className="text-xs">
-        {hasExcuse ? (
+        {isMarked ? (
+          <span className="text-amber-500 text-[11px] font-bold flex items-center gap-1">
+            ⚠️ مشي بدون بصمة انصراف
+          </span>
+        ) : hasExcuse ? (
           <div className="flex flex-col gap-1 items-start max-w-[240px]">
             {item.hasApprovedLeave ? (
               <div className="flex flex-col gap-0.5 items-start">
@@ -832,14 +1054,38 @@ function Row({ item, focused, isToday }: { item: AttendanceRosterItem; focused: 
         )}
       </td>
 
-      {/* 8. فتح الملف */}
+      {/* 8. الإجراءات وفتح الملف */}
       <td className="text-end" data-hide-capture="true">
-        <Link
-          to={`${hrPrefix}/employees/${item.employeeId}`}
-          className="btn-ghost btn-xs whitespace-nowrap text-xs font-bold text-[var(--primary)] hover:bg-[var(--primary)]/10 rounded-lg px-2 py-1"
-        >
-          فتح الملف
-        </Link>
+        <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
+          {isMarked ? (
+            <button
+              type="button"
+              disabled={isActionPending}
+              onClick={() => void onUnmark(item.employeeId)}
+              className="btn-ghost btn-xs text-xs font-bold text-slate-400 hover:text-rose-400 rounded-lg px-2 py-1 transition-colors"
+              title="إلغاء وسم بصمة بلا انصراف والعودة للنظام"
+            >
+              تراجع
+            </button>
+          ) : isEligible ? (
+            <button
+              type="button"
+              disabled={isActionPending}
+              onClick={() => void onMark([item.employeeId])}
+              className="inline-flex items-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-xs font-bold text-amber-500 hover:bg-amber-500/20 transition-all shadow-xs"
+              title="تحديد أن الموظف غادر مقر العمل دون تسجيل بصمة انصراف"
+            >
+              <Clock3 className="size-3" />
+              <span>مشي بدون بصمة</span>
+            </button>
+          ) : null}
+          <Link
+            to={`${hrPrefix}/employees/${item.employeeId}`}
+            className="btn-ghost btn-xs whitespace-nowrap text-xs font-bold text-[var(--primary)] hover:bg-[var(--primary)]/10 rounded-lg px-2 py-1"
+          >
+            فتح الملف
+          </Link>
+        </div>
       </td>
     </tr>
   );
