@@ -79,4 +79,45 @@ describe('ExecutiveAttendanceModal', () => {
     expect(screen.getByText('نسخ الصورة لواتساب')).toBeDefined();
     expect(screen.getByText('نسخ نص واتساب')).toBeDefined();
   });
+
+  it('renders pending mission with badge, destination, and purpose', () => {
+    rosterHook = {
+      data: {
+        items: [
+          {
+            employeeId: 'emp-mission-1',
+            employeeName: 'حاتم محمد سالم',
+            departmentName: 'إدارة الحركة',
+            branchName: 'مجمع أحلى شباب - منيل شيحة',
+            status: 'absent',
+            firstCheckIn: null,
+            lastCheckOut: null,
+            shiftName: 'الصباحية',
+            hasPendingRequest: true,
+            pendingRequestNumber: 594,
+            pendingRequestType: 'mission',
+            pendingRequestTitle: 'كورنيش المعادي',
+            leaveTitle: 'كورنيش المعادي',
+            leaveReason: 'صرف شيكات وإيداع تبرعات',
+          },
+        ],
+        total: 1,
+      },
+      isLoading: false,
+      isError: false,
+    };
+
+    render(<ExecutiveAttendanceModal dateIso="2026-10-19" onClose={() => undefined} />);
+
+    // Employee name
+    expect(screen.getByText('حاتم محمد سالم')).toBeDefined();
+
+    // Badge showing pending mission with request number
+    expect(screen.getByText('⏳ طلب مأمورية معلّق (#594)')).toBeDefined();
+
+    // Destination and purpose
+    expect(screen.getByText(/📍 كورنيش المعادي/)).toBeDefined();
+    expect(screen.getByText(/💬 الغرض: صرف شيكات وإيداع تبرعات/)).toBeDefined();
+  });
 });
+

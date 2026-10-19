@@ -154,8 +154,13 @@ function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIs
         statusText = 'متأخر';
       } else if (item.status === 'absent' || item.status === 'unexcused_absent') {
         if (item.hasPendingRequest) {
-          statusBadgeClass = 'status-badge-leave';
-          statusText = 'إجازة (قيد المراجعة)';
+          if (item.pendingRequestType === 'mission') {
+            statusBadgeClass = 'status-badge-mission';
+            statusText = 'مأمورية (قيد المراجعة)';
+          } else {
+            statusBadgeClass = 'status-badge-leave';
+            statusText = 'إجازة (قيد المراجعة)';
+          }
         } else {
           statusBadgeClass = 'status-badge-absent';
           statusText = item.status === 'unexcused_absent' ? 'غياب بدون إذن' : 'غائب';
@@ -177,7 +182,11 @@ function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIs
 
       let excuseDisplay = '—';
       if (item.hasPendingRequest && !item.hasApprovedLeave) {
-        excuseDisplay = `⏳ طلب معلّق: ${item.pendingRequestTitle ?? item.leaveName ?? 'إجازة'}${item.pendingRequestNumber ? ` (#${item.pendingRequestNumber})` : ''}`;
+        const isMission = item.pendingRequestType === 'mission';
+        const reqTitle = item.pendingRequestTitle ?? item.leaveTitle ?? (isMission ? 'مأمورية رسمية' : item.leaveName ?? 'إجازة');
+        const reqNum = item.pendingRequestNumber ? ` (#${item.pendingRequestNumber})` : '';
+        const reasonPart = item.leaveReason ? ` - ${item.leaveReason}` : '';
+        excuseDisplay = `⏳ ${isMission ? 'طلب مأمورية' : 'طلب معلّق'}: ${reqTitle}${reqNum}${reasonPart}`;
       } else if (item.leaveName) {
         excuseDisplay = item.leaveName;
       } else if (item.hasMission) {

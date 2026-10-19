@@ -277,16 +277,23 @@ ${
     ? '— لا يوجد موظفون في إجازة أو مأمورية —'
     : [
         ...onLeave.map((l, i) => {
-          const reqPart = l.leaveRequestNumber ? ` (#${l.leaveRequestNumber})` : '';
+          const isPending = Boolean(l.hasPendingRequest) && !l.hasApprovedLeave;
+          const statusLabel = isPending ? 'طلب إجازة معلّق' : (l.leaveName ?? 'إجازة معتمدة');
+          const reqNum = l.pendingRequestNumber ?? l.leaveRequestNumber;
+          const reqPart = reqNum ? ` (#${reqNum})` : '';
           const titlePart = l.leaveTitle && l.leaveTitle !== l.leaveName && l.leaveTitle !== l.leaveReason ? ` [${l.leaveTitle}]` : '';
           const reasonPart = l.leaveReason ? ` - سبب: ${l.leaveReason}` : '';
-          return `${i + 1}. ${l.employeeName} (${l.departmentName ?? '—'}) · ${l.leaveName ?? 'إجازة'}${reqPart}${titlePart}${reasonPart}`;
+          return `${i + 1}. ${l.employeeName} (${l.departmentName ?? '—'}) · ${statusLabel}${reqPart}${titlePart}${reasonPart}`;
         }),
         ...onMission.map((m, i) => {
-          const reqPart = m.leaveRequestNumber ? ` (#${m.leaveRequestNumber})` : '';
-          const titlePart = m.leaveTitle && m.leaveTitle !== m.leaveName ? ` [${m.leaveTitle}]` : (m.leaveName ? ` [${m.leaveName}]` : '');
+          const isPending = Boolean(m.hasPendingRequest) && !m.hasApprovedLeave;
+          const statusLabel = isPending ? 'طلب مأمورية معلّق' : 'مأمورية معتمدة';
+          const reqNum = m.pendingRequestNumber ?? m.leaveRequestNumber;
+          const reqPart = reqNum ? ` (#${reqNum})` : '';
+          const destination = m.leaveTitle ?? m.pendingRequestTitle ?? m.leaveName;
+          const destPart = destination ? ` [📍 ${destination}]` : '';
           const reasonPart = m.leaveReason ? ` - الغرض: ${m.leaveReason}` : '';
-          return `${i + onLeave.length + 1}. ${m.employeeName} (${m.departmentName ?? '—'}) · مأمورية معتمدة${reqPart}${titlePart}${reasonPart}`;
+          return `${i + onLeave.length + 1}. ${m.employeeName} (${m.departmentName ?? '—'}) · ${statusLabel}${reqPart}${destPart}${reasonPart}`;
         }),
       ].join('\n')
 }
@@ -597,28 +604,34 @@ ${
                                 <span
                                   className={`inline-block px-1.5 py-0.5 rounded font-black text-[10px] ${
                                     isPending
-                                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                      ? isMission
+                                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                                        : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
                                       : isMission
                                       ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
                                       : 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
                                   }`}
                                 >
-                                  {isPending
-                                    ? `⏳ طلب إجازة معلّق (#${item.pendingRequestNumber ?? item.leaveRequestNumber ?? ''})`
-                                    : isMission
-                                    ? 'مأمورية رسمية'
-                                    : item.leaveName ?? 'إجازة معتمدة'}
-                                  {!isPending && item.leaveRequestNumber ? ` (#${item.leaveRequestNumber})` : ''}
+                                  {(() => {
+                                    const reqNum = item.pendingRequestNumber ?? item.leaveRequestNumber;
+                                    const reqSuffix = reqNum ? ` (#${reqNum})` : '';
+                                    if (isPending) {
+                                      return isMission ? `⏳ طلب مأمورية معلّق${reqSuffix}` : `⏳ طلب إجازة معلّق${reqSuffix}`;
+                                    }
+                                    return isMission ? `مأمورية رسمية${reqSuffix}` : `${item.leaveName ?? 'إجازة معتمدة'}${reqSuffix}`;
+                                  })()}
                                 </span>
                               </td>
                               <td className="p-2 text-slate-200 font-bold">
                                 {isMission ? (
                                   <div className="flex flex-col gap-0.5">
-                                    {item.leaveTitle || item.leaveName ? (
-                                      <span className="text-white font-black text-[11px]">📍 {item.leaveTitle ?? item.leaveName}</span>
+                                    {item.leaveTitle || item.leaveName || item.pendingRequestTitle ? (
+                                      <span className="text-white font-black text-[11px]">
+                                        📍 {item.leaveTitle ?? item.pendingRequestTitle ?? item.leaveName}
+                                      </span>
                                     ) : null}
                                     {item.leaveReason ? (
-                                      <span className="text-slate-400 font-medium text-[10.5px]">💬 الغرض: {item.leaveReason}</span>
+                                      <span className="text-slate-300 font-medium text-[10.5px]">💬 الغرض: {item.leaveReason}</span>
                                     ) : (
                                       <span className="text-slate-400 font-normal text-[10.5px]">مأمورية رسمية</span>
                                     )}
@@ -629,7 +642,7 @@ ${
                                       <span className="text-white font-black text-[11px]">📌 {item.leaveTitle}</span>
                                     ) : null}
                                     {item.leaveReason ? (
-                                      <span className="text-slate-400 font-medium text-[10.5px]">💬 السبب: {item.leaveReason}</span>
+                                      <span className="text-slate-300 font-medium text-[10.5px]">💬 السبب: {item.leaveReason}</span>
                                     ) : (
                                       <span className="text-slate-400 font-normal text-[10.5px]">— معتمدة ومسجلة نظامياً</span>
                                     )}
