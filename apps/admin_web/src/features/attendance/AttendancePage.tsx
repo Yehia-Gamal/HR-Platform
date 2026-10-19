@@ -409,7 +409,7 @@ export function AttendancePage() {
               label="غياب"
               value={data.absent}
               icon={UserMinus}
-              hint={`بدون إذن: ${data.unexcusedAbsent ?? 0}`}
+              hint={data.unexcusedAbsent != null ? `منهم ${data.unexcusedAbsent} بدون إذن` : 'متابعة المتغيبين'}
               compact={true}
               to={detailsUrl('absent', dateIso, departmentId, branchId)}
             />
@@ -421,7 +421,7 @@ export function AttendancePage() {
               label="غياب بدون إذن"
               value={data.unexcusedAbsent ?? 0}
               icon={UserMinus}
-              hint="بلا إجازة أو مأمورية"
+              hint="انقطاع دون إجازة أو عذر رسمي"
               compact={true}
               to={detailsUrl('unexcused_absent', dateIso, departmentId, branchId)}
             />

@@ -103,7 +103,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   scheduled: 'المجدولون',
   present: 'حاضرون',
   late: 'متأخرون',
-  absent: 'غائبون',
+  absent: 'إجمالي الغياب',
   unexcused_absent: 'غياب بدون إذن',
   incomplete: 'بصمات غير مكتملة',
   pending_review: 'تحتاج مراجعة',
@@ -219,7 +219,7 @@ function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIs
           }
         } else {
           statusBadgeClass = 'status-badge-absent';
-          statusText = item.status === 'unexcused_absent' ? 'غياب بدون إذن' : 'غائب';
+          statusText = (item.status === 'unexcused_absent' || (!item.hasPendingRequest && !item.hasApprovedLeave && !item.hasMission && item.status === 'absent')) ? 'غياب بدون إذن' : 'غائب';
         }
       } else if (item.status === 'on_leave' || item.hasApprovedLeave) {
         statusBadgeClass = 'status-badge-leave';

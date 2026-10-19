@@ -19,6 +19,7 @@ import {
   RotateCcw,
   Search,
   UserCheck,
+  UserMinus,
   UserX,
   Users,
   X,
@@ -51,8 +52,8 @@ const CATEGORIES: { key: AttendanceRosterCategory; label: string; icon: typeof U
   { key: 'scheduled', label: 'المجدولون', icon: Users },
   { key: 'present', label: 'حاضرون', icon: UserCheck },
   { key: 'late', label: 'متأخرون', icon: Clock3 },
-  { key: 'absent', label: 'غياب', icon: UserX },
-  { key: 'unexcused_absent', label: 'غياب بدون إذن', icon: UserX },
+  { key: 'absent', label: 'إجمالي الغياب', icon: UserX },
+  { key: 'unexcused_absent', label: 'غياب بدون إذن', icon: UserMinus },
   { key: 'incomplete', label: 'بصمات غير مكتملة', icon: Clock3 },
   { key: 'pending_review', label: 'تحتاج مراجعة', icon: UserCheck },
   { key: 'location_requests', label: 'طلبات الموقع', icon: MapPin },
@@ -311,6 +312,16 @@ export function AttendanceDrilldownPage() {
                 </span>
               ) : null}
             </div>
+
+            {category === 'absent' ? (
+              <p className="text-[11px] font-semibold text-[var(--text-muted)] mt-1">
+                كشف شامل لكافة المتغيبين عن العمل اليوم (يشمل المجازين، أصحاب الطلبات المعلقة، والمنقطعين دون إذن).
+              </p>
+            ) : category === 'unexcused_absent' ? (
+              <p className="text-[11px] font-semibold text-rose-400 mt-1">
+                الموظفون المتغيبون انقطاعاً عن العمل اليوم دون أي إجازة معتمدة أو مأمورية أو عذر رسمي.
+              </p>
+            ) : null}
 
             {/* أدوات التنقل بين التواريخ */}
             <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
@@ -646,6 +657,22 @@ function Row({ item, focused, isToday }: { item: AttendanceRosterItem; focused: 
           >
             <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
             طلب معلّق
+          </span>
+        ) : item.status === 'unexcused_absent' || (item.status === 'absent' && !item.hasPendingRequest && !item.hasApprovedLeave && !item.hasMission) ? (
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-rose-500/10 text-rose-500 border border-rose-500/25"
+            title="غياب غير مبرر دون أي إذن رسمي أو إجازة"
+          >
+            <span className="size-1.5 rounded-full bg-rose-500" />
+            غياب بدون إذن
+          </span>
+        ) : (item.status === 'on_leave' || item.hasApprovedLeave) ? (
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-sky-500/10 text-sky-400 border border-sky-500/25"
+            title={`إجازة رسمية: ${item.leaveName ?? 'معتمدة'}`}
+          >
+            <CalendarX2 className="size-3 text-sky-400" />
+            إجازة ({item.leaveName ?? 'معتمدة'})
           </span>
         ) : (
           <StatusBadge status={item.status ?? undefined} />

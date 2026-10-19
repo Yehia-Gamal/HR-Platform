@@ -29,6 +29,7 @@ const map: Record<string, { label: string; tone: Tone; icon: typeof CircleCheck 
   present: { label: 'حاضر', tone: 'success', icon: CircleCheck },
   late: { label: 'متأخر', tone: 'warning', icon: Clock3 },
   absent: { label: 'غائب', tone: 'danger', icon: CircleX },
+  unexcused_absent: { label: 'غياب بدون إذن', tone: 'danger', icon: CircleX },
   on_leave: { label: 'في إجازة', tone: 'info', icon: CalendarDays },
   leave: { label: 'في إجازة', tone: 'info', icon: CalendarDays },
   missing_checkout: { label: 'دون انصراف', tone: 'warning', icon: AlertTriangle },
