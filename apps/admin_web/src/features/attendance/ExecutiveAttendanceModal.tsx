@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Calendar, Camera, Check, CheckCircle2, Clock3, Copy, Download, Loader2, MessageSquare, Plane, UserCheck, UserX, Users, X } from 'lucide-react';
 import { useAttendanceRosterPage } from './useAttendanceDashboard';
+import { DialogPortal } from '../../ui/DialogPortal';
 import type { AttendanceRosterItem } from '@ahla/shared-contracts';
 
 function formatTime12(iso: string | null | undefined): string {
@@ -30,6 +31,14 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
   const [isCapturing, setIsCapturing] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [copiedType, setCopiedType] = useState<'image' | 'text' | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   // جلب كافة المجدولين لليوم لإعداد التقرير التنفيذي الشامل
   const query = useAttendanceRosterPage({
@@ -294,98 +303,102 @@ ${
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/75 backdrop-blur-sm overflow-y-auto"
-      role="dialog"
-      aria-modal="true"
-    >
-      <div className="relative w-full max-w-5xl bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col">
-        {/* شريط التحكم العلوي */}
-        <header className="flex flex-wrap items-center justify-between gap-3 p-4 border-b border-[var(--border)] bg-[var(--surface-muted)] shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="size-9 rounded-xl bg-[var(--primary)]/10 text-[var(--primary)] flex items-center justify-center">
-              <Camera className="size-5" />
+    <DialogPortal>
+      <div
+        className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 md:p-6 bg-slate-950/85 backdrop-blur-md overflow-y-auto"
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+      >
+        <div className="relative w-full max-w-5xl bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden my-auto max-h-[94vh] flex flex-col text-slate-100">
+          {/* شريط التحكم العلوي */}
+          <header className="flex flex-wrap items-center justify-between gap-3 p-4 border-b border-slate-800 bg-slate-950/90 shrink-0">
+            <div className="flex items-center gap-2.5">
+              <div className="size-9 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20 flex items-center justify-center">
+                <Camera className="size-5" />
+              </div>
+              <div>
+                <h2 className="text-sm sm:text-base font-black text-white">تقرير الحضور التنفيذي (جاهز للمدير التنفيذي)</h2>
+                <p className="text-[11px] text-slate-400">معاينة الصورة التنفيذية الرسمية قبل الإرسال للمدير التنفيذي</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-sm sm:text-base font-black text-[var(--text)]">تقرير الحضور التنفيذي (جاهز للمدير التنفيذي)</h2>
-              <p className="text-[11px] text-[var(--text-muted)]">معاينة الصورة التنفيذية الرسمية قبل الإرسال للمدير التنفيذي</p>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {/* زر نسخ الصورة */}
+              <button
+                type="button"
+                onClick={() => void handleCopyImage()}
+                disabled={isCapturing || query.isLoading}
+                className="btn-secondary btn-sm h-9 px-3 text-xs font-bold rounded-xl inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 hover:border-sky-500 transition-all"
+                title="نسخ الصورة للحافظة للصقها مباشرة (Ctrl + V) في واتساب"
+              >
+                {copiedType === 'image' ? <Check className="size-4 text-emerald-400" /> : <Copy className="size-4 text-sky-400" />}
+                <span>نسخ الصورة لواتساب</span>
+              </button>
+
+              {/* زر حفظ الصورة كملف PNG */}
+              <button
+                type="button"
+                onClick={() => void handleDownloadImage()}
+                disabled={isCapturing || query.isLoading}
+                className="btn-primary btn-sm h-9 px-3 text-xs font-bold rounded-xl inline-flex items-center gap-1.5 shadow-sm bg-sky-600 hover:bg-sky-500 text-white"
+                title="حفظ التقرير كصورة PNG عالية الدقة على جهازك"
+              >
+                {isCapturing ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+                <span>حفظ كصورة (PNG)</span>
+              </button>
+
+              {/* زر نسخ النص */}
+              <button
+                type="button"
+                onClick={handleCopyWhatsAppText}
+                disabled={query.isLoading}
+                className="btn-secondary btn-sm h-9 px-3 text-xs font-bold rounded-xl inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 hover:border-emerald-500 transition-all"
+                title="نسخ نص التقرير المنسق لإرساله كتابياً عبر واتساب"
+              >
+                {copiedType === 'text' ? <Check className="size-4 text-emerald-400" /> : <MessageSquare className="size-4 text-emerald-400" />}
+                <span>نسخ نص واتساب</span>
+              </button>
+
+              {/* زر الإغلاق */}
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+                aria-label="إغلاق النافذة"
+              >
+                <X className="size-5" />
+              </button>
             </div>
-          </div>
+          </header>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {/* زر نسخ الصورة */}
-            <button
-              type="button"
-              onClick={() => void handleCopyImage()}
-              disabled={isCapturing || query.isLoading}
-              className="btn-secondary btn-sm h-9 px-3 text-xs font-bold rounded-xl inline-flex items-center gap-1.5 border border-[var(--border)] hover:border-[var(--primary)] transition-all"
-              title="نسخ الصورة للحافظة للصقها مباشرة (Ctrl + V) في واتساب"
-            >
-              {copiedType === 'image' ? <Check className="size-4 text-emerald-500" /> : <Copy className="size-4 text-[var(--primary)]" />}
-              <span>نسخ الصورة لواتساب</span>
-            </button>
-
-            {/* زر حفظ الصورة كملف PNG */}
-            <button
-              type="button"
-              onClick={() => void handleDownloadImage()}
-              disabled={isCapturing || query.isLoading}
-              className="btn-primary btn-sm h-9 px-3 text-xs font-bold rounded-xl inline-flex items-center gap-1.5 shadow-sm"
-              title="حفظ التقرير كصورة PNG عالية الدقة على جهازك"
-            >
-              {isCapturing ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
-              <span>حفظ كصورة (PNG)</span>
-            </button>
-
-            {/* زر نسخ النص */}
-            <button
-              type="button"
-              onClick={handleCopyWhatsAppText}
-              disabled={query.isLoading}
-              className="btn-secondary btn-sm h-9 px-3 text-xs font-bold rounded-xl inline-flex items-center gap-1.5 border border-[var(--border)] hover:border-emerald-500 transition-all"
-              title="نسخ نص التقرير المنسق لإرساله كتابياً عبر واتساب"
-            >
-              {copiedType === 'text' ? <Check className="size-4 text-emerald-500" /> : <MessageSquare className="size-4 text-emerald-500" />}
-              <span>نسخ نص واتساب</span>
-            </button>
-
-            {/* زر الإغلاق */}
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-1.5 rounded-xl hover:bg-[var(--surface-muted)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
-              aria-label="إغلاق النافذة"
-            >
-              <X className="size-5" />
-            </button>
-          </div>
-        </header>
-
-        {/* إشعار عائم في حال النسخ أو الحفظ */}
-        {toastMessage && (
-          <div className="bg-[var(--primary)] text-white text-xs font-bold px-4 py-2 text-center shrink-0 animate-fade-in flex items-center justify-center gap-2">
-            <span>{toastMessage}</span>
-          </div>
-        )}
-
-        {/* منطقة المعاينة القابلة للتمرير */}
-        <div className="p-4 sm:p-6 overflow-y-auto bg-[var(--surface-subtle)] flex justify-center">
-          {query.isLoading ? (
-            <div className="py-20 flex flex-col items-center justify-center gap-3 text-[var(--text-muted)]">
-              <Loader2 className="size-8 animate-spin text-[var(--primary)]" />
-              <p className="text-xs font-bold">جاري تجميع بيانات الحضور والانصراف التنفيذية...</p>
+          {/* إشعار عائم في حال النسخ أو الحفظ */}
+          {toastMessage && (
+            <div className="bg-sky-600 text-white text-xs font-bold px-4 py-2 text-center shrink-0 animate-fade-in flex items-center justify-center gap-2">
+              <span>{toastMessage}</span>
             </div>
-          ) : query.isError ? (
-            <div className="py-16 text-center text-red-500 text-xs font-bold">تعذر استخراج بيانات الكشف. يرجى إعادة المحاولة.</div>
-          ) : (
-            /* ─── البطاقة التنفيذية التي سيتم التقاطها كصورة (Executive Card) ─── */
-            <div
-              id="executive-attendance-card"
-              className="w-full max-w-[1100px] rounded-2xl p-6 sm:p-8 shadow-2xl font-sans"
-              dir="rtl"
-              style={{ minWidth: '950px', backgroundColor: '#0b1329', color: '#f8fafc', border: '1px solid rgba(255, 255, 255, 0.1)' }}
-            >
-              {/* 1. الترويسة الملكية للجمعية */}
+          )}
+
+          {/* منطقة المعاينة القابلة للتمرير */}
+          <div className="p-3 sm:p-6 overflow-y-auto overflow-x-auto bg-slate-950/70 flex justify-center">
+            {query.isLoading ? (
+              <div className="py-20 flex flex-col items-center justify-center gap-3 text-slate-400">
+                <Loader2 className="size-8 animate-spin text-sky-400" />
+                <p className="text-xs font-bold">جاري تجميع بيانات الحضور والانصراف التنفيذية...</p>
+              </div>
+            ) : query.isError ? (
+              <div className="py-16 text-center text-red-400 text-xs font-bold">تعذر استخراج بيانات الكشف. يرجى إعادة المحاولة.</div>
+            ) : (
+              /* ─── البطاقة التنفيذية التي سيتم التقاطها كصورة (Executive Card) ─── */
+              <div
+                id="executive-attendance-card"
+                className="w-full max-w-[1020px] rounded-2xl p-6 sm:p-8 shadow-2xl font-sans shrink-0"
+                dir="rtl"
+                style={{ minWidth: '850px', backgroundColor: '#0b1329', color: '#f8fafc', border: '1px solid rgba(255, 255, 255, 0.1)' }}
+              >
+                {/* 1. الترويسة الملكية للجمعية */}
               <div className="flex items-center justify-between pb-5 border-b border-slate-800 mb-6">
                 <div className="flex items-center gap-3.5">
                   <div className="size-12 rounded-2xl bg-sky-600 text-white flex items-center justify-center font-black text-xl shadow-lg">أحلى</div>
@@ -643,5 +656,6 @@ ${
         </div>
       </div>
     </div>
+  </DialogPortal>
   );
 }
