@@ -54,13 +54,11 @@ const CATEGORIES: { key: AttendanceRosterCategory; label: string; icon: typeof U
   { key: 'late', label: 'متأخرون', icon: Clock3 },
   { key: 'absent', label: 'إجمالي الغياب', icon: UserX },
   { key: 'unexcused_absent', label: 'غياب بدون إذن', icon: UserMinus },
-  { key: 'incomplete', label: 'بصمات غير مكتملة', icon: Clock3 },
-  { key: 'pending_review', label: 'تحتاج مراجعة', icon: UserCheck },
+  { key: 'on_mission', label: 'في مأمورية', icon: Plane },
+  { key: 'on_leave', label: 'في إجازة', icon: CalendarX2 },
+  { key: 'missing_checkout', label: 'بصمة بلا انصراف', icon: Clock3 },
   { key: 'location_requests', label: 'طلبات الموقع', icon: MapPin },
   { key: 'location_responded', label: 'استجابات الموقع', icon: MapPin },
-  { key: 'on_leave', label: 'في إجازة', icon: CalendarX2 },
-  { key: 'on_mission', label: 'في مأمورية', icon: Plane },
-  { key: 'missing_checkout', label: 'بصمة بلا انصراف', icon: Clock3 },
 ];
 
 const SORT_OPTIONS: { key: AttendanceRosterSort; label: string }[] = [
@@ -104,9 +102,16 @@ export function AttendanceDrilldownPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const categoryParam = searchParams.get('category');
-  const category: AttendanceRosterCategory = attendanceRosterCategorySchema.safeParse(categoryParam).success
+  const rawCategory: AttendanceRosterCategory = attendanceRosterCategorySchema.safeParse(categoryParam).success
     ? (categoryParam as AttendanceRosterCategory)
     : 'scheduled';
+
+  const category: AttendanceRosterCategory =
+    rawCategory === 'incomplete'
+      ? 'missing_checkout'
+      : rawCategory === 'pending_review'
+      ? 'scheduled'
+      : rawCategory;
   const dateParam = searchParams.get('date');
   const dateIso = /^\d{4}-\d{2}-\d{2}$/.test(dateParam ?? '') ? (dateParam as string) : cairoTodayIso();
   const q = searchParams.get('q') ?? '';

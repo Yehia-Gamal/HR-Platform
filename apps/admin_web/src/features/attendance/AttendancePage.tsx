@@ -429,9 +429,9 @@ export function AttendancePage() {
               label="بصمات غير مكتملة"
               value={data.incomplete ?? 0}
               icon={AlertTriangle}
-              hint="سجلات جزئية أو معلقة"
+              hint="سجلات دون انصراف"
               compact={true}
-              to={detailsUrl('incomplete', dateIso, departmentId, branchId)}
+              to={detailsUrl('missing_checkout', dateIso, departmentId, branchId)}
             />
             <MetricCard
               label="تحتاج مراجعة"
@@ -439,7 +439,7 @@ export function AttendancePage() {
               icon={Users}
               hint="تنبيهات تحتاج تدخل بشري"
               compact={true}
-              to={detailsUrl('pending_review', dateIso, departmentId, branchId)}
+              to={detailsUrl('scheduled', dateIso, departmentId, branchId)}
             />
             <MetricCard
               label="طلبات الموقع"
