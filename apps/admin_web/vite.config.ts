@@ -5,6 +5,11 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: { port: 4173 },
+  resolve: {
+    alias: {
+      html2canvas: 'html2canvas-pro',
+    },
+  },
   build: {
     // رفع حد تحذير حجم الـ chunk لتقليل الضجيج على الحزم الكبيرة.
     chunkSizeWarningLimit: 800,
@@ -24,7 +29,7 @@ export default defineConfig({
           // مكتبات تصدير PDF تُحمَّل عند الضغط على «تصدير» فقط (dynamic import)؛
           // بدون هذا القيد تبتلعها قاعدة vendor فتُحمَّل مع كل صفحة.
           if (
-            /node_modules[\\/](?:jspdf|html2canvas|fflate|fast-png|iobuffer|pako|canvg|core-js|raf|rgbcolor|stackblur-canvas|svg-pathdata|dompurify|css-line-break|text-segmentation|utrie|base64-arraybuffer|performance-now)[\\/]/.test(
+            /node_modules[\\/](?:jspdf|html2canvas|html2canvas-pro|fflate|fast-png|iobuffer|pako|canvg|core-js|raf|rgbcolor|stackblur-canvas|svg-pathdata|dompurify|css-line-break|text-segmentation|utrie|base64-arraybuffer|performance-now)[\\/]/.test(
               id,
             )
           )

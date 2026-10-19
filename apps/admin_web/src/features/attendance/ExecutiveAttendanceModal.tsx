@@ -154,7 +154,7 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
     setIsCapturing(true);
     setToastMessage('جاري توليد الصورة التنفيذية بجودة فائقة...');
     try {
-      const h2cModule = await import('html2canvas');
+      const h2cModule = await import('html2canvas-pro');
       const html2canvas = typeof h2cModule.default === 'function' ? h2cModule.default : (h2cModule as any);
       const canvas = await html2canvas(el, {
         scale: 2.5,
@@ -195,7 +195,7 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
     setIsCapturing(true);
     setToastMessage('جاري نسخ الصورة للحافظة...');
     try {
-      const h2cModule = await import('html2canvas');
+      const h2cModule = await import('html2canvas-pro');
       const html2canvas = typeof h2cModule.default === 'function' ? h2cModule.default : (h2cModule as any);
       const canvas = await html2canvas(el, {
         scale: 2.5,

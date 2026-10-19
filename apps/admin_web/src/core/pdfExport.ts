@@ -76,7 +76,7 @@ function resolveHtml2Canvas(mod: unknown): Html2Canvas {
 }
 
 async function loadLibs(): Promise<{ jspdf: { jsPDF: JsPdfCtor }; html2canvas: Html2Canvas }> {
-  const [jspdfModule, h2cModule] = await Promise.all([import('jspdf'), import('html2canvas')]);
+  const [jspdfModule, h2cModule] = await Promise.all([import('jspdf'), import('html2canvas-pro')]);
   const html2canvas = resolveHtml2Canvas(h2cModule);
   const jsPdfClass = resolveJsPdf(jspdfModule);
   return { jspdf: { jsPDF: jsPdfClass }, html2canvas };
