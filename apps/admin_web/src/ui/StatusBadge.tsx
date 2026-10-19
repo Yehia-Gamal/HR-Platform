@@ -1,4 +1,4 @@
-import { AlertTriangle, CalendarDays, CircleCheck, CircleMinus, CircleX, Clock3, FileText, Megaphone } from 'lucide-react';
+import { AlertTriangle, CalendarDays, CircleCheck, CircleMinus, CircleX, Clock3, FileText, Megaphone, Plane } from 'lucide-react';
 
 type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger' | 'violet';
 const map: Record<string, { label: string; tone: Tone; icon: typeof CircleCheck }> = {
@@ -34,7 +34,10 @@ const map: Record<string, { label: string; tone: Tone; icon: typeof CircleCheck 
   leave: { label: 'في إجازة', tone: 'info', icon: CalendarDays },
   missing_checkout: { label: 'دون انصراف', tone: 'warning', icon: AlertTriangle },
   missing_checkin: { label: 'دون حضور', tone: 'warning', icon: AlertTriangle },
-  mission: { label: 'مأمورية', tone: 'violet', icon: Clock3 },
+  mission: { label: 'مأمورية', tone: 'info', icon: Plane },
+  on_mission: { label: 'في مأمورية', tone: 'info', icon: Plane },
+  shift_not_started: { label: 'دوام لم يبدأ بعد', tone: 'violet', icon: Clock3 },
+  unscheduled_rest: { label: 'دوام مرن / غير مجدول', tone: 'neutral', icon: CircleMinus },
   convoy: { label: 'قافلة', tone: 'violet', icon: Clock3 },
   fundraising: { label: 'فاندي', tone: 'info', icon: Clock3 },
   convoy_fundi: { label: 'قافلة/فاندي', tone: 'violet', icon: Clock3 },

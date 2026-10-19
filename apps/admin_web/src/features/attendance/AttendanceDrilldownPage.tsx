@@ -49,6 +49,12 @@ import { useOrganizationLookups } from '../employees/useOrganizationLookups';
 import { useHrPrefix } from '../workspaces/access';
 import { exportAttendancePdf, useAttendanceRosterPage } from './useAttendanceDashboard';
 import { ExecutiveAttendanceModal } from './ExecutiveAttendanceModal';
+import {
+  classifyEmployee,
+  formatShiftBadge,
+  sanitizeLeaveReason,
+  sanitizeMissionPurpose,
+} from './executiveReportLogic';
 
 const CATEGORIES: { key: AttendanceRosterCategory; label: string; icon: typeof Users }[] = [
   { key: 'scheduled', label: 'المجدولون', icon: Users },
@@ -97,7 +103,11 @@ function formatMinutes(minutes: number | null | undefined): string {
 
 function formatTime(iso: string | null | undefined): string {
   if (!iso) return '—';
-  return new Intl.DateTimeFormat('ar-EG', { timeStyle: 'short' }).format(new Date(iso));
+  try {
+    return new Intl.DateTimeFormat('ar-EG-u-nu-latn', { timeStyle: 'short', timeZone: 'Africa/Cairo' }).format(new Date(iso));
+  } catch {
+    return String(iso);
+  }
 }
 
 export function AttendanceDrilldownPage() {
@@ -276,6 +286,21 @@ export function AttendanceDrilldownPage() {
   const currentCategory = CATEGORIES.find((c) => c.key === category) ?? CATEGORIES[0];
   const isFiltered = Boolean(searchInput.trim() || branch || dept || sort !== 'name' || direction !== 'asc');
 
+  // حساب التوقيت الحالي بالقاهرة لتصنيف الورديات والغياب بدقة
+  const currentMinutesFromMidnight = (() => {
+    if (!isToday) return 24 * 60;
+    const now = new Date();
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Africa/Cairo',
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: false,
+    }).formatToParts(now);
+    const h = parseInt(parts.find((p) => p.type === 'hour')?.value ?? '12', 10);
+    const m = parseInt(parts.find((p) => p.type === 'minute')?.value ?? '0', 10);
+    return h * 60 + m;
+  })();
+
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [locallyMarkedIds, setLocallyMarkedIds] = useState<Set<string>>(new Set());
   const [isActionPending, setIsActionPending] = useState(false);
@@ -446,7 +471,7 @@ export function AttendanceDrilldownPage() {
                 </button>
                 <div className="flex items-center gap-1.5 px-2 font-bold text-[var(--text)]">
                   <Calendar className="size-3 text-[var(--primary)]" aria-hidden="true" />
-                  <span>{new Intl.DateTimeFormat('ar-EG', { dateStyle: 'full' }).format(new Date(`${dateIso}T00:00:00`))}</span>
+                  <span>{new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'full' }).format(new Date(`${dateIso}T00:00:00`))}</span>
                 </div>
                 <button
                   type="button"
@@ -613,7 +638,7 @@ export function AttendanceDrilldownPage() {
           <div className="text-start bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-2">
             <div className="text-xs font-black text-sky-400">كشف: {currentCategory.label} ({total} موظف)</div>
             <div className="text-[11px] text-slate-300 font-medium mt-0.5">
-              {new Intl.DateTimeFormat('ar-EG', { dateStyle: 'full' }).format(new Date(`${dateIso}T00:00:00`))}
+              {new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'full' }).format(new Date(`${dateIso}T00:00:00`))}
             </div>
           </div>
         </div>
@@ -670,6 +695,7 @@ export function AttendanceDrilldownPage() {
                       item={item}
                       focused={focusedId === item.employeeId}
                       isToday={isToday}
+                      currentMinutesFromMidnight={currentMinutesFromMidnight}
                       isSelected={selectedIds.has(item.employeeId)}
                       onToggleSelect={(checked) => {
                         setSelectedIds((prev) => {
@@ -747,6 +773,7 @@ function Row({
   item,
   focused,
   isToday,
+  currentMinutesFromMidnight,
   isSelected,
   onToggleSelect,
   isEligible,
@@ -758,6 +785,7 @@ function Row({
   item: AttendanceRosterItem;
   focused: boolean;
   isToday: boolean;
+  currentMinutesFromMidnight: number;
   isSelected: boolean;
   onToggleSelect: (checked: boolean) => void;
   isEligible: boolean;
@@ -767,8 +795,9 @@ function Row({
   isActionPending: boolean;
 }) {
   const hrPrefix = useHrPrefix();
-  const isMission = item.status === 'on_mission' || Boolean(item.hasMission) || (Boolean(item.hasPendingRequest) && item.pendingRequestType === 'mission');
-  const missionTitle = item.leaveTitle ?? item.pendingRequestTitle ?? item.leaveName;
+  const classified = classifyEmployee(item, currentMinutesFromMidnight);
+  const missionInfo = sanitizeMissionPurpose(item.leaveTitle ?? item.pendingRequestTitle, item.leaveReason);
+  const sanitizedLeaveReason = sanitizeLeaveReason(item.leaveReason, item.leaveName);
   const hasExcuse = Boolean(item.hasApprovedLeave) || Boolean(item.hasMission);
   const isWorkingNow = isToday && Boolean(item.firstCheckIn) && !item.lastCheckOut && !isMarked;
 
@@ -789,7 +818,7 @@ function Row({
         )}
       </td>
 
-      {/* 1. الموظف: الصورة والاسم ورقم الهاتف / الكود */}
+      {/* 1. الموظف: الصورة والاسم ورقم الهاتف / الكود والوردية */}
       <td>
         <div className="flex items-center gap-3">
           <UserAvatar displayName={item.employeeName} photoUrl={item.photoUrl} size="sm" announceName={false} />
@@ -800,11 +829,16 @@ function Row({
             >
               {item.employeeName}
             </Link>
-            <div className="flex items-center gap-2 mt-0.5">
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
               <span className="text-[11px] text-[var(--text-muted)] font-mono">{item.employeeCode ? <bdi dir="ltr">{item.employeeCode}</bdi> : '—'}</span>
               {item.jobTitle ? (
                 <span className="text-[10px] text-[var(--text-secondary)] truncate max-w-[120px]" title={item.jobTitle}>
                   · {item.jobTitle}
+                </span>
+              ) : null}
+              {item.shiftName ? (
+                <span className="text-[10px] text-sky-400/90 font-mono font-medium truncate max-w-[160px]" title={`الوردية: ${formatShiftBadge(item.shiftName)}`}>
+                  · {formatShiftBadge(item.shiftName)}
                 </span>
               ) : null}
             </div>
@@ -812,7 +846,7 @@ function Row({
         </div>
       </td>
 
-      {/* 2. الحالة مع مؤشر العمل الحي */}
+      {/* 2. الحالة مع مؤشر العمل الحي والتصنيف المدقق */}
       <td>
         {isMarked ? (
           <span
@@ -822,75 +856,81 @@ function Row({
             <Clock3 className="size-3 text-amber-500" />
             بصمة بلا انصراف (غادر)
           </span>
-        ) : isWorkingNow && isMission ? (
+        ) : classified.category === 'present_mission_pending' ? (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-amber-500/15 text-amber-400 border border-amber-500/30">
+            <Plane className="size-3 text-amber-400" />
+            بصم حضور — خرج قبل الاعتماد
+          </span>
+        ) : classified.category === 'present_mission_approved' ? (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-sky-500/10 text-sky-400 border border-sky-500/25">
             <Plane className="size-3 text-sky-400" />
             بصم حضور — في مأمورية
           </span>
-        ) : isWorkingNow && item.status === 'present' ? (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-emerald-500/10 text-emerald-500 border border-emerald-500/25">
-            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-            حاضر (في العمل)
-          </span>
-        ) : isWorkingNow && item.status === 'late' ? (
+        ) : isWorkingNow && classified.category === 'present_late' ? (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-amber-500/10 text-amber-500 border border-amber-500/25">
             <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
             متأخر (في العمل)
           </span>
-        ) : (item.status === 'on_leave' || item.hasApprovedLeave || item.pendingRequestType === 'leave') && item.hasPendingRequest ? (
+        ) : isWorkingNow && classified.category === 'present_on_time' ? (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-emerald-500/10 text-emerald-500 border border-emerald-500/25">
+            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+            حاضر (في العمل)
+          </span>
+        ) : classified.category === 'leave_pending' ? (
           <span
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black"
-            style={{
-              backgroundColor: 'rgba(245, 158, 11, 0.12)',
-              color: '#f59e0b',
-              border: '1px solid rgba(245, 158, 11, 0.3)',
-            }}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-amber-500/12 text-amber-500 border border-amber-500/30"
             title="طلب إجازة قيد المراجعة والاعتماد"
           >
             <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
             إجازة (قيد المراجعة)
           </span>
-        ) : (item.status === 'on_mission' || item.hasMission || item.pendingRequestType === 'mission') && item.hasPendingRequest ? (
+        ) : classified.category === 'leave_approved' ? (
           <span
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black"
-            style={{
-              backgroundColor: 'rgba(56, 189, 248, 0.12)',
-              color: '#38bdf8',
-              border: '1px solid rgba(56, 189, 248, 0.3)',
-            }}
-            title="طلب مأمورية قيد المراجعة والاعتماد"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-teal-500/10 text-teal-400 border border-teal-500/25"
+            title={`إجازة رسمية: ${item.leaveName ?? 'معتمدة'}`}
           >
-            <span className="size-1.5 rounded-full bg-sky-400 animate-pulse" />
-            مأمورية (قيد المراجعة)
+            <CalendarX2 className="size-3 text-teal-400" />
+            إجازة ({item.leaveName ?? 'معتمدة'})
           </span>
-        ) : item.status === 'absent' && item.hasPendingRequest ? (
+        ) : classified.category === 'mission_pending' ? (
           <span
-            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-black"
-            style={{
-              backgroundColor: 'rgba(245, 158, 11, 0.1)',
-              color: '#f59e0b',
-              border: '1px solid rgba(245, 158, 11, 0.3)',
-            }}
-            title={item.reviewReason ?? undefined}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-amber-500/12 text-amber-400 border border-amber-500/30"
+            title="مأمورية ميدانية خرج الموظف لها بانتظار اعتماد الإدارة"
           >
-            <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
-            طلب معلّق
+            <Plane className="size-3 text-amber-400" />
+            مأمورية معلقة (خرج قبل الاعتماد)
           </span>
-        ) : item.status === 'unexcused_absent' || (item.status === 'absent' && !item.hasPendingRequest && !item.hasApprovedLeave && !item.hasMission) ? (
+        ) : classified.category === 'mission_approved' ? (
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-sky-500/10 text-sky-400 border border-sky-500/25"
+            title={`مأمورية رسمية معتمدة: ${item.leaveName ?? 'ميدانية'}`}
+          >
+            <Plane className="size-3 text-sky-400" />
+            في مأمورية معتمدة
+          </span>
+        ) : classified.category === 'shift_not_started' ? (
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-indigo-500/15 text-indigo-300 border border-indigo-500/30"
+            title="فترة مسائية لم يبدأ موعدها بعد (العيادات الطبية 3 م – 11 م)"
+          >
+            <Clock3 className="size-3 text-indigo-400" />
+            دوام لم يبدأ بعد
+          </span>
+        ) : classified.category === 'unscheduled_rest' ? (
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-slate-700/30 text-slate-400 border border-slate-700/50"
+            title="دوام مرن أو راحة أسبوعية بدون جدول زمني مقيد"
+          >
+            <span className="size-1.5 rounded-full bg-slate-500" />
+            دوام مرن / غير مجدول
+          </span>
+        ) : classified.category === 'unexcused_absent' ? (
           <span
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-rose-500/10 text-rose-500 border border-rose-500/25"
-            title="غياب غير مبرر دون أي إذن رسمي أو إجازة"
+            title="غياب غير مبرر بعد بدء الوردية وانقضاء فترة السماح"
           >
             <span className="size-1.5 rounded-full bg-rose-500" />
             غياب بدون إذن
-          </span>
-        ) : (item.status === 'on_leave' || item.hasApprovedLeave) ? (
-          <span
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-sky-500/10 text-sky-400 border border-sky-500/25"
-            title={`إجازة رسمية: ${item.leaveName ?? 'معتمدة'}`}
-          >
-            <CalendarX2 className="size-3 text-sky-400" />
-            إجازة ({item.leaveName ?? 'معتمدة'})
           </span>
         ) : (
           <StatusBadge status={item.status ?? undefined} />
@@ -911,12 +951,12 @@ function Row({
         </div>
       </td>
 
-      {/* 4. التأخير */}
+      {/* 4. التأخير المدقق */}
       <td>
-        {item.lateMinutes != null && item.lateMinutes > 0 ? (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">
+        {classified.trueLateMinutes > 0 ? (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20 font-mono">
             <Clock3 className="size-3" aria-hidden="true" />
-            {formatMinutes(item.lateMinutes)}
+            {classified.formattedLate}
           </span>
         ) : (
           <span className="text-[var(--text-muted)] text-xs">—</span>
@@ -937,13 +977,13 @@ function Row({
                 انصرف بدون بصمة
               </span>
             ) : isToday ? (
-              isMission ? (
+              classified.isMission ? (
                 <span
                   className="inline-flex items-center gap-1 font-bold text-sky-400 text-[11px]"
-                  title={`سجل حضور وخرج لمأمورية: ${missionTitle ?? 'مأمورية رسمية'}`}
+                  title={`سجل حضور وخرج لمأمورية: ${missionInfo.destination || 'مأمورية رسمية'}`}
                 >
                   <Plane className="size-3 text-sky-400" />
-                  خرج في مأمورية {missionTitle ? `(${missionTitle})` : ''}
+                  خرج في مأمورية {missionInfo.destination ? `(${missionInfo.destination})` : ''}
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 font-bold text-emerald-500 text-[11px]" title="سجل حضور صباحاً ومتواجد حالياً في المجمع">
@@ -972,7 +1012,7 @@ function Row({
         )}
       </td>
 
-      {/* 7. العذر والملاحظات */}
+      {/* 7. العذر والملاحظات مع حماية الخصوصية التامة */}
       <td className="text-xs">
         {isMarked ? (
           <span className="text-amber-500 text-[11px] font-bold flex items-center gap-1">
@@ -997,9 +1037,9 @@ function Row({
                   </span>
                 ) : null}
 
-                {item.leaveReason ? (
-                  <span className="text-[10.5px] text-[var(--text-muted)] line-clamp-2" title={`سبب الإجازة: ${item.leaveReason}`}>
-                    💬 السبب: {item.leaveReason}
+                {sanitizedLeaveReason ? (
+                  <span className="text-[10.5px] text-[var(--text-muted)] line-clamp-2" title={`سبب الإجازة: ${sanitizedLeaveReason}`}>
+                    💬 السبب: {sanitizedLeaveReason}
                   </span>
                 ) : null}
               </div>
@@ -1012,15 +1052,15 @@ function Row({
                   {item.leaveRequestNumber ? <span className="opacity-75 font-normal">(#{item.leaveRequestNumber})</span> : null}
                 </span>
 
-                {item.leaveTitle && item.leaveTitle !== item.leaveReason ? (
-                  <span className="text-[11px] font-semibold text-[var(--text)] line-clamp-1" title={`وجهة / موضوع المأمورية: ${item.leaveTitle}`}>
-                    📍 {item.leaveTitle}
+                {missionInfo.destination ? (
+                  <span className="text-[11px] font-semibold text-[var(--text)] line-clamp-1" title={`وجهة / موضوع المأمورية: ${missionInfo.destination}`}>
+                    📍 {missionInfo.destination}
                   </span>
                 ) : null}
 
-                {item.leaveReason ? (
-                  <span className="text-[10.5px] text-[var(--text-muted)] line-clamp-2" title={`الغرض / بيان المأمورية: ${item.leaveReason}`}>
-                    💬 الغرض: {item.leaveReason}
+                {missionInfo.purpose ? (
+                  <span className="text-[10.5px] text-[var(--text-muted)] line-clamp-2" title={`الغرض: ${missionInfo.purpose}`}>
+                    💬 الغرض: {missionInfo.purpose}
                   </span>
                 ) : null}
               </div>
@@ -1043,7 +1083,18 @@ function Row({
                 {item.pendingRequestNumber ? `(#${item.pendingRequestNumber})` : ''}
               </span>
             </span>
-            {item.pendingRequestTitle ? <span className="text-[10px] text-[var(--text-muted)] truncate max-w-[180px]">{item.pendingRequestTitle}</span> : null}
+            {item.pendingRequestType === 'mission' ? (
+              <div className="flex flex-col gap-0.5 text-[10.5px] text-[var(--text-muted)]">
+                {missionInfo.destination ? <span className="font-semibold text-slate-200">📍 {missionInfo.destination}</span> : null}
+                {missionInfo.purpose ? <span>💬 {missionInfo.purpose}</span> : null}
+              </div>
+            ) : item.pendingRequestType === 'leave' ? (
+              <span className="text-[10.5px] text-[var(--text-muted)]">
+                💬 {sanitizedLeaveReason}
+              </span>
+            ) : item.pendingRequestTitle ? (
+              <span className="text-[10px] text-[var(--text-muted)] truncate max-w-[180px]">{item.pendingRequestTitle}</span>
+            ) : null}
           </div>
         ) : item.reviewReason ? (
           <span className="text-amber-500 text-[11px] font-bold flex items-center gap-1" title={item.reviewReason}>
