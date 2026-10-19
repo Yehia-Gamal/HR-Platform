@@ -68,7 +68,6 @@ class WorkspaceScaffold extends ConsumerWidget {
     final fullName = nameTokens.length >= 2
         ? '${nameTokens[0]} ${nameTokens[1]}'
         : contextData.displayName.trim();
-    final greeting = _greetingForNow();
     // صفحات التبويبات (الحضور، طلباتي، حسابي…) لها شريط عنوان حين تُفتح
     // منفردة؛ هنا رأس المساحة يكفي فتُسقطه بدل شريطين متراكبين.
     final hostedBody = HostAppBarScope(child: body);
@@ -230,13 +229,6 @@ class WorkspaceScaffold extends ConsumerWidget {
       },
     ),
     );
-  }
-
-  String _greetingForNow() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'صباح الخير،';
-    if (hour < 18) return 'مساء الخير،';
-    return 'أهلًا،';
   }
 
   void _showMore(BuildContext context, WidgetRef ref, [int pendingApprovals = 0]) {
