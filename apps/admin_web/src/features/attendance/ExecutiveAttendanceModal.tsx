@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Calendar, Camera, Check, CheckCircle2, Clock3, Copy, Download, Loader2, MessageSquare, Plane, UserCheck, UserX, Users, X } from 'lucide-react';
 import { useAttendanceRosterPage } from './useAttendanceDashboard';
 import { DialogPortal } from '../../ui/DialogPortal';
@@ -89,6 +89,29 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
     });
   };
 
+  // فرز قائمة الحاضرين: الملتزمون في الموعد أولاً، ثم المتأخرون في نهاية القائمة مع إبرازهم
+  const sortPresentWithLateAtEnd = (list: AttendanceRosterItem[]): AttendanceRosterItem[] => {
+    return [...list].sort((a, b) => {
+      const aLate = (a.lateMinutes ?? 0) > 0 ? 1 : 0;
+      const bLate = (b.lateMinutes ?? 0) > 0 ? 1 : 0;
+      // 1. المتأخرون في نهاية القائمة
+      if (aLate !== bLate) return aLate - bLate;
+
+      // 2. الطاقم الطبي في نهاية فئته
+      const aClinic = isClinicMedicalStaff(a) ? 1 : 0;
+      const bClinic = isClinicMedicalStaff(b) ? 1 : 0;
+      if (aClinic !== bClinic) return aClinic - bClinic;
+
+      // 3. ترتيب المتأخرين تنازلياً حسب مدة التأخير
+      if (aLate && bLate) {
+        const diff = (b.lateMinutes ?? 0) - (a.lateMinutes ?? 0);
+        if (diff !== 0) return diff;
+      }
+
+      return (a.employeeName ?? '').localeCompare(b.employeeName ?? '', 'ar');
+    });
+  };
+
   const items = rawItems.filter((i) => !isAttendanceExempt(i));
   const totalScheduled = items.length;
 
@@ -106,7 +129,7 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
         i.pendingRequestType !== 'mission'
     )
   );
-  const present = sortClinicStaffToEnd(
+  const present = sortPresentWithLateAtEnd(
     items.filter(
       (i) =>
         (i.status === 'present' || i.status === 'late' || i.status === 'missing_checkout' || Boolean(i.firstCheckIn)) &&
@@ -478,7 +501,14 @@ ${
                       <UserCheck className="size-4 text-emerald-400" />
                       <span>قائمة الحاضرين (المتواجدون بالمجمع)</span>
                     </div>
-                    <span className="bg-emerald-800 px-2.5 py-0.5 rounded-full text-[11px]">{present.length} موظف</span>
+                    <div className="flex items-center gap-1.5">
+                      {late.length > 0 ? (
+                        <span className="bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full text-[10.5px]">
+                          {late.length} متأخر
+                        </span>
+                      ) : null}
+                      <span className="bg-emerald-800 px-2.5 py-0.5 rounded-full text-[11px]">{present.length} موظف</span>
+                    </div>
                   </div>
 
                   {present.length === 0 ? (
@@ -497,37 +527,80 @@ ${
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-800 font-medium">
-                        {present.map((p, idx) => (
-                          <tr key={p.employeeId} className={idx % 2 === 0 ? 'bg-slate-950/40' : 'bg-slate-900/40'}>
-                            <td className="p-2 text-center text-slate-500 font-bold">{idx + 1}</td>
-                            <td className="p-2 font-black text-white">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <span>{p.employeeName}</span>
-                                {isClinicMedicalStaff(p) ? (
-                                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 inline-flex items-center gap-0.5">
-                                    🩺 عيادات
-                                  </span>
-                                ) : null}
-                              </div>
-                            </td>
-                            <td className="p-2 text-slate-300">
-                              <span>{p.departmentName ?? '—'}</span>
-                              {p.branchName ? <span className="text-slate-400 text-[10px] block">{p.branchName}</span> : null}
-                            </td>
-                            <td className="p-2 text-slate-300">{p.shiftName ?? '—'}</td>
-                            <td className="p-2 font-bold text-emerald-400">{p.firstCheckIn ? formatTime12(p.firstCheckIn) : '—'}</td>
-                            <td className="p-2 text-emerald-300 font-bold">{p.lastCheckOut ? formatTime12(p.lastCheckOut) : 'متواجد حالياً في المجمع'}</td>
-                            <td className="p-2">
-                              {(p.lateMinutes ?? 0) > 0 ? (
-                                <span className="inline-block px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-black text-[10px]">
-                                  متأخر {formatMinutes(p.lateMinutes)}
-                                </span>
-                              ) : (
-                                <span className="inline-block px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold text-[10px]">في الموعد</span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
+                        {(() => {
+                          const firstLateIndex = present.findIndex((p) => (p.lateMinutes ?? 0) > 0);
+                          return present.map((p, idx) => {
+                            const isLate = (p.lateMinutes ?? 0) > 0;
+                            const isFirstLate = firstLateIndex !== -1 && idx === firstLateIndex;
+                            return (
+                              <Fragment key={p.employeeId}>
+                                {isFirstLate && (
+                                  <tr className="bg-amber-950/70 border-y-2 border-amber-500/40 text-amber-300 font-black text-[10.5px]">
+                                    <td colSpan={7} className="p-2 px-3">
+                                      <div className="flex items-center justify-between">
+                                        <span className="flex items-center gap-1.5">
+                                          <Clock3 className="size-3.5 text-amber-400" />
+                                          <span>المتأخرون عن موعد الوردية الرسمية (المسجلون بعد الموعد)</span>
+                                        </span>
+                                        <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold">
+                                          {present.length - firstLateIndex} موظف
+                                        </span>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
+                                <tr
+                                  className={
+                                    isLate
+                                      ? 'bg-amber-950/25 hover:bg-amber-950/40 border-s-2 border-amber-500'
+                                      : idx % 2 === 0
+                                      ? 'bg-slate-950/40'
+                                      : 'bg-slate-900/40'
+                                  }
+                                >
+                                  <td className="p-2 text-center text-slate-500 font-bold">{idx + 1}</td>
+                                  <td className="p-2 font-black text-white">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span>{p.employeeName}</span>
+                                      {isClinicMedicalStaff(p) ? (
+                                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 inline-flex items-center gap-0.5">
+                                          🩺 عيادات
+                                        </span>
+                                      ) : null}
+                                      {isLate ? (
+                                        <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                                          متأخر
+                                        </span>
+                                      ) : null}
+                                    </div>
+                                  </td>
+                                  <td className="p-2 text-slate-300">
+                                    <span>{p.departmentName ?? '—'}</span>
+                                    {p.branchName ? <span className="text-slate-400 text-[10px] block">{p.branchName}</span> : null}
+                                  </td>
+                                  <td className="p-2 text-slate-300">{p.shiftName ?? '—'}</td>
+                                  <td className={`p-2 font-bold ${isLate ? 'text-amber-300' : 'text-emerald-400'}`}>
+                                    {p.firstCheckIn ? formatTime12(p.firstCheckIn) : '—'}
+                                  </td>
+                                  <td className="p-2 text-emerald-300 font-bold">
+                                    {p.lastCheckOut ? formatTime12(p.lastCheckOut) : 'متواجد حالياً في المجمع'}
+                                  </td>
+                                  <td className="p-2">
+                                    {isLate ? (
+                                      <span className="inline-block px-2 py-0.5 rounded bg-amber-500/25 text-amber-300 border border-amber-500/40 font-black text-[10px] shadow-xs">
+                                        ⚠️ متأخر {formatMinutes(p.lateMinutes)}
+                                      </span>
+                                    ) : (
+                                      <span className="inline-block px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold text-[10px]">
+                                        في الموعد
+                                      </span>
+                                    )}
+                                  </td>
+                                </tr>
+                              </Fragment>
+                            );
+                          });
+                        })()}
                       </tbody>
                     </table>
                   )}
