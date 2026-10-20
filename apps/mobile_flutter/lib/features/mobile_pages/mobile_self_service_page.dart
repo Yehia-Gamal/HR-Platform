@@ -1462,23 +1462,31 @@ class _PermitAndLeaveBalancesSection extends StatelessWidget {
           if (b.code == 'weekly_rest_comp') weeklyCompAvail = b.availableUnits;
         }
 
+        final isDark = theme.brightness == Brightness.dark;
+
         final Color statusColor;
         final Color statusBg;
         final IconData statusIcon;
         final String statusTitle;
         if (isPermitsExhausted) {
-          statusColor = const Color(0xFFDC2626);
-          statusBg = const Color(0xFFFEF2F2);
+          statusColor = isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626);
+          statusBg = isDark
+              ? const Color(0xFFEF4444).withValues(alpha: 0.14)
+              : const Color(0xFFFEF2F2);
           statusIcon = Icons.cancel_outlined;
-          statusTitle = 'استُهلكت جميع أذونات هذا الشهر (0 من $maxPermits)';
+          statusTitle = 'استُهلكت كامل حصة هذا الشهر (المتبقي: 0 من $maxPermits)';
         } else if (remPermits == 1) {
-          statusColor = const Color(0xFFD97706);
-          statusBg = const Color(0xFFFFFBEB);
+          statusColor = isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706);
+          statusBg = isDark
+              ? const Color(0xFFF59E0B).withValues(alpha: 0.14)
+              : const Color(0xFFFFFBEB);
           statusIcon = Icons.warning_amber_rounded;
           statusTitle = 'متبقي إذن واحد فقط لهذا الشهر ($remHours ساعات)';
         } else {
-          statusColor = const Color(0xFF0D9488);
-          statusBg = const Color(0xFFF0FDFA);
+          statusColor = isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0D9488);
+          statusBg = isDark
+              ? const Color(0xFF14B8A6).withValues(alpha: 0.14)
+              : const Color(0xFFF0FDFA);
           statusIcon = Icons.check_circle_outline;
           statusTitle =
               'متبقي $remPermits أذونات متاحة ($remHours ساعات متبقية)';
@@ -1490,12 +1498,16 @@ class _PermitAndLeaveBalancesSection extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: isPermitsExhausted
-                  ? const Color(0xFFFCA5A5)
-                  : scheme.outlineVariant.withValues(alpha: 0.6),
+                  ? (isDark
+                      ? const Color(0xFFEF4444).withValues(alpha: 0.4)
+                      : const Color(0xFFFCA5A5))
+                  : (isDark
+                      ? const Color(0xFF334155)
+                      : scheme.outlineVariant.withValues(alpha: 0.6)),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
+                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -1547,20 +1559,38 @@ class _PermitAndLeaveBalancesSection extends StatelessWidget {
                         final IconData dotIcon;
                         final Color iconColor;
                         if (isApproved) {
-                          dotBorder = const Color(0xFF059669);
-                          dotBg = const Color(0xFFD1FAE5);
+                          dotBorder = isDark
+                              ? const Color(0xFF10B981).withValues(alpha: 0.6)
+                              : const Color(0xFF059669);
+                          dotBg = isDark
+                              ? const Color(0xFF10B981).withValues(alpha: 0.18)
+                              : const Color(0xFFD1FAE5);
                           dotIcon = Icons.check;
-                          iconColor = const Color(0xFF059669);
+                          iconColor = isDark
+                              ? const Color(0xFF34D399)
+                              : const Color(0xFF059669);
                         } else if (isPending) {
-                          dotBorder = const Color(0xFFD97706);
-                          dotBg = const Color(0xFFFEF3C7);
+                          dotBorder = isDark
+                              ? const Color(0xFFF59E0B).withValues(alpha: 0.6)
+                              : const Color(0xFFD97706);
+                          dotBg = isDark
+                              ? const Color(0xFFF59E0B).withValues(alpha: 0.18)
+                              : const Color(0xFFFEF3C7);
                           dotIcon = Icons.schedule;
-                          iconColor = const Color(0xFFD97706);
+                          iconColor = isDark
+                              ? const Color(0xFFFBBF24)
+                              : const Color(0xFFD97706);
                         } else {
-                          dotBorder = const Color(0xFFCBD5E1);
-                          dotBg = Colors.white;
+                          dotBorder = isDark
+                              ? const Color(0xFF475569)
+                              : const Color(0xFFCBD5E1);
+                          dotBg = isDark
+                              ? const Color(0xFF1E293B)
+                              : Colors.white;
                           dotIcon = Icons.radio_button_unchecked;
-                          iconColor = const Color(0xFF94A3B8);
+                          iconColor = isDark
+                              ? const Color(0xFF64748B)
+                              : const Color(0xFF94A3B8);
                         }
 
                         return Expanded(
@@ -1585,7 +1615,9 @@ class _PermitAndLeaveBalancesSection extends StatelessWidget {
                                     fontSize: 10.5,
                                     fontWeight: FontWeight.w700,
                                     color: isAvailable
-                                        ? const Color(0xFF64748B)
+                                        ? (isDark
+                                            ? const Color(0xFF94A3B8)
+                                            : const Color(0xFF64748B))
                                         : iconColor,
                                   ),
                                 ),
@@ -1600,8 +1632,10 @@ class _PermitAndLeaveBalancesSection extends StatelessWidget {
                       'الحد الشهري: 4 أذونات (ساعتان لكل إذن = 8 ساعات شهريًا)',
                       style: TextStyle(
                         fontSize: 11,
-                        color: scheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w500,
+                        color: isDark
+                            ? const Color(0xFF94A3B8)
+                            : const Color(0xFF475569),
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     if (isPermitsExhausted) ...[
@@ -1612,15 +1646,24 @@ class _PermitAndLeaveBalancesSection extends StatelessWidget {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFEE2E2),
+                          color: isDark
+                              ? const Color(0xFF7F1D1D).withValues(alpha: 0.35)
+                              : const Color(0xFFFEE2E2),
                           borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: isDark
+                                ? const Color(0xFFEF4444).withValues(alpha: 0.35)
+                                : const Color(0xFFFCA5A5).withValues(alpha: 0.5),
+                          ),
                         ),
-                        child: const Text(
+                        child: Text(
                           '⚠️ تنبيه: تم استهلاك حصتك الشهرية من الأذونات، يُنصح بالتقديم على إجازة عارضة أو اعتيادية تجنبًا لاقتطاع الراتب.',
                           style: TextStyle(
                             fontSize: 11.5,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFFB91C1C),
+                            color: isDark
+                                ? const Color(0xFFFCA5A5)
+                                : const Color(0xFFB91C1C),
                           ),
                         ),
                       ),
@@ -1638,7 +1681,9 @@ class _PermitAndLeaveBalancesSection extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 11.5,
                               fontWeight: FontWeight.w700,
-                              color: scheme.primary,
+                              color: isDark
+                                  ? const Color(0xFF60A5FA)
+                                  : scheme.primary,
                             ),
                           ),
                           children: permitBalance.items.map((item) {
@@ -1651,16 +1696,21 @@ class _PermitAndLeaveBalancesSection extends StatelessWidget {
                                     isAppr ? Icons.check_circle : Icons.schedule,
                                     size: 14,
                                     color: isAppr
-                                        ? const Color(0xFF059669)
-                                        : const Color(0xFFD97706),
+                                        ? (isDark
+                                            ? const Color(0xFF34D399)
+                                            : const Color(0xFF059669))
+                                        : (isDark
+                                            ? const Color(0xFFFBBF24)
+                                            : const Color(0xFFD97706)),
                                   ),
                                   const SizedBox(width: 6),
                                   Expanded(
                                     child: Text(
                                       '${item.date} · ${item.kindLabel} (${item.minutes} دقيقة)',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w600,
+                                        color: scheme.onSurface,
                                       ),
                                     ),
                                   ),
@@ -1671,8 +1721,12 @@ class _PermitAndLeaveBalancesSection extends StatelessWidget {
                                     ),
                                     decoration: BoxDecoration(
                                       color: isAppr
-                                          ? const Color(0xFFD1FAE5)
-                                          : const Color(0xFFFEF3C7),
+                                          ? (isDark
+                                              ? const Color(0xFF10B981).withValues(alpha: 0.2)
+                                              : const Color(0xFFD1FAE5))
+                                          : (isDark
+                                              ? const Color(0xFFF59E0B).withValues(alpha: 0.2)
+                                              : const Color(0xFFFEF3C7)),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(
@@ -1681,8 +1735,12 @@ class _PermitAndLeaveBalancesSection extends StatelessWidget {
                                         fontSize: 10,
                                         fontWeight: FontWeight.w700,
                                         color: isAppr
-                                            ? const Color(0xFF059669)
-                                            : const Color(0xFFD97706),
+                                            ? (isDark
+                                                ? const Color(0xFF34D399)
+                                                : const Color(0xFF059669))
+                                            : (isDark
+                                                ? const Color(0xFFFBBF24)
+                                                : const Color(0xFFD97706)),
                                       ),
                                     ),
                                   ),
@@ -1732,6 +1790,7 @@ class _PermitAndLeaveBalancesSection extends StatelessWidget {
                           label: 'سنوية',
                           days: annualAvail,
                           color: const Color(0xFF2563EB),
+                          darkColor: const Color(0xFF60A5FA),
                           bg: const Color(0xFFEFF6FF),
                         ),
                         _LeaveChip(
@@ -1739,6 +1798,7 @@ class _PermitAndLeaveBalancesSection extends StatelessWidget {
                           days: casualAvail,
                           extraHint: 'اعتماد فوري',
                           color: const Color(0xFFD97706),
+                          darkColor: const Color(0xFFFBBF24),
                           bg: const Color(0xFFFFFBEB),
                         ),
                         if (weeklyCompAvail > 0)
@@ -1746,6 +1806,7 @@ class _PermitAndLeaveBalancesSection extends StatelessWidget {
                             label: 'بدل راحة أسبوعية',
                             days: weeklyCompAvail,
                             color: const Color(0xFF0D9488),
+                            darkColor: const Color(0xFF2DD4BF),
                             bg: const Color(0xFFF0FDFA),
                           ),
                       ],
@@ -1762,10 +1823,12 @@ class _PermitAndLeaveBalancesSection extends StatelessWidget {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.calendar_month_outlined,
                               size: 14,
-                              color: Color(0xFF0284C7),
+                              color: isDark
+                                  ? const Color(0xFF38BDF8)
+                                  : const Color(0xFF0284C7),
                             ),
                             const SizedBox(width: 5),
                             Text(
@@ -1773,7 +1836,9 @@ class _PermitAndLeaveBalancesSection extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.w700,
-                                color: scheme.primary,
+                                color: isDark
+                                    ? const Color(0xFF38BDF8)
+                                    : scheme.primary,
                               ),
                             ),
                           ],
@@ -1797,6 +1862,7 @@ class _LeaveChip extends StatelessWidget {
     required this.days,
     this.extraHint,
     required this.color,
+    this.darkColor,
     required this.bg,
   });
 
@@ -1804,10 +1870,15 @@ class _LeaveChip extends StatelessWidget {
   final double days;
   final String? extraHint;
   final Color color;
+  final Color? darkColor;
   final Color bg;
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final effectiveColor = isDark ? (darkColor ?? color) : color;
+    final effectiveBg = isDark ? effectiveColor.withValues(alpha: 0.16) : bg;
+
     final daysStr = days % 1 == 0 ? days.toInt().toString() : days.toString();
     final unit = days == 1
         ? 'يوم'
@@ -1816,9 +1887,9 @@ class _LeaveChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: bg,
+        color: effectiveBg,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        border: Border.all(color: effectiveColor.withValues(alpha: isDark ? 0.35 : 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1828,7 +1899,7 @@ class _LeaveChip extends StatelessWidget {
             style: TextStyle(
               fontSize: 11.5,
               fontWeight: FontWeight.w700,
-              color: color,
+              color: effectiveColor,
             ),
           ),
           Text(
@@ -1836,7 +1907,7 @@ class _LeaveChip extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w900,
-              color: color,
+              color: effectiveColor,
             ),
           ),
           if (extraHint != null) ...[
@@ -1846,7 +1917,7 @@ class _LeaveChip extends StatelessWidget {
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
-                color: color.withValues(alpha: 0.8),
+                color: effectiveColor.withValues(alpha: 0.8),
               ),
             ),
           ],
