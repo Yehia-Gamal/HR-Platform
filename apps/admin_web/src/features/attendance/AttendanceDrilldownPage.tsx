@@ -53,7 +53,6 @@ import { ManualMissingCheckoutModal } from './ManualMissingCheckoutModal';
 import {
   classifyEmployee,
   formatShiftBadge,
-  parseShiftWindow,
   sanitizeLeaveReason,
   sanitizeMissionPurpose,
 } from './executiveReportLogic';
@@ -306,49 +305,29 @@ export function AttendanceDrilldownPage() {
     return h * 60 + m;
   }, [isToday]);
 
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [locallyMarkedIds, setLocallyMarkedIds] = useState<Set<string>>(new Set());
   const [isActionPending, setIsActionPending] = useState(false);
 
-  // دمج موظفي بصمة بلا انصراف: من الخادم + من تم وسمهم + من انتهت ورديتهم اليوم دون انصراف
+  // قائمة العرض: من الخادم مباشرة + أي موظف تم تسجيله يدوياً في الجلسة الحالية
   const displayItems = useMemo(() => {
-    if (isMissingCheckoutTab) {
+    if (isMissingCheckoutTab && locallyMarkedIds.size > 0) {
       const map = new Map<string, AttendanceRosterItem>();
       for (const item of baseItems) {
         map.set(item.employeeId, item);
       }
       const presentList = presentQuery.data?.items ?? [];
       for (const p of presentList) {
-        if (p.lastCheckOut) continue;
-        const isMissionOrLeave =
-          p.status === 'on_leave' ||
-          p.status === 'on_mission' ||
-          Boolean(p.hasMission) ||
-          Boolean(p.hasApprovedLeave) ||
-          (Boolean(p.hasPendingRequest) && (p.pendingRequestType === 'mission' || p.pendingRequestType === 'leave'));
-        if (isMissionOrLeave) continue;
-
-        const isMarked = locallyMarkedIds.has(p.employeeId);
-        const shiftWindow = parseShiftWindow(p.shiftName, p.shiftStartAt);
-        const isShiftEnded = isToday && Boolean(
-          shiftWindow &&
-          !shiftWindow.isNightShift &&
-          currentMinutesFromMidnight >= (shiftWindow.endHour * 60 + shiftWindow.endMinute)
-        );
-
-        if (isMarked || isShiftEnded) {
-          if (!map.has(p.employeeId)) {
-            map.set(p.employeeId, {
-              ...p,
-              status: 'missing_checkout',
-            });
-          }
+        if (locallyMarkedIds.has(p.employeeId) && !map.has(p.employeeId)) {
+          map.set(p.employeeId, {
+            ...p,
+            status: 'missing_checkout',
+          });
         }
       }
       return Array.from(map.values());
     }
     return baseItems;
-  }, [baseItems, isMissingCheckoutTab, presentQuery.data?.items, locallyMarkedIds, isToday, currentMinutesFromMidnight]);
+  }, [baseItems, isMissingCheckoutTab, presentQuery.data?.items, locallyMarkedIds]);
 
   const total = isMissingCheckoutTab ? Math.max(query.data?.total ?? 0, displayItems.length) : (query.data?.total ?? 0);
   const totalPages = Math.max(1, Math.ceil(total / limit));
@@ -384,11 +363,6 @@ export function AttendanceDrilldownPage() {
       setLocallyMarkedIds((prev) => {
         const next = new Set(prev);
         employeeIds.forEach((id) => next.add(id));
-        return next;
-      });
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        employeeIds.forEach((id) => next.delete(id));
         return next;
       });
       setToastMessage(
@@ -435,16 +409,6 @@ export function AttendanceDrilldownPage() {
       setTimeout(() => setToastMessage(null), 3000);
     } finally {
       setIsActionPending(false);
-    }
-  };
-
-  const allEligibleSelected = isMissingCheckoutTab && displayItems.length > 0 && displayItems.every((i) => selectedIds.has(i.employeeId));
-
-  const toggleSelectAll = () => {
-    if (allEligibleSelected) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(displayItems.map((i) => i.employeeId)));
     }
   };
 
@@ -738,19 +702,6 @@ export function AttendanceDrilldownPage() {
             <table className="data-table w-full min-w-[1100px]">
               <thead className="sticky top-0 z-10 bg-[var(--surface-muted)]/95 backdrop-blur-xs">
                 <tr>
-                  {isMissingCheckoutTab ? (
-                    <th className="w-10 text-center shrink-0" data-hide-capture="true">
-                      <input
-                        type="checkbox"
-                        aria-label="تحديد جميع الموظفين"
-                        checked={allEligibleSelected}
-                        onChange={toggleSelectAll}
-                        disabled={displayItems.length === 0}
-                        className="rounded accent-[var(--primary)] size-4 cursor-pointer"
-                        title={displayItems.length > 0 ? 'تحديد جميع الموظفين في القائمة' : 'لا يوجد موظفون'}
-                      />
-                    </th>
-                  ) : null}
                   <th className="min-w-[220px] text-start font-bold">الموظف</th>
                   <th className="min-w-[170px] text-start font-bold whitespace-nowrap">الحالة</th>
                   <th className="min-w-[150px] text-start font-bold whitespace-nowrap">الإدارة والفرع</th>
@@ -772,15 +723,6 @@ export function AttendanceDrilldownPage() {
                       isToday={isToday}
                       currentMinutesFromMidnight={currentMinutesFromMidnight}
                       isMissingCheckoutTab={isMissingCheckoutTab}
-                      isSelected={selectedIds.has(item.employeeId)}
-                      onToggleSelect={(checked) => {
-                        setSelectedIds((prev) => {
-                          const next = new Set(prev);
-                          if (checked) next.add(item.employeeId);
-                          else next.delete(item.employeeId);
-                          return next;
-                        });
-                      }}
                       isMarked={isMarked}
                       onUnmark={(id) => void handleUnmarkMissingCheckout(id)}
                       isActionPending={isActionPending}
@@ -807,36 +749,6 @@ export function AttendanceDrilldownPage() {
         ) : null}
       </div>
 
-      {/* ─── شريط الإجراء الجماعي العائم عند التحديد (خاص بفئة بصمة بلا انصراف) ─── */}
-      {isMissingCheckoutTab && selectedIds.size > 0 ? (
-        <div
-          data-hide-capture="true"
-          className="fixed bottom-6 start-1/2 -translate-x-1/2 z-40 bg-[var(--surface-overlay,rgba(15,23,42,0.95))] text-white px-5 py-3 rounded-2xl shadow-2xl border border-[var(--border)] backdrop-blur-md flex flex-wrap items-center gap-3.5 animate-in fade-in slide-in-from-bottom-4"
-        >
-          <div className="text-xs font-black">
-            تم تحديد <span className="text-amber-400 font-black text-sm px-1">{selectedIds.size}</span> موظف
-          </div>
-          <div className="h-4 w-px bg-slate-700 hidden sm:block" />
-          <button
-            type="button"
-            disabled={isActionPending}
-            onClick={() => void handleMarkMissingCheckout(Array.from(selectedIds))}
-            className="btn-primary btn-sm bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-black rounded-xl inline-flex items-center gap-1.5 shadow-md border border-amber-400/30"
-          >
-            {isActionPending ? <Loader2 className="size-3.5 animate-spin" /> : <Clock3 className="size-3.5" />}
-            <span>تسجيل «مشي بدون بصمة» للمحددين ({selectedIds.size})</span>
-          </button>
-          <button
-            type="button"
-            disabled={isActionPending}
-            onClick={() => setSelectedIds(new Set())}
-            className="btn-ghost btn-sm text-slate-300 hover:text-white text-xs font-bold rounded-xl"
-          >
-            إلغاء التحديد
-          </button>
-        </div>
-      ) : null}
-
       {/* ─── نافذة تسجيل موظف مشي بدون بصمة يدوياً ─── */}
       {showManualMissingModal ? (
         <ManualMissingCheckoutModal
@@ -862,8 +774,6 @@ function Row({
   isToday,
   currentMinutesFromMidnight,
   isMissingCheckoutTab,
-  isSelected,
-  onToggleSelect,
   isMarked,
   onUnmark,
   isActionPending,
@@ -873,8 +783,6 @@ function Row({
   isToday: boolean;
   currentMinutesFromMidnight: number;
   isMissingCheckoutTab: boolean;
-  isSelected: boolean;
-  onToggleSelect: (checked: boolean) => void;
   isMarked: boolean;
   onUnmark: (id: string) => void;
   isActionPending: boolean;
@@ -888,19 +796,6 @@ function Row({
 
   return (
     <tr data-focus-id={item.employeeId} className={focused ? 'entity-focus-highlight' : undefined}>
-      {/* 0. خانة التحديد - تظهر فقط في فئة بصمة بلا انصراف */}
-      {isMissingCheckoutTab ? (
-        <td data-hide-capture="true" className="w-10 text-center">
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={(e) => onToggleSelect(e.target.checked)}
-            className="rounded accent-[var(--primary)] size-4 cursor-pointer"
-            aria-label={`تحديد ${item.employeeName}`}
-          />
-        </td>
-      ) : null}
-
       {/* 1. الموظف: الصورة والاسم ورقم الهاتف / الكود والوردية */}
       <td className="min-w-[220px]">
         <div className="flex items-center gap-3">
