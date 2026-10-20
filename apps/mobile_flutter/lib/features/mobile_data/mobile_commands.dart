@@ -209,13 +209,16 @@ class MobileCommands {
     ref.invalidate(attendanceStateProvider);
   }
 
-  /// 0658: تقرير مأمورية أغلقها النظام تلقائيًا — لصاحبها خلال 14 يومًا، بلا أثر
-  /// على الحضور (الإغلاق نفسه لا يُلغى).
+  /// 0658 & 0704: تقرير مأمورية أغلقها النظام تلقائيًا — لصاحبها خلال 14 يومًا،
+  /// التقرير اختياري، ويُعتمد نص افتراضي إن تُرك فارغًا.
   Future<void> submitMissionReport({
     required String requestId,
-    required String report,
+    String? report,
     String? outcome,
   }) async {
+    final finalReport = (report == null || report.trim().isEmpty)
+        ? 'تم إنجاز المأمورية بنجاح'
+        : report.trim();
     await _withTimeout(
       ref
           .read(supabaseProvider)
@@ -223,8 +226,8 @@ class MobileCommands {
             'submit_my_mission_report',
             params: {
               'p_request_id': requestId,
-              'p_report': report,
-              'p_outcome': outcome,
+              'p_report': finalReport,
+              'p_outcome': outcome?.trim(),
             },
           ),
     );

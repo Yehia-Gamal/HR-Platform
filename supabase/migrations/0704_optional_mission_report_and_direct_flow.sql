@@ -538,4 +538,51 @@ $$;
 revoke all on function public.get_my_attendance_state(text) from public, anon;
 grant execute on function public.get_my_attendance_state(text) to authenticated;
 
+-- ─── 3) تحديث submit_my_mission_report: التقرير اختياري وبديل افتراضي ───────────
+create or replace function public.submit_my_mission_report(
+  p_request_id uuid,
+  p_report     text default null,
+  p_outcome    text default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_me   uuid := public.current_employee_id();
+  v_exec public.mission_executions;
+  v_final_report text := coalesce(nullif(trim(coalesce(p_report, '')), ''), 'تم إنجاز المأمورية بنجاح');
+begin
+  if v_me is null then
+    raise exception 'لا يوجد موظف مرتبط بحسابك' using errcode = '42501';
+  end if;
+  select * into v_exec from public.mission_executions where request_id = p_request_id for update;
+  if not found then
+    raise exception 'MISSION_NOT_FOUND' using errcode = 'P0002';
+  end if;
+  if v_exec.employee_id <> v_me then
+    raise exception 'MISSION_OWNER_ONLY' using errcode = '42501';
+  end if;
+  if v_exec.auto_closed_at is null then
+    raise exception 'MISSION_NOT_AUTO_CLOSED' using errcode = '22023';
+  end if;
+  if v_exec.auto_closed_at < now() - interval '14 days' then
+    raise exception 'MISSION_REPORT_WINDOW_CLOSED' using errcode = '22023';
+  end if;
+
+  update public.mission_executions
+     set report = v_final_report,
+         outcome = nullif(trim(coalesce(p_outcome, '')), ''),
+         updated_at = now()
+   where id = v_exec.id;
+  return jsonb_build_object('ok', true, 'requestId', p_request_id);
+end;
+$$;
+comment on function public.submit_my_mission_report(uuid, text, text) is
+  '0704: تقرير مأمورية أُغلقت تلقائيًا — اختياري بالكامل لصاحبها خلال 14 يومًا.';
+revoke all on function public.submit_my_mission_report(uuid, text, text) from public, anon;
+grant execute on function public.submit_my_mission_report(uuid, text, text) to authenticated;
+
 commit;
+
