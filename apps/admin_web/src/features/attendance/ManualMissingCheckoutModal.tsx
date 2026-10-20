@@ -340,7 +340,7 @@ export function ManualMissingCheckoutModal({
                         type="button"
                         disabled={isActionPending}
                         onClick={() => void handleSingleSubmit(item.employeeId)}
-                        className="btn-primary btn-xs sm:btn-sm h-8 px-3 text-xs font-bold rounded-xl inline-flex items-center gap-1.5 bg-amber-600 hover:bg-amber-500 text-white shadow-xs"
+                        className="btn-primary btn-xs sm:btn-sm h-8 px-3 text-xs font-bold rounded-xl inline-flex items-center gap-1.5 bg-amber-600 hover:bg-amber-500 text-white shadow-xs whitespace-nowrap shrink-0"
                       >
                         {isActionPending ? <Loader2 className="size-3 animate-spin" /> : <Clock3 className="size-3" />}
                         <span>تسجيل مشي بدون بصمة</span>

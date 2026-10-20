@@ -735,11 +735,11 @@ export function AttendanceDrilldownPage() {
           </div>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]">
-            <table className="data-table w-full">
+            <table className="data-table w-full min-w-[1100px]">
               <thead className="sticky top-0 z-10 bg-[var(--surface-muted)]/95 backdrop-blur-xs">
                 <tr>
                   {isMissingCheckoutTab ? (
-                    <th className="w-10 text-center" data-hide-capture="true">
+                    <th className="w-10 text-center shrink-0" data-hide-capture="true">
                       <input
                         type="checkbox"
                         aria-label="تحديد جميع الموظفين"
@@ -751,14 +751,14 @@ export function AttendanceDrilldownPage() {
                       />
                     </th>
                   ) : null}
-                  <th className="min-w-[210px]">الموظف</th>
-                  <th>الحالة</th>
-                  <th>الإدارة والفرع</th>
-                  <th>التأخير</th>
-                  <th>الحضور / الانصراف</th>
-                  <th>الموقع</th>
-                  <th>العذر والبيان</th>
-                  <th className="text-end" aria-label="الإجراءات" data-hide-capture="true">الإجراءات</th>
+                  <th className="min-w-[220px] text-start font-bold">الموظف</th>
+                  <th className="min-w-[170px] text-start font-bold whitespace-nowrap">الحالة</th>
+                  <th className="min-w-[150px] text-start font-bold whitespace-nowrap">الإدارة والفرع</th>
+                  <th className="min-w-[90px] text-center font-bold whitespace-nowrap">التأخير</th>
+                  <th className="min-w-[170px] text-start font-bold whitespace-nowrap">الحضور / الانصراف</th>
+                  <th className="min-w-[110px] text-center font-bold whitespace-nowrap">الموقع</th>
+                  <th className="min-w-[200px] text-start font-bold">العذر والبيان</th>
+                  <th className="min-w-[120px] text-end font-bold whitespace-nowrap" aria-label="الإجراءات" data-hide-capture="true">الإجراءات</th>
                 </tr>
               </thead>
               <tbody>
@@ -902,7 +902,7 @@ function Row({
       ) : null}
 
       {/* 1. الموظف: الصورة والاسم ورقم الهاتف / الكود والوردية */}
-      <td>
+      <td className="min-w-[220px]">
         <div className="flex items-center gap-3">
           <UserAvatar displayName={item.employeeName} photoUrl={item.photoUrl} size="sm" announceName={false} />
           <div className="min-w-0">
@@ -930,38 +930,38 @@ function Row({
       </td>
 
       {/* 2. الحالة مع مؤشر العمل الحي والتصنيف المدقق */}
-      <td>
+      <td className="min-w-[170px] whitespace-nowrap">
         {isMarked ? (
           <span
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-amber-500/10 text-amber-500 border border-amber-500/25"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap shrink-0 bg-amber-500/10 text-amber-500 border border-amber-500/25"
             title="سجل حضوراً ثم غادر مقر العمل دون تسجيل بصمة انصراف"
           >
             <Clock3 className="size-3 text-amber-500" />
             بصمة بلا انصراف (غادر)
           </span>
         ) : classified.category === 'present_mission_pending' ? (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-amber-500/15 text-amber-400 border border-amber-500/30">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap shrink-0 bg-amber-500/15 text-amber-400 border border-amber-500/30">
             <Plane className="size-3 text-amber-400" />
             بصم حضور — خرج قبل الاعتماد
           </span>
         ) : classified.category === 'present_mission_approved' ? (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-sky-500/10 text-sky-400 border border-sky-500/25">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap shrink-0 bg-sky-500/10 text-sky-400 border border-sky-500/25">
             <Plane className="size-3 text-sky-400" />
             بصم حضور — في مأمورية
           </span>
         ) : isWorkingNow && classified.category === 'present_late' ? (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-amber-500/10 text-amber-500 border border-amber-500/25">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap shrink-0 bg-amber-500/10 text-amber-500 border border-amber-500/25">
             <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
             متأخر (في العمل)
           </span>
         ) : isWorkingNow && classified.category === 'present_on_time' ? (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-emerald-500/10 text-emerald-500 border border-emerald-500/25">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap shrink-0 bg-emerald-500/10 text-emerald-500 border border-emerald-500/25">
             <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
             حاضر (في العمل)
           </span>
         ) : classified.category === 'leave_pending' ? (
           <span
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-amber-500/12 text-amber-500 border border-amber-500/30"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap shrink-0 bg-amber-500/12 text-amber-500 border border-amber-500/30"
             title="طلب إجازة قيد المراجعة والاعتماد"
           >
             <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
@@ -969,7 +969,7 @@ function Row({
           </span>
         ) : classified.category === 'leave_approved' ? (
           <span
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-teal-500/10 text-teal-400 border border-teal-500/25"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap shrink-0 bg-teal-500/10 text-teal-400 border border-teal-500/25"
             title={`إجازة رسمية: ${item.leaveName ?? 'معتمدة'}`}
           >
             <CalendarX2 className="size-3 text-teal-400" />
@@ -977,7 +977,7 @@ function Row({
           </span>
         ) : classified.category === 'mission_pending' ? (
           <span
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-amber-500/12 text-amber-400 border border-amber-500/30"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap shrink-0 bg-amber-500/12 text-amber-400 border border-amber-500/30"
             title="مأمورية ميدانية خرج الموظف لها بانتظار اعتماد الإدارة"
           >
             <Plane className="size-3 text-amber-400" />
@@ -985,7 +985,7 @@ function Row({
           </span>
         ) : classified.category === 'mission_approved' ? (
           <span
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-sky-500/10 text-sky-400 border border-sky-500/25"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap shrink-0 bg-sky-500/10 text-sky-400 border border-sky-500/25"
             title={`مأمورية رسمية معتمدة: ${item.leaveName ?? 'ميدانية'}`}
           >
             <Plane className="size-3 text-sky-400" />
@@ -993,7 +993,7 @@ function Row({
           </span>
         ) : classified.category === 'shift_not_started' ? (
           <span
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-indigo-500/15 text-indigo-300 border border-indigo-500/30"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap shrink-0 bg-indigo-500/15 text-indigo-300 border border-indigo-500/30"
             title="فترة مسائية لم يبدأ موعدها بعد (العيادات الطبية 3 م – 11 م)"
           >
             <Clock3 className="size-3 text-indigo-400" />
@@ -1001,7 +1001,7 @@ function Row({
           </span>
         ) : classified.category === 'unscheduled_rest' ? (
           <span
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-slate-700/30 text-slate-400 border border-slate-700/50"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap shrink-0 bg-slate-700/30 text-slate-400 border border-slate-700/50"
             title="دوام مرن أو راحة أسبوعية بدون جدول زمني مقيد"
           >
             <span className="size-1.5 rounded-full bg-slate-500" />
@@ -1009,7 +1009,7 @@ function Row({
           </span>
         ) : classified.category === 'unexcused_absent' ? (
           <span
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black bg-rose-500/10 text-rose-500 border border-rose-500/25"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap shrink-0 bg-rose-500/10 text-rose-500 border border-rose-500/25"
             title="غياب غير مبرر بعد بدء الوردية وانقضاء فترة السماح"
           >
             <span className="size-1.5 rounded-full bg-rose-500" />
@@ -1021,7 +1021,7 @@ function Row({
       </td>
 
       {/* 3. الإدارة والفرع */}
-      <td className="text-xs">
+      <td className="min-w-[150px] text-xs whitespace-nowrap">
         <div className="min-w-0">
           <span className="font-bold text-[var(--text-secondary)] block truncate max-w-[150px]" title={item.departmentName ?? undefined}>
             {item.departmentName ?? '—'}
@@ -1035,9 +1035,9 @@ function Row({
       </td>
 
       {/* 4. التأخير المدقق */}
-      <td>
+      <td className="min-w-[90px] text-center whitespace-nowrap">
         {classified.trueLateMinutes > 0 ? (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20 font-mono">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20 font-mono whitespace-nowrap shrink-0">
             <Clock3 className="size-3" aria-hidden="true" />
             {classified.formattedLate}
           </span>
@@ -1047,29 +1047,29 @@ function Row({
       </td>
 
       {/* 5. الحضور / الانصراف الذكي */}
-      <td className="text-xs">
+      <td className="min-w-[170px] text-xs whitespace-nowrap">
         {item.firstCheckIn ? (
-          <div className="flex items-center gap-1.5 font-medium">
-            <span className="font-bold text-[var(--text)]">{formatTime(item.firstCheckIn)}</span>
+          <div className="flex items-center gap-1.5 font-medium whitespace-nowrap">
+            <span className="font-bold text-[var(--text)] font-mono">{formatTime(item.firstCheckIn)}</span>
             <span className="text-[var(--text-muted)] text-[10px]">←</span>
             {item.lastCheckOut ? (
-              <span className="font-bold text-[var(--text)]">{formatTime(item.lastCheckOut)}</span>
+              <span className="font-bold text-[var(--text)] font-mono">{formatTime(item.lastCheckOut)}</span>
             ) : isMarked ? (
-              <span className="inline-flex items-center gap-1 font-bold text-amber-500 text-[11px]" title="غادر مقر العمل دون تسجيل بصمة انصراف">
+              <span className="inline-flex items-center gap-1 font-bold text-amber-500 text-[11px] whitespace-nowrap shrink-0" title="غادر مقر العمل دون تسجيل بصمة انصراف">
                 <Clock3 className="size-3 text-amber-500" />
                 انصرف بدون بصمة
               </span>
             ) : isToday ? (
               classified.isMission ? (
                 <span
-                  className="inline-flex items-center gap-1 font-bold text-sky-400 text-[11px]"
+                  className="inline-flex items-center gap-1 font-bold text-sky-400 text-[11px] whitespace-nowrap shrink-0"
                   title={`سجل حضور وخرج لمأمورية: ${missionInfo.destination || 'مأمورية رسمية'}`}
                 >
                   <Plane className="size-3 text-sky-400" />
                   خرج في مأمورية {missionInfo.destination ? `(${missionInfo.destination})` : ''}
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 font-bold text-emerald-500 text-[11px]" title="سجل حضور صباحاً ومتواجد حالياً في المجمع">
+                <span className="inline-flex items-center gap-1 font-bold text-emerald-500 text-[11px] whitespace-nowrap shrink-0" title="سجل حضور صباحاً ومتواجد حالياً في المجمع">
                   <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   متواجد حالياً في المجمع
                 </span>
@@ -1084,9 +1084,9 @@ function Row({
       </td>
 
       {/* 6. الموقع */}
-      <td className="text-xs">
+      <td className="min-w-[110px] text-xs text-center whitespace-nowrap">
         {item.locationRequestStatus ? (
-          <span className="inline-flex items-center gap-1 text-[var(--text-secondary)]">
+          <span className="inline-flex items-center gap-1 text-[var(--text-secondary)] whitespace-nowrap shrink-0">
             <MapPin className="size-3.5 text-[var(--primary)]" aria-hidden="true" />
             {locationStatusLabel(item.locationRequestStatus)}
           </span>
@@ -1096,9 +1096,9 @@ function Row({
       </td>
 
       {/* 7. العذر والملاحظات مع حماية الخصوصية التامة */}
-      <td className="text-xs">
+      <td className="min-w-[200px] text-xs">
         {isMarked ? (
-          <span className="text-amber-500 text-[11px] font-bold flex items-center gap-1">
+          <span className="text-amber-500 text-[11px] font-bold flex items-center gap-1 whitespace-nowrap shrink-0">
             ⚠️ مشي بدون بصمة انصراف
           </span>
         ) : hasExcuse ? (
@@ -1106,12 +1106,12 @@ function Row({
             {item.hasApprovedLeave ? (
               <div className="flex flex-col gap-0.5 items-start">
                 <span
-                  className="status-pill status-pill--ok text-[11px] font-bold"
+                  className="status-pill status-pill--ok text-[11px] font-bold whitespace-nowrap shrink-0"
                   title={item.leaveName ? `نوع الإجازة: ${item.leaveName}` : 'إجازة معتمدة'}
                 >
                   <CheckCircle2 className="size-3" aria-hidden="true" />
                   <span>{item.leaveName ?? 'إجازة معتمدة'}</span>
-                  {item.leaveRequestNumber ? <span className="opacity-75 font-normal">(#{item.leaveRequestNumber})</span> : null}
+                  {item.leaveRequestNumber ? <span className="opacity-75 font-normal font-mono">(#{item.leaveRequestNumber})</span> : null}
                 </span>
 
                 {item.leaveTitle && item.leaveTitle !== item.leaveName && item.leaveTitle !== item.leaveReason ? (
@@ -1129,10 +1129,10 @@ function Row({
             ) : null}
             {item.hasMission ? (
               <div className="flex flex-col gap-0.5 items-start">
-                <span className="status-pill status-pill--neutral text-[11px] font-bold" title="مأمورية رسمية معتمدة">
+                <span className="status-pill status-pill--neutral text-[11px] font-bold whitespace-nowrap shrink-0" title="مأمورية رسمية معتمدة">
                   <Plane className="size-3" aria-hidden="true" />
                   <span>{item.leaveName && item.leaveName !== item.leaveTitle ? item.leaveName : 'مأمورية رسمية'}</span>
-                  {item.leaveRequestNumber ? <span className="opacity-75 font-normal">(#{item.leaveRequestNumber})</span> : null}
+                  {item.leaveRequestNumber ? <span className="opacity-75 font-normal font-mono">(#{item.leaveRequestNumber})</span> : null}
                 </span>
 
                 {missionInfo.destination ? (
@@ -1152,7 +1152,7 @@ function Row({
         ) : item.hasPendingRequest ? (
           <div className="flex flex-col gap-1 items-start">
             <span
-              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold"
+              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap shrink-0"
               style={{
                 backgroundColor: 'rgba(245, 158, 11, 0.12)',
                 color: '#f59e0b',
@@ -1163,7 +1163,7 @@ function Row({
               <Clock3 className="size-3" aria-hidden="true" />
               <span>
                 {item.pendingRequestType === 'leave' ? 'طلب إجازة معلّق' : item.pendingRequestType === 'mission' ? 'طلب مأمورية معلّق' : 'طلب معلّق'}{' '}
-                {item.pendingRequestNumber ? `(#${item.pendingRequestNumber})` : ''}
+                {item.pendingRequestNumber ? <bdi dir="ltr">(#{item.pendingRequestNumber})</bdi> : ''}
               </span>
             </span>
             {item.pendingRequestType === 'mission' ? (
@@ -1180,7 +1180,7 @@ function Row({
             ) : null}
           </div>
         ) : item.reviewReason ? (
-          <span className="text-amber-500 text-[11px] font-bold flex items-center gap-1" title={item.reviewReason}>
+          <span className="text-amber-500 text-[11px] font-bold flex items-center gap-1 whitespace-nowrap shrink-0" title={item.reviewReason}>
             ⚠️ {item.reviewReason}
           </span>
         ) : (
@@ -1189,14 +1189,14 @@ function Row({
       </td>
 
       {/* 8. الإجراءات وفتح الملف */}
-      <td className="text-end" data-hide-capture="true">
+      <td className="min-w-[120px] text-end whitespace-nowrap" data-hide-capture="true">
         <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
           {isMissingCheckoutTab && isMarked ? (
             <button
               type="button"
               disabled={isActionPending}
               onClick={() => void onUnmark(item.employeeId)}
-              className="btn-ghost btn-xs text-xs font-bold text-slate-400 hover:text-rose-400 rounded-lg px-2 py-1 transition-colors"
+              className="btn-ghost btn-xs text-xs font-bold text-slate-400 hover:text-rose-400 rounded-lg px-2 py-1 transition-colors whitespace-nowrap shrink-0"
               title="إلغاء وسم بصمة بلا انصراف والعودة للنظام"
             >
               تراجع
@@ -1204,7 +1204,7 @@ function Row({
           ) : null}
           <Link
             to={`${hrPrefix}/employees/${item.employeeId}`}
-            className="btn-ghost btn-xs whitespace-nowrap text-xs font-bold text-[var(--primary)] hover:bg-[var(--primary)]/10 rounded-lg px-2.5 py-1"
+            className="btn-ghost btn-xs whitespace-nowrap shrink-0 text-xs font-bold text-[var(--primary)] hover:bg-[var(--primary)]/10 rounded-lg px-2.5 py-1"
           >
             فتح الملف
           </Link>
