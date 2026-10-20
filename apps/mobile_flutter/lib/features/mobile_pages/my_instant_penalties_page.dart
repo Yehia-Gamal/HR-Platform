@@ -42,8 +42,10 @@ class MyInstantPenaltiesPage extends ConsumerWidget {
         appBar: AppBar(
           title: const Text('غرامات الحضور وصندوق الزمالة'),
           bottom: TabBar(
-            isScrollable: tabs.length > 2,
-            tabAlignment: tabs.length > 2 ? TabAlignment.center : null,
+            // Prevent clipping in RTL when exactly three tabs are present.
+            // Scrollable only if more than three tabs.
+            isScrollable: tabs.length > 3,
+            tabAlignment: tabs.length > 3 ? TabAlignment.center : null,
             tabs: [
               for (final t in tabs) Tab(icon: Icon(t.$2, size: 20), text: t.$1),
             ],
@@ -570,18 +572,23 @@ class _PenaltyCard extends ConsumerWidget {
         : 'تأخير ${_minutes(item.lateMinutes)}';
     // التأخير والمبلغ في الترويسة؛ الصفوف لما يتغيّر بحسب الحالة فقط
     final rows = <(String, String, Color?)>[
+      // Escalated row – use brighter red in dark mode for readability.
       if (escalated && !cancelled)
         (
           'بعد المضاعفة',
           '${_money(item.originalAmount)} ← ${_money(item.currentAmount)}',
-          AppColors.statusDanger,
+          // Dark mode adaption:
+          Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFFF87171)
+              : AppColors.statusDanger,
         ),
+      // Pending payment – show remaining time or mark as expired.
       if (item.status == 'pending_payment')
         (
           'آخر موعد للسداد',
           remaining.inMinutes > 0
               ? '${_dateTime(deadline)} (متبقٍ ${_duration(remaining)})'
-              : _dateTime(deadline),
+              : '${_dateTime(deadline)} (انتهت المهلة)',
           AppColors.statusWarning,
         ),
       if (item.paidAt != null) ('تاريخ السداد', _dateTime(item.paidAt!), null),

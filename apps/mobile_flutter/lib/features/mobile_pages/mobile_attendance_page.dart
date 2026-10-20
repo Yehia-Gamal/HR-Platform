@@ -1472,31 +1472,40 @@ class _PunchCardState extends State<_PunchCard> {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (inCooldown) ...[
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFEF3C7),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFF59E0B)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.timer_outlined, color: Color(0xFFB45309), size: 20),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'سُجّل حضورك للتو! الانصراف متاح بعد $cooldownRemaining ثانية لمنع الانصراف غير المقصود.',
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF92400E),
+          Builder(builder: (context) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFFB45309).withValues(alpha: 0.16) : const Color(0xFFFEF3C7),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isDark ? const Color(0xFFF59E0B).withValues(alpha: 0.4) : const Color(0xFFF59E0B),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.timer_outlined,
+                    color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'سُجّل حضورك للتو! الانصراف متاح بعد $cooldownRemaining ثانية لمنع الانصراف غير المقصود.',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? const Color(0xFFFDE68A) : const Color(0xFF92400E),
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
+                ],
+              ),
+            );
+          })
         ],
         SizedBox(
           width: double.infinity,
@@ -1514,7 +1523,7 @@ class _PunchCardState extends State<_PunchCard> {
                   : widget.actionLabel,
             ),
             style: FilledButton.styleFrom(
-              backgroundColor: widget.isCheckIn ? null : (inCooldown ? Colors.grey.shade400 : const Color(0xFFD97706)),
+              backgroundColor: widget.isCheckIn ? null : (inCooldown ? (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : Colors.grey.shade400) : const Color(0xFFD97706)),
               foregroundColor: widget.isCheckIn ? null : Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 14),
               textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),

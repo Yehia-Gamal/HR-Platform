@@ -1,5 +1,6 @@
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
+import 'package:ahla_shabab_management_os/core/widgets/network_image.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
@@ -130,12 +131,11 @@ class _FeedDetailContent extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (item.imageUrl != null && item.imageUrl!.isNotEmpty)
-                Image.network(
-                  item.imageUrl!,
+                NetworkImageWithPlaceholder(
+                  url: item.imageUrl!,
                   height: 220,
                   width: double.infinity,
                   fit: BoxFit.cover,
-                  errorBuilder: (ctx, err, st) => const SizedBox.shrink(),
                 ),
               Padding(
                 padding: const EdgeInsets.all(20),

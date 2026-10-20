@@ -150,8 +150,16 @@ function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIs
       (Boolean(i.hasPendingRequest) && i.pendingRequestType !== 'mission')) &&
     !isMissionItem(i);
 
-  const presentCount = items.filter((i) => i.status === 'present' || i.status === 'late').length;
-  const lateCount = items.filter((i) => i.status === 'late' || (i.lateMinutes != null && i.lateMinutes > 0)).length;
+  // عدد الحضور يشمل الحضور الفعلي + المتأخرين الذين لديهم طلب موافقة يغطي الوقت
+  const presentCount = items.filter((i) =>
+    i.status === 'present' ||
+    (i.status === 'late' && i.hasPendingRequest)
+  ).length;
+
+  // المتأخرون الفعليون هم الذين لا يوجد لديهم طلب يغطي الوقت
+  const lateCount = items.filter((i) =>
+    i.status === 'late' && !i.hasPendingRequest
+  ).length;
   const absentCount = items.filter((i) => (i.status === 'absent' || i.status === 'unexcused_absent') && !i.hasPendingRequest).length;
   const missionCount = items.filter(isMissionItem).length;
   const leaveCount = items.filter(isLeaveItem).length;
@@ -207,8 +215,20 @@ function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIs
         statusBadgeClass = 'status-badge-present';
         statusText = 'حاضر';
       } else if (item.status === 'late') {
-        statusBadgeClass = 'status-badge-late';
-        statusText = 'متأخر';
+        // إذا كان هناك طلب مرفق (مأمورية أو إجازة) يغطي الوقت، لا نُظهر كمتأخر
+        if (item.hasPendingRequest) {
+          // اعتمادًا على نوع الطلب نُظهر علامة خاصة
+          if (item.pendingRequestType === 'mission') {
+            statusBadgeClass = 'status-badge-mission';
+            statusText = 'مأمورية (مُعتمدة)';
+          } else {
+            statusBadgeClass = 'status-badge-leave';
+            statusText = 'إجازة (مُعتمدة)';
+          }
+        } else {
+          statusBadgeClass = 'status-badge-late';
+          statusText = 'متأخر';
+        }
       } else if (item.status === 'missing_checkout') {
         statusBadgeClass = 'status-badge-late';
         statusText = 'بصمة بلا انصراف';

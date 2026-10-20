@@ -1,5 +1,6 @@
 import 'package:ahla_shabab_management_os/core/sharing/whatsapp_share_service.dart';
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
+import 'package:ahla_shabab_management_os/core/widgets/network_image.dart';
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
@@ -290,12 +291,11 @@ class _FeedCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (item.imageUrl != null && item.imageUrl!.isNotEmpty)
-                Image.network(
-                  item.imageUrl!,
+                NetworkImageWithPlaceholder(
+                  url: item.imageUrl!,
                   height: 160,
                   width: double.infinity,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
                 ),
               Padding(
                 padding: const EdgeInsets.all(16),
