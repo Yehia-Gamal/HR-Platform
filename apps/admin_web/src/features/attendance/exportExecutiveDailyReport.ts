@@ -300,7 +300,7 @@ export function buildExecutiveDailyReportHtml(
     /* ─── شارات الحالة ─── */
     .status-badge {
       display: inline-flex; align-items: center; gap: 2px;
-      padding: 1px 6px; border-radius: 999px; font-size: 7px; font-weight: 700;
+      padding: 1px 6px; border-radius: 999px; font-size: 7px; font-weight: 700; white-space: nowrap;
     }
     .status-present { background: #dcfce7; color: #166534; }
     .status-late { background: #fef3c7; color: #92400e; }

@@ -209,6 +209,9 @@ function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIs
       } else if (item.status === 'late') {
         statusBadgeClass = 'status-badge-late';
         statusText = 'متأخر';
+      } else if (item.status === 'missing_checkout') {
+        statusBadgeClass = 'status-badge-late';
+        statusText = 'بصمة بلا انصراف';
       } else if (item.status === 'absent' || item.status === 'unexcused_absent') {
         if (item.hasPendingRequest) {
           if (item.pendingRequestType === 'mission') {
@@ -321,7 +324,7 @@ function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIs
   tr { break-inside: avoid; page-break-inside: avoid; }
 
   .status-badge {
-    display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 8.5px; font-weight: 800;
+    display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 8.5px; font-weight: 800; white-space: nowrap;
   }
   .status-badge-present { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
   .status-badge-late { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
@@ -420,7 +423,7 @@ function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIs
         <th style="width:80px">الكود</th>
         <th style="width:110px">الإدارة</th>
         <th style="width:100px">الفرع</th>
-        <th style="width:85px">الحالة</th>
+        <th style="width:100px;white-space:nowrap;">الحالة</th>
         <th style="width:65px">الحضور</th>
         <th style="width:75px">الانصراف</th>
         <th style="width:55px">التأخير</th>
