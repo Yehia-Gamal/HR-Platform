@@ -60,11 +60,17 @@ export function ManualMissingCheckoutModal({
     return h * 60 + m;
   }, []);
 
-  // الموظفون المؤهلون: سجلوا حضوراً ولم يسجلوا انصرافاً بعد وليسوا في إجازة أو مأمورية
+  // الموظفون المؤهلون: سجلوا حضوراً ولم يسجلوا انصرافاً بعد وليسوا في إجازة أو مأمورية (معتمدة أو قيد المراجعة)
   const eligibleCandidates = useMemo(() => {
     return presentItems.filter((item) => {
       if (!item.firstCheckIn || item.lastCheckOut) return false;
-      if (item.status === 'on_leave' || item.status === 'on_mission' || item.hasMission || item.hasApprovedLeave) {
+      const isMissionOrLeave =
+        item.status === 'on_leave' ||
+        item.status === 'on_mission' ||
+        Boolean(item.hasMission) ||
+        Boolean(item.hasApprovedLeave) ||
+        (Boolean(item.hasPendingRequest) && (item.pendingRequestType === 'mission' || item.pendingRequestType === 'leave'));
+      if (isMissionOrLeave) {
         return false;
       }
       return true;

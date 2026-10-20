@@ -320,7 +320,13 @@ export function AttendanceDrilldownPage() {
       const presentList = presentQuery.data?.items ?? [];
       for (const p of presentList) {
         if (p.lastCheckOut) continue;
-        if (p.status === 'on_leave' || p.status === 'on_mission' || p.hasMission || p.hasApprovedLeave) continue;
+        const isMissionOrLeave =
+          p.status === 'on_leave' ||
+          p.status === 'on_mission' ||
+          Boolean(p.hasMission) ||
+          Boolean(p.hasApprovedLeave) ||
+          (Boolean(p.hasPendingRequest) && (p.pendingRequestType === 'mission' || p.pendingRequestType === 'leave'));
+        if (isMissionOrLeave) continue;
 
         const isMarked = locallyMarkedIds.has(p.employeeId);
         const shiftWindow = parseShiftWindow(p.shiftName, p.shiftStartAt);
