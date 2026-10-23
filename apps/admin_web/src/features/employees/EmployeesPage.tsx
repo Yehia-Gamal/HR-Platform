@@ -1,7 +1,7 @@
 import { cairoTodayIso } from '../../core/cairoTime';
 import { ArrowUpDown, FileSpreadsheet, KeyRound, Network, Plus, Printer, RefreshCw, Search, UserRound, UsersRound, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useLocation, useSearchParams } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { downloadCsv, printReport, toCsv, type ExportColumn } from '../../core/exportUtils';
 import { MetricCard } from '../../ui/MetricCard';
 import { PageHeader } from '../../ui/PageHeader';
@@ -30,7 +30,6 @@ export function EmployeesPage() {
   const auth = useAuth();
   const hrPrefix = useHrPrefix();
   const [searchParams, setSearchParams] = useSearchParams();
-  const location = useLocation();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
   const [todayStatus, setTodayStatus] = useState('all');
@@ -127,7 +126,7 @@ export function EmployeesPage() {
       key: 'statusToday',
       header: 'حالة اليوم',
       get: (e) => {
-        const label = e.statusTodayLabel ?? (e.statusToday === 'not_recorded' ? 'لم يسجل بعد' : e.statusToday ?? 'لم يسجل بعد');
+        const label = e.statusTodayLabel ?? (e.statusToday === 'not_recorded' ? 'لم يسجل بعد' : (e.statusToday ?? 'لم يسجل بعد'));
         return e.activityTitle ? `${label} (📍 ${e.activityTitle})` : label;
       },
     },
@@ -200,24 +199,24 @@ export function EmployeesPage() {
         header: 'حالة اليوم',
         render: (emp) => {
           const st = emp.statusToday;
-          const label = emp.statusTodayLabel ?? (st === 'not_recorded' ? 'لم يسجل بعد' : st ?? 'لم يسجل بعد');
+          const label = emp.statusTodayLabel ?? (st === 'not_recorded' ? 'لم يسجل بعد' : (st ?? 'لم يسجل بعد'));
           const isSpecial = st === 'present' || st === 'mission' || st === 'convoy' || st === 'fundraising';
           const badgeColor =
             st === 'present'
               ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
               : st === 'convoy'
-              ? 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30'
-              : st === 'fundraising'
-              ? 'bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-500/30'
-              : st === 'mission'
-              ? 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30'
-              : st === 'on_leave'
-              ? 'bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/30'
-              : st === 'late'
-              ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30'
-              : st === 'absent'
-              ? 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/30'
-              : 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20';
+                ? 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30'
+                : st === 'fundraising'
+                  ? 'bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-500/30'
+                  : st === 'mission'
+                    ? 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30'
+                    : st === 'on_leave'
+                      ? 'bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/30'
+                      : st === 'late'
+                        ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30'
+                        : st === 'absent'
+                          ? 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/30'
+                          : 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20';
 
           return (
             <div className="flex flex-col gap-0.5 items-start justify-center">
@@ -229,7 +228,10 @@ export function EmployeesPage() {
                 <span>{label}</span>
               </span>
               {emp.activityTitle ? (
-                <span className="text-[10px] text-[var(--text-muted)] font-medium max-w-[150px] truncate flex items-center gap-1 mt-0.5" title={emp.activityTitle}>
+                <span
+                  className="text-[10px] text-[var(--text-muted)] font-medium max-w-[150px] truncate flex items-center gap-1 mt-0.5"
+                  title={emp.activityTitle}
+                >
                   <span className="shrink-0 opacity-70 text-[10px]">📍</span>
                   <span className="truncate">{emp.activityTitle}</span>
                 </span>
@@ -243,7 +245,10 @@ export function EmployeesPage() {
         header: 'الإدارة',
         render: (emp) => {
           if (!emp.department) return <span className="text-[var(--text-disabled)]">—</span>;
-          const parts = emp.department.split(' / ').map((p) => p.trim()).filter(Boolean);
+          const parts = emp.department
+            .split(' / ')
+            .map((p) => p.trim())
+            .filter(Boolean);
           if (parts.length === 0) return <span className="text-[var(--text-disabled)]">—</span>;
           const primaryDept = parts[0];
           const hasMore = parts.length > 1;
@@ -280,15 +285,12 @@ export function EmployeesPage() {
       {
         key: 'phoneE164',
         header: 'الهاتف',
-        render: (emp) => (
+        render: (emp) =>
           emp.phoneE164 ? (
-            <span className="text-xs font-mono font-medium text-[var(--text-secondary)]">
-              {renderSafeIntlPhoneText(emp.phoneE164)}
-            </span>
+            <span className="text-xs font-mono font-medium text-[var(--text-secondary)]">{renderSafeIntlPhoneText(emp.phoneE164)}</span>
           ) : (
             <span className="text-[var(--text-disabled)]">—</span>
-          )
-        ),
+          ),
       },
       {
         key: 'actions',
@@ -319,19 +321,27 @@ export function EmployeesPage() {
         description={tab === 'org-chart' ? 'شجرة هرمية كاملة: اضغط على أي موظف لفتح ملفه الشامل.' : 'ابحث في ملفات الموظفين وافتح الملف الشخصي لأي منهم.'}
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <button type="button" className="btn-secondary !py-1.5 !px-3 text-xs" onClick={handleCsvExport} disabled={filtered.length === 0} title="تصدير Excel">
+            <button
+              type="button"
+              className="btn-secondary !py-1.5 !px-3 text-xs"
+              onClick={handleCsvExport}
+              disabled={filtered.length === 0}
+              title="تصدير Excel"
+            >
               <FileSpreadsheet className="size-3.5" aria-hidden="true" />
               <span>Excel</span>
             </button>
-            <button type="button" className="btn-secondary !py-1.5 !px-3 text-xs font-medium" onClick={handlePdfExport} disabled={filtered.length === 0} title="طباعة PDF">
+            <button
+              type="button"
+              className="btn-secondary !py-1.5 !px-3 text-xs font-medium"
+              onClick={handlePdfExport}
+              disabled={filtered.length === 0}
+              title="طباعة PDF"
+            >
               <Printer className="size-3.5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
               <span>تصدير PDF</span>
             </button>
-            <Link
-              to={`${hrPrefix}/passwords`}
-              className="btn-secondary !py-1.5 !px-3 text-xs"
-              title="إدارة كلمات المرور والحسابات"
-            >
+            <Link to={`${hrPrefix}/passwords`} className="btn-secondary !py-1.5 !px-3 text-xs" title="إدارة كلمات المرور والحسابات">
               <KeyRound className="size-3.5 text-[var(--brand-primary)]" aria-hidden="true" />
               كلمات المرور
             </Link>
@@ -379,7 +389,15 @@ export function EmployeesPage() {
       ) : (
         <>
           <section className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-            <MetricCard label="إجمالي الملفات" value={all.length} icon={UsersRound} hint="جميع الحالات داخل نطاقك" onClick={() => setStatus('all')} compact showAction={false} />
+            <MetricCard
+              label="إجمالي الملفات"
+              value={all.length}
+              icon={UsersRound}
+              hint="جميع الحالات داخل نطاقك"
+              onClick={() => setStatus('all')}
+              compact
+              showAction={false}
+            />
             <MetricCard
               label="موظفون نشطون"
               value={active}
@@ -389,7 +407,15 @@ export function EmployeesPage() {
               compact
               showAction={false}
             />
-            <MetricCard label="تهيئة ودعوات" value={onboarding} icon={RefreshCw} hint="لم تكتمل رحلة التفعيل" onClick={() => setStatus('onboarding')} compact showAction={false} />
+            <MetricCard
+              label="تهيئة ودعوات"
+              value={onboarding}
+              icon={RefreshCw}
+              hint="لم تكتمل رحلة التفعيل"
+              onClick={() => setStatus('onboarding')}
+              compact
+              showAction={false}
+            />
             <MetricCard
               label="موقوف أو منتهي"
               value={inactive}
@@ -421,7 +447,10 @@ export function EmployeesPage() {
           )}
 
           {/* شريط التحكم والتصفية المدمج الفاخر */}
-          <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2.5 sm:p-3 shadow-xs space-y-2.5" aria-label="أدوات التصفية والبحث">
+          <section
+            className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2.5 sm:p-3 shadow-xs space-y-2.5"
+            aria-label="أدوات التصفية والبحث"
+          >
             {/* السطر الأول: فلاتر حالة اليوم اللحظية */}
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)]/60 pb-2">
               <div className="flex items-center gap-1.5 overflow-x-auto text-xs py-0.5">
@@ -588,9 +617,7 @@ export function EmployeesPage() {
                         setPage(1);
                       }}
                       className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition-colors ${
-                        pageSize === size
-                          ? 'bg-[var(--brand-primary)] text-white shadow-xs'
-                          : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                        pageSize === size ? 'bg-[var(--brand-primary)] text-white shadow-xs' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                       }`}
                       title={size === 500 ? 'عرض جميع الموظفين في صفحة واحدة' : `عرض ${size} موظف`}
                     >
@@ -636,11 +663,7 @@ export function EmployeesPage() {
                 <div className="flex items-center justify-between text-xs text-[var(--text-muted)] px-1 pt-1 font-medium">
                   <span>تم عرض جميع النتائج ({filtered.length} موظف) دفعة واحدة</span>
                   {filtered.length > 25 && pageSize < 500 && (
-                    <button
-                      type="button"
-                      onClick={() => setPageSize(500)}
-                      className="text-[var(--brand-primary)] hover:underline font-bold"
-                    >
+                    <button type="button" onClick={() => setPageSize(500)} className="text-[var(--brand-primary)] hover:underline font-bold">
                       عرض الكل في صفحة واحدة
                     </button>
                   )}

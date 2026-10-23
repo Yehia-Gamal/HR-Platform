@@ -35,6 +35,7 @@
     "npm:clsx@^2.1.1": "2.1.1",
     "npm:eslint-plugin-react-hooks@^7.1.1": "7.1.1_eslint@10.8.1",
     "npm:eslint@^10.8.0": "10.8.1",
+    "npm:html2canvas-pro@^2.5.2": "2.5.2",
     "npm:html2canvas@^1.4.1": "1.4.1",
     "npm:jsdom@^27.2.0": "27.4.0",
     "npm:jspdf@^4.2.1": "4.2.1",
@@ -1774,6 +1775,9 @@
     "html-escaper@2.0.2": {
       "integrity": "sha512-H2iMtd0I4Mt5eYiapRdIDjp+XzelXQ0tFE4JS7YFwFevXXMmOp9myNrUvCg0D6ws8iqkRPBfKHgbwig1SmlLfg=="
     },
+    "html2canvas-pro@2.5.2": {
+      "integrity": "sha512-uka+0oVG/yB4B7U9M/+aJFF0aKZVmMWZKi4unemkQh537cLu3jXPvZtXakTuPl3taOI+O43RhuV6kn2igk1Z6g=="
+    },
     "html2canvas@1.4.1": {
       "integrity": "sha512-fPU6BHNpsyIhr8yyMpTLLxAbkaK8ArIBcmZIRiBLiDhjeqvXolaEmDGmELFuX9I4xDcaKKcJl+TKZLqruBbmWA==",
       "dependencies": [
@@ -2788,6 +2792,7 @@
             "npm:@vitejs/plugin-react@^5.1.1",
             "npm:@vitest/coverage-v8@^4.1.11",
             "npm:clsx@^2.1.1",
+            "npm:html2canvas-pro@^2.5.2",
             "npm:html2canvas@^1.4.1",
             "npm:jsdom@^27.2.0",
             "npm:jspdf@^4.2.1",

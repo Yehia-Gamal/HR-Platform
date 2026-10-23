@@ -254,11 +254,7 @@ export function DocumentsPage({ onGenerateDoc }: { onGenerateDoc?: () => void } 
         actions={
           <div className="flex flex-wrap items-center gap-2">
             {onGenerateDoc && (
-              <button
-                type="button"
-                className="btn-primary text-xs flex items-center gap-1.5 py-2 px-3 shadow-sm"
-                onClick={onGenerateDoc}
-              >
+              <button type="button" className="btn-primary text-xs flex items-center gap-1.5 py-2 px-3 shadow-sm" onClick={onGenerateDoc}>
                 <Printer className="size-4" aria-hidden="true" />
                 توليد وطباعة وثيقة رسمية
               </button>
@@ -315,9 +311,7 @@ export function DocumentsPage({ onGenerateDoc }: { onGenerateDoc?: () => void } 
             key={key}
             type="button"
             className={`inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold transition whitespace-nowrap ${
-              tab === key
-                ? 'border-b-2 border-[var(--brand)] text-[var(--text-primary)]'
-                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+              tab === key ? 'border-b-2 border-[var(--brand)] text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
             }`}
             onClick={() => {
               setTab(key);
@@ -327,9 +321,7 @@ export function DocumentsPage({ onGenerateDoc }: { onGenerateDoc?: () => void } 
           >
             <Icon className="size-4" aria-hidden="true" />
             {label}
-            <span className="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-xs font-mono font-bold text-[var(--text-muted)]">
-              {count}
-            </span>
+            <span className="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-xs font-mono font-bold text-[var(--text-muted)]">{count}</span>
           </button>
         ))}
       </div>

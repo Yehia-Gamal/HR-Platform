@@ -427,4 +427,3 @@ export function useDailyOvertimeSummary(date?: string) {
     refetchInterval: 30000,
   });
 }
-

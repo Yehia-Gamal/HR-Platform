@@ -1,15 +1,5 @@
 import { useState, useMemo } from 'react';
-import {
-  Clock3,
-  Search,
-  X,
-  CheckCircle2,
-  AlertTriangle,
-  Loader2,
-  UserCheck,
-  Building2,
-  Calendar,
-} from 'lucide-react';
+import { Clock3, Search, X, CheckCircle2, Loader2, UserCheck } from 'lucide-react';
 import type { AttendanceRosterItem } from '@ahla/shared-contracts';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { parseShiftWindow } from './executiveReportLogic';
@@ -34,7 +24,7 @@ function formatTime(iso: string | null | undefined): string {
 }
 
 export function ManualMissingCheckoutModal({
-  dateIso,
+  dateIso: _dateIso,
   onClose,
   onMark,
   isActionPending,
@@ -80,11 +70,7 @@ export function ManualMissingCheckoutModal({
   const categorizedCandidates = useMemo(() => {
     return eligibleCandidates.map((item) => {
       const shiftWindow = parseShiftWindow(item.shiftName, item.shiftStartAt);
-      const isShiftEnded = Boolean(
-        shiftWindow &&
-        !shiftWindow.isNightShift &&
-        currentMinutesFromMidnight >= (shiftWindow.endHour * 60 + shiftWindow.endMinute)
-      );
+      const isShiftEnded = Boolean(shiftWindow && !shiftWindow.isNightShift && currentMinutesFromMidnight >= shiftWindow.endHour * 60 + shiftWindow.endMinute);
       const isMarked = alreadyMarkedIds.has(item.employeeId) || item.status === 'missing_checkout';
       return {
         ...item,
@@ -204,9 +190,7 @@ export function ManualMissingCheckoutModal({
                 type="button"
                 onClick={() => setFilterType('all')}
                 className={`px-3 py-1 rounded-lg font-bold transition-all ${
-                  filterType === 'all'
-                    ? 'bg-[var(--primary,#0284c7)] text-white shadow-xs'
-                    : 'text-[var(--text-muted,#94a3b8)] hover:text-white'
+                  filterType === 'all' ? 'bg-[var(--primary,#0284c7)] text-white shadow-xs' : 'text-[var(--text-muted,#94a3b8)] hover:text-white'
                 }`}
               >
                 الكل ({categorizedCandidates.length})
@@ -215,9 +199,7 @@ export function ManualMissingCheckoutModal({
                 type="button"
                 onClick={() => setFilterType('ended')}
                 className={`px-3 py-1 rounded-lg font-bold transition-all ${
-                  filterType === 'ended'
-                    ? 'bg-amber-500 text-slate-950 shadow-xs'
-                    : 'text-amber-400/80 hover:text-amber-300'
+                  filterType === 'ended' ? 'bg-amber-500 text-slate-950 shadow-xs' : 'text-amber-400/80 hover:text-amber-300'
                 }`}
               >
                 انتهت ورديتهم ({categorizedCandidates.filter((c) => c.isShiftEnded).length})
@@ -226,9 +208,7 @@ export function ManualMissingCheckoutModal({
                 type="button"
                 onClick={() => setFilterType('ongoing')}
                 className={`px-3 py-1 rounded-lg font-bold transition-all ${
-                  filterType === 'ongoing'
-                    ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'text-emerald-400/80 hover:text-emerald-300'
+                  filterType === 'ongoing' ? 'bg-emerald-600 text-white shadow-xs' : 'text-emerald-400/80 hover:text-emerald-300'
                 }`}
               >
                 مستمرة ({categorizedCandidates.filter((c) => !c.isShiftEnded).length})
@@ -241,14 +221,8 @@ export function ManualMissingCheckoutModal({
               عرض <strong className="text-white">{filteredCandidates.length}</strong> موظف متواجد اليوم
             </span>
             {filteredCandidates.some((c) => !c.isMarked) ? (
-              <button
-                type="button"
-                onClick={handleSelectAll}
-                className="text-[var(--primary,#0284c7)] hover:underline font-bold"
-              >
-                {selectedIds.size >= filteredCandidates.filter((c) => !c.isMarked).length
-                  ? 'إلغاء تحديد الكل'
-                  : 'تحديد جميع المعروضين'}
+              <button type="button" onClick={handleSelectAll} className="text-[var(--primary,#0284c7)] hover:underline font-bold">
+                {selectedIds.size >= filteredCandidates.filter((c) => !c.isMarked).length ? 'إلغاء تحديد الكل' : 'تحديد جميع المعروضين'}
               </button>
             ) : null}
           </div>
@@ -265,11 +239,7 @@ export function ManualMissingCheckoutModal({
             <div className="py-12 text-center text-[var(--text-muted,#94a3b8)] space-y-2">
               <UserCheck className="size-8 mx-auto text-slate-600" />
               <p className="text-sm font-bold text-white">لا يوجد موظفون متاحون للتسجيل</p>
-              <p className="text-xs">
-                {searchTerm
-                  ? 'لا توجد نتائج تطابق نص البحث الحالي.'
-                  : 'جميع الموظفين الحاضرين تم تسجيل انصرافهم أو تصنيفهم مسبقاً.'}
-              </p>
+              <p className="text-xs">{searchTerm ? 'لا توجد نتائج تطابق نص البحث الحالي.' : 'جميع الموظفين الحاضرين تم تسجيل انصرافهم أو تصنيفهم مسبقاً.'}</p>
             </div>
           ) : (
             filteredCandidates.map((item) => {

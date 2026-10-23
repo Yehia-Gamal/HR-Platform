@@ -108,10 +108,7 @@ export function generateReportHtml(sections: PrintableSection[], documentTitle: 
   const summaryHtml =
     summary && summary.length > 0
       ? `<div class="summary-grid">${summary
-          .map(
-            (s) =>
-              `<div class="summary-card"><div class="summary-value">${esc(s.value)}</div><div class="summary-label">${esc(s.label)}</div></div>`,
-          )
+          .map((s) => `<div class="summary-card"><div class="summary-value">${esc(s.value)}</div><div class="summary-label">${esc(s.label)}</div></div>`)
           .join('')}</div>`
       : '';
 

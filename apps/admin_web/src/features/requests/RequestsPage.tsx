@@ -5,7 +5,23 @@ import {
   type WorkAssignment,
   type AttendanceOperationsCatalog,
 } from '@ahla/shared-contracts';
-import { CalendarDays, Check, CheckCircle2, Clock, Clock3, CornerUpLeft, FileX, Forward, Inbox, ListChecks, MapPin, RefreshCw, RotateCcw, Truck, X } from 'lucide-react';
+import {
+  CalendarDays,
+  Check,
+  CheckCircle2,
+  Clock,
+  Clock3,
+  CornerUpLeft,
+  FileX,
+  Forward,
+  Inbox,
+  ListChecks,
+  MapPin,
+  RefreshCw,
+  RotateCcw,
+  Truck,
+  X,
+} from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { useUrlState } from '../../core/useUrlState';
@@ -21,7 +37,16 @@ import { ListSkeleton, MetricSkeletonRow } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { useToast } from '../../ui/Toast';
 import { UserAvatar } from '../../ui/UserAvatar';
-import { useBulkApprove, useDelegateRequestToAbuAmmar, useMyLeaveBalances, useRequestDecision, useRequestDetail, useRequests, useWorkAssignments, type Decision } from './useRequests';
+import {
+  useBulkApprove,
+  useDelegateRequestToAbuAmmar,
+  useMyLeaveBalances,
+  useRequestDecision,
+  useRequestDetail,
+  useRequests,
+  useWorkAssignments,
+  type Decision,
+} from './useRequests';
 import { DecisionInsights, RequestJourney } from './RequestJourney';
 import { RequestSlaBadge, RequestWhatsAppShareButton } from './RequestSlaBadge';
 import { useAttendanceOperations, useAttendanceOperationsCommands } from '../advanced/useAdvancedOperations';
@@ -138,9 +163,7 @@ export function RequestsPage() {
   const delegateMutation = useDelegateRequestToAbuAmmar();
   const canDelegateToAbuAmmar =
     auth.access != null &&
-    auth.access.roles.some((r) =>
-      ['admin', 'super-admin', 'executive', 'executive-director', 'general-manager', 'hr-manager', 'hr-specialist'].includes(r),
-    );
+    auth.access.roles.some((r) => ['admin', 'super-admin', 'executive', 'executive-director', 'general-manager', 'hr-manager', 'hr-specialist'].includes(r));
   const canDecide =
     auth.access != null &&
     (hasPermission(auth.access, 'requests.request.approve') ||
@@ -486,12 +509,16 @@ export function RequestsPage() {
                 aria-pressed={scope === tab.key}
                 onClick={() => setScope(tab.key)}
                 className={`flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-bold transition-colors ${
-                  scope === tab.key ? 'border-brand bg-brand/10 text-brand' : 'border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-raised)]'
+                  scope === tab.key
+                    ? 'border-brand bg-brand/10 text-brand'
+                    : 'border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-raised)]'
                 }`}
               >
                 <span>{tab.label}</span>
                 {tab.count ? (
-                  <span className={`rounded-full px-2 py-0.5 text-xs ${tab.key === 'awaiting' ? 'bg-[var(--warning)] text-white' : 'bg-[var(--surface-muted)]'}`}>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs ${tab.key === 'awaiting' ? 'bg-[var(--warning)] text-white' : 'bg-[var(--surface-muted)]'}`}
+                  >
                     {tab.count}
                   </span>
                 ) : null}
@@ -554,10 +581,7 @@ export function RequestsPage() {
           ) : (
             <section className="grid gap-4 xl:grid-cols-2">
               {filtered.map((item) => (
-                <article
-                  key={item.id}
-                  className={`card flex flex-col gap-3 p-5 ${picked.has(item.id) ? 'ring-2 ring-[var(--success)]' : ''}`}
-                >
+                <article key={item.id} className={`card flex flex-col gap-3 p-5 ${picked.has(item.id) ? 'ring-2 ring-[var(--success)]' : ''}`}>
                   {/* صف علوي: النوع + رقم الطلب + الحالة */}
                   <div className="flex flex-wrap items-center gap-2">
                     {isAwaitingMe(item) ? (
@@ -572,13 +596,7 @@ export function RequestsPage() {
                     <span className="rounded-lg bg-brand/10 px-2.5 py-1 text-xs font-black text-brand">{labels[item.requestType]}</span>
                     <span className="rounded-lg bg-[var(--surface-muted)] px-2 py-1 text-xs font-black">#{item.requestNumber}</span>
                     <StatusBadge value={item.status} />
-                    <RequestSlaBadge
-                      status={item.status}
-                      createdAt={item.createdAt}
-                      decidedAt={item.decidedAt}
-                      activeStepName={item.activeStepName}
-                      compact
-                    />
+                    <RequestSlaBadge status={item.status} createdAt={item.createdAt} decidedAt={item.decidedAt} activeStepName={item.activeStepName} compact />
                     {isAwaitingMe(item) ? (
                       <span className="rounded-lg bg-[var(--warning)]/15 px-2 py-1 text-xs font-black text-[var(--warning)]">بانتظارك</span>
                     ) : item.isMine ? (
@@ -748,12 +766,7 @@ export function RequestsPage() {
           <div className="flex flex-wrap items-center gap-3 mb-5">
             <UserAvatar displayName={selected.employeeName} size="sm" />
             <p className="muted text-sm flex-1">{selected.employeeName}</p>
-            <RequestSlaBadge
-              status={selected.status}
-              createdAt={selected.createdAt}
-              decidedAt={selected.decidedAt}
-              activeStepName={selected.activeStepName}
-            />
+            <RequestSlaBadge status={selected.status} createdAt={selected.createdAt} decidedAt={selected.decidedAt} activeStepName={selected.activeStepName} />
             <RequestWhatsAppShareButton
               number={selected.requestNumber}
               typeLabel={labels[selected.requestType]}
@@ -786,12 +799,16 @@ export function RequestsPage() {
               </p>
               {selected.missionExecution.startedAt ? (
                 <p className="muted">
-                  بدأت: {new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(selected.missionExecution.startedAt))}
+                  بدأت:{' '}
+                  {new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' }).format(
+                    new Date(selected.missionExecution.startedAt),
+                  )}
                 </p>
               ) : null}
               {selected.missionExecution.endedAt ? (
                 <p className="muted">
-                  انتهت: {new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(selected.missionExecution.endedAt))}
+                  انتهت:{' '}
+                  {new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(selected.missionExecution.endedAt))}
                 </p>
               ) : null}
               {selected.missionExecution.actualMinutes != null ? <p className="muted">المدة الفعلية: {selected.missionExecution.actualMinutes} دقيقة</p> : null}

@@ -133,8 +133,8 @@ export function OrgChartPage({ embedded = false }: { embedded?: boolean }) {
 
   const handleMouseUp = useCallback(() => setIsPanning(false), []);
 
-  const employees = data?.employees ?? [];
-  const tree = data?.tree ?? [];
+  const employees = useMemo(() => data?.employees ?? [], [data?.employees]);
+  const tree = useMemo(() => data?.tree ?? [], [data?.tree]);
   const stats = data?.stats ?? { totalEmployees: 0, managersCount: 0, maxDepth: 0, avgDirectReports: 0 };
 
   // استخراج قائمة الإدارات المتاحة

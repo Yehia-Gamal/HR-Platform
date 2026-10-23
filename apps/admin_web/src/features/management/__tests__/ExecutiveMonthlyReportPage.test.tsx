@@ -4,11 +4,12 @@ import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import { ExecutiveMonthlyReportPage } from '../ExecutiveMonthlyReportPage';
 import { MOCK_EXECUTIVE_MONTHLY_REPORT } from '../useExecutiveMonthlyReport';
+import type * as ExecutiveMonthlyReportModule from '../useExecutiveMonthlyReport';
 
 let mockHookState: () => Record<string, unknown>;
 
 vi.mock('../useExecutiveMonthlyReport', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../useExecutiveMonthlyReport')>();
+  const actual = await importOriginal<typeof ExecutiveMonthlyReportModule>();
   return {
     ...actual,
     useExecutiveMonthlyReport: () => mockHookState(),

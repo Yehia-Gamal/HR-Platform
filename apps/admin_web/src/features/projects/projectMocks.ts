@@ -1,4 +1,10 @@
-import type { AssociationProjectDetail, AssociationProjectListItem, AssociationProjectPickers, AssociationProjectsCatalog, MyProjectTask } from '@ahla/shared-contracts';
+import type {
+  AssociationProjectDetail,
+  AssociationProjectListItem,
+  AssociationProjectPickers,
+  AssociationProjectsCatalog,
+  MyProjectTask,
+} from '@ahla/shared-contracts';
 
 // بيانات المعاينة المحلية (VITE_ENABLE_DEV_MOCKS) — تغطي كل حالات اللمبة.
 const DEPT_IT = '00000000-0000-4000-8000-0000000000d1';

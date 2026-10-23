@@ -722,7 +722,11 @@ export function statementPdfFileName(data: AttendanceStatement): string {
 /**
  * تصدير كشف موظف كملف PDF حقيقي مباشرة (ملف .pdf دون فتح نافذة HTML أو تنزيل ملفات HTML).
  */
-export async function exportAttendancePDF(data: AttendanceStatement, orgName = 'جمعية خواطر أحلى شباب', systemName = 'منظومة أحلى شباب الإدارية'): Promise<void> {
+export async function exportAttendancePDF(
+  data: AttendanceStatement,
+  orgName = 'جمعية خواطر أحلى شباب',
+  systemName = 'منظومة أحلى شباب الإدارية',
+): Promise<void> {
   const { employee: emp, period } = data;
   const monthName = MONTHS[period.month - 1] ?? '';
   const title = `كشف حضور — ${emp.fullNameAr} — ${monthName} ${period.year}`;

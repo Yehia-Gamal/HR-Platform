@@ -98,10 +98,11 @@ export function ExecutiveDailyReportPage() {
     const deptMap = new Map<string, { label: string; حاضر: number; متأخر: number; غائب: number; total: number }>();
     for (const emp of d.employees) {
       const deptName = emp.departmentName || 'إدارة غير محددة';
-      if (!deptMap.has(deptName)) {
-        deptMap.set(deptName, { label: deptName, حاضر: 0, متأخر: 0, غائب: 0, total: 0 });
+      let item = deptMap.get(deptName);
+      if (!item) {
+        item = { label: deptName, حاضر: 0, متأخر: 0, غائب: 0, total: 0 };
+        deptMap.set(deptName, item);
       }
-      const item = deptMap.get(deptName)!;
       item.total += 1;
       if (emp.status === 'present') {
         item.حاضر += 1;

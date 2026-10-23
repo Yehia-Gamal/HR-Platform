@@ -53,9 +53,7 @@ describe('DataTable', () => {
   });
 
   it('supports pinFirstColumn and applies sticky styles', () => {
-    const { container } = render(
-      <DataTable columns={columns} data={data} rowKey={(r) => r.id} pinFirstColumn selectable />
-    );
+    const { container } = render(<DataTable columns={columns} data={data} rowKey={(r) => r.id} pinFirstColumn selectable />);
     const pinnedTh = container.querySelector('th.sticky');
     expect(pinnedTh).toBeTruthy();
     const pinnedTd = container.querySelector('td.sticky');
@@ -63,13 +61,10 @@ describe('DataTable', () => {
   });
 
   it('supports pinLastColumn and applies sticky styles to last column', () => {
-    const { container } = render(
-      <DataTable columns={columns} data={data} rowKey={(r) => r.id} pinLastColumn />
-    );
+    const { container } = render(<DataTable columns={columns} data={data} rowKey={(r) => r.id} pinLastColumn />);
     const ths = container.querySelectorAll('th.sticky');
     expect(ths.length).toBeGreaterThan(0);
     const tds = container.querySelectorAll('td.sticky');
     expect(tds.length).toBeGreaterThan(0);
   });
 });
-

@@ -2330,7 +2330,22 @@ class _JourneyCard extends StatelessWidget {
         ),
       );
     }
-    return events;
+
+    // استبعاد تكرار الاعتماد لنفس الشخص بنفس التعليق والتوقيت
+    final deduplicated = <_JourneyEvent>[];
+    for (final ev in events) {
+      final isDup = deduplicated.any((existing) =>
+          existing.title == ev.title &&
+          existing.comment == ev.comment &&
+          existing.icon == ev.icon &&
+          (existing.at == null ||
+              ev.at == null ||
+              existing.at!.difference(ev.at!).inMinutes.abs() <= 2));
+      if (!isDup) {
+        deduplicated.add(ev);
+      }
+    }
+    return deduplicated;
   }
 
   @override

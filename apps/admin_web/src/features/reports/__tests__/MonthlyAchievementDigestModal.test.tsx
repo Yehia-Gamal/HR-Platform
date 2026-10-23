@@ -77,12 +77,7 @@ describe('MonthlyAchievementDigestModal', () => {
   it('renders modal with title, employee selector and stats', () => {
     render(
       <ToastProvider>
-        <MonthlyAchievementDigestModal
-          isOpen={true}
-          onClose={vi.fn()}
-          initialYear={2026}
-          initialMonth={10}
-        />
+        <MonthlyAchievementDigestModal isOpen={true} onClose={vi.fn()} initialYear={2026} initialMonth={10} />
       </ToastProvider>,
     );
 
@@ -97,12 +92,7 @@ describe('MonthlyAchievementDigestModal', () => {
   it('triggers WhatsApp share with aggregated achievements', () => {
     render(
       <ToastProvider>
-        <MonthlyAchievementDigestModal
-          isOpen={true}
-          onClose={vi.fn()}
-          initialYear={2026}
-          initialMonth={10}
-        />
+        <MonthlyAchievementDigestModal isOpen={true} onClose={vi.fn()} initialYear={2026} initialMonth={10} />
       </ToastProvider>,
     );
 

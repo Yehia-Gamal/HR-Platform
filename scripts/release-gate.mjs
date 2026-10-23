@@ -172,7 +172,7 @@ check(
 check(
   'اختبارات Flutter',
   () => {
-    run('flutter test', { cwd: join(ROOT, 'apps', 'mobile_flutter') });
+    run('flutter test --concurrency=1', { cwd: join(ROOT, 'apps', 'mobile_flutter') });
   },
   STRICT,
 );

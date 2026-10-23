@@ -34,7 +34,8 @@ export function Pagination({ currentPage, totalPages, totalItems, pageSize, onPa
     <nav className="flex flex-wrap items-center justify-between gap-3 px-1 py-2" aria-label="التنقل بين الصفحات">
       {/* معلومات النتائج */}
       <p className="text-xs font-bold text-[var(--text-muted)]" aria-live="polite">
-        عرض {totalItems.toLocaleString('ar-EG-u-nu-latn')} نتيجة — الصفحة {currentPage.toLocaleString('ar-EG-u-nu-latn')} من {totalPages.toLocaleString('ar-EG-u-nu-latn')}
+        عرض {totalItems.toLocaleString('ar-EG-u-nu-latn')} نتيجة — الصفحة {currentPage.toLocaleString('ar-EG-u-nu-latn')} من{' '}
+        {totalPages.toLocaleString('ar-EG-u-nu-latn')}
       </p>
 
       <div className="flex flex-wrap items-center gap-2">

@@ -176,10 +176,7 @@ describe('executiveReportLogic', () => {
       shiftName: 'الدوام الأساسي (10 ص – 6 م)',
     });
 
-    const summaries = computeDepartmentSummaries([
-      classifyEmployee(emp1, currentMinutes),
-      classifyEmployee(emp2, currentMinutes),
-    ]);
+    const summaries = computeDepartmentSummaries([classifyEmployee(emp1, currentMinutes), classifyEmployee(emp2, currentMinutes)]);
 
     expect(summaries.length).toBe(1);
     expect(summaries[0].departmentName).toBe('إدارة المشتريات');
@@ -257,4 +254,3 @@ describe('executiveReportLogic', () => {
     expect(audit.some((a) => a.metric.includes('الصف 5'))).toBe(true);
   });
 });
-

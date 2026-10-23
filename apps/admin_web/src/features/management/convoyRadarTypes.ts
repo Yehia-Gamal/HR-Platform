@@ -66,15 +66,10 @@ export function generateDefaultCheckpoints(destination: string): ConvoyCheckpoin
 }
 
 export function formatConvoyWhatsAppBroadcast(convoy: ConvoyRadarData): string {
-  const percent =
-    convoy.targetAid > 0
-      ? Math.round((convoy.deliveredAid / convoy.targetAid) * 100)
-      : 0;
+  const percent = convoy.targetAid > 0 ? Math.round((convoy.deliveredAid / convoy.targetAid) * 100) : 0;
 
   const currentCp =
-    convoy.checkpoints.find((c) => c.status === 'in_progress') ||
-    convoy.checkpoints.filter((c) => c.status === 'completed').pop() ||
-    convoy.checkpoints[0];
+    convoy.checkpoints.find((c) => c.status === 'in_progress') || convoy.checkpoints.filter((c) => c.status === 'completed').pop() || convoy.checkpoints[0];
 
   const lines: string[] = [
     '🚌 *بث مستجدات القافلة الميدانية — جمعية أحلى شباب* 🚌',

@@ -1,11 +1,8 @@
 import {
   ArrowRight,
-  ArrowUpDown,
   Calendar,
-  CalendarClock,
   CalendarX2,
   Camera,
-  Check,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -23,7 +20,6 @@ import {
   UserX,
   Users,
   X,
-  AlertTriangle,
 } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router';
@@ -44,18 +40,11 @@ import { Pagination } from '../../ui/Pagination';
 import { SkeletonCard } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
-import { isPhoneLikeCode } from '../../ui/phoneDisplay';
-import { useOrganizationLookups } from '../employees/useOrganizationLookups';
 import { useHrPrefix } from '../workspaces/access';
 import { exportAttendancePdf, useAttendanceRosterPage } from './useAttendanceDashboard';
 import { ExecutiveAttendanceModal } from './ExecutiveAttendanceModal';
 import { ManualMissingCheckoutModal } from './ManualMissingCheckoutModal';
-import {
-  classifyEmployee,
-  formatShiftBadge,
-  sanitizeLeaveReason,
-  sanitizeMissionPurpose,
-} from './executiveReportLogic';
+import { classifyEmployee, formatShiftBadge, sanitizeLeaveReason, sanitizeMissionPurpose } from './executiveReportLogic';
 
 const CATEGORIES: { key: AttendanceRosterCategory; label: string; icon: typeof Users }[] = [
   { key: 'scheduled', label: 'المجدولون', icon: Users },
@@ -68,13 +57,6 @@ const CATEGORIES: { key: AttendanceRosterCategory; label: string; icon: typeof U
   { key: 'missing_checkout', label: 'بصمة بلا انصراف', icon: Clock3 },
   { key: 'location_requests', label: 'طلبات الموقع', icon: MapPin },
   { key: 'location_responded', label: 'استجابات الموقع', icon: MapPin },
-];
-
-const SORT_OPTIONS: { key: AttendanceRosterSort; label: string }[] = [
-  { key: 'name', label: 'الاسم' },
-  { key: 'check_in', label: 'وقت الحضور' },
-  { key: 'late', label: 'مدة التأخير' },
-  { key: 'status', label: 'الحالة' },
 ];
 
 const PAGE_SIZES = [10, 25, 50, 100];
@@ -91,15 +73,6 @@ function locationStatusLabel(status: string | null | undefined): string {
     completed: 'مكتمل',
   };
   return map[status] ?? status;
-}
-
-function formatMinutes(minutes: number | null | undefined): string {
-  if (minutes == null || minutes <= 0) return '—';
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  if (h === 0) return `${m} د`;
-  if (m === 0) return `${h} س`;
-  return `${h} س و ${m} د`;
 }
 
 function formatTime(iso: string | null | undefined): string {
@@ -119,12 +92,7 @@ export function AttendanceDrilldownPage() {
     ? (categoryParam as AttendanceRosterCategory)
     : 'scheduled';
 
-  const category: AttendanceRosterCategory =
-    rawCategory === 'incomplete'
-      ? 'missing_checkout'
-      : rawCategory === 'pending_review'
-      ? 'scheduled'
-      : rawCategory;
+  const category: AttendanceRosterCategory = rawCategory === 'incomplete' ? 'missing_checkout' : rawCategory === 'pending_review' ? 'scheduled' : rawCategory;
   const dateParam = searchParams.get('date');
   const dateIso = /^\d{4}-\d{2}-\d{2}$/.test(dateParam ?? '') ? (dateParam as string) : cairoTodayIso();
   const q = searchParams.get('q') ?? '';
@@ -167,7 +135,7 @@ export function AttendanceDrilldownPage() {
 
     try {
       const h2cModule = await import('html2canvas-pro');
-      const html2canvas = typeof h2cModule.default === 'function' ? h2cModule.default : (h2cModule as any);
+      const html2canvas = typeof h2cModule.default === 'function' ? h2cModule.default : (h2cModule as unknown as typeof h2cModule.default);
       const canvas = await html2canvas(element, {
         scale: 2.2,
         useCORS: true,
@@ -256,7 +224,6 @@ export function AttendanceDrilldownPage() {
     setSearchParams(next, { replace: true });
   }
 
-  const lookups = useOrganizationLookups();
   const query = useAttendanceRosterPage({
     category,
     dateIso,
@@ -335,7 +302,6 @@ export function AttendanceDrilldownPage() {
   const focusedId = useEntityFocus(displayItems.length > 0);
   const hrPrefix = useHrPrefix();
   const currentCategory = CATEGORIES.find((c) => c.key === category) ?? CATEGORIES[0];
-  const isFiltered = Boolean(searchInput.trim() || branch || dept || sort !== 'name' || direction !== 'asc');
 
   const handleMarkMissingCheckout = async (employeeIds: string[]) => {
     if (employeeIds.length === 0) return;
@@ -366,9 +332,7 @@ export function AttendanceDrilldownPage() {
         return next;
       });
       setToastMessage(
-        employeeIds.length === 1
-          ? 'تم تسجيل الموظف: انصراف بدون بصمة بنجاح ✅'
-          : `تم تسجيل (${employeeIds.length}) موظفين: انصراف بدون بصمة بنجاح ✅`,
+        employeeIds.length === 1 ? 'تم تسجيل الموظف: انصراف بدون بصمة بنجاح ✅' : `تم تسجيل (${employeeIds.length}) موظفين: انصراف بدون بصمة بنجاح ✅`,
       );
       setTimeout(() => setToastMessage(null), 4000);
       await Promise.all([query.refetch(), presentQuery.refetch()]);
@@ -411,11 +375,6 @@ export function AttendanceDrilldownPage() {
       setIsActionPending(false);
     }
   };
-
-  function handleClearFilters() {
-    setSearchInput('');
-    updateParams({ q: null, branch: null, dept: null, sort: null, dir: null });
-  }
 
   return (
     <div className="space-y-4">
@@ -647,18 +606,21 @@ export function AttendanceDrilldownPage() {
       {/* ─── بطاقة المحتوى والجدول المخصصة للالتقاط ─── */}
       <div id="attendance-roster-view" className="card space-y-4 p-3.5 sm:p-4.5 bg-[var(--surface)]">
         {/* ─── ترويسة تنفيذية رسمية تظهر أثناء التقاط الصورة ─── */}
-        <div id="capture-executive-header" className="hidden p-4 rounded-xl bg-[#080e1f] border border-slate-800 text-white flex items-center justify-between mb-3">
+        <div
+          id="capture-executive-header"
+          className="hidden p-4 rounded-xl bg-[#080e1f] border border-slate-800 text-white flex items-center justify-between mb-3"
+        >
           <div className="flex items-center gap-3">
-            <div className="size-11 rounded-xl bg-sky-600 text-white flex items-center justify-center font-black text-lg shadow-md">
-              أحلى
-            </div>
+            <div className="size-11 rounded-xl bg-sky-600 text-white flex items-center justify-center font-black text-lg shadow-md">أحلى</div>
             <div>
               <div className="text-base font-black tracking-tight text-white">جمعية خواطر أحلى شباب</div>
               <div className="text-[11px] text-slate-400 font-bold">منظومة الإدارة والمتابعة المؤسسية · كشف الحضور والانصراف الرسمي</div>
             </div>
           </div>
           <div className="text-start bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-2">
-            <div className="text-xs font-black text-sky-400">كشف: {currentCategory.label} ({total} موظف)</div>
+            <div className="text-xs font-black text-sky-400">
+              كشف: {currentCategory.label} ({total} موظف)
+            </div>
             <div className="text-[11px] text-slate-300 font-medium mt-0.5">
               {new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'full' }).format(new Date(`${dateIso}T00:00:00`))}
             </div>
@@ -683,7 +645,9 @@ export function AttendanceDrilldownPage() {
               description={
                 isMissingCheckoutTab
                   ? 'لا يوجد موظفون مسجلون ضمن فئة «بصمة بلا انصراف» لهذا اليوم. يمكنك إضافة من غادر دون بصمة عبر الزر أدناه.'
-                  : (q ? 'جرّب البحث بكلمات أخرى أو عدّل الفلاتر.' : `لا يوجد موظفون ضمن فئة «${currentCategory.label}» لهذا اليوم.`)
+                  : q
+                    ? 'جرّب البحث بكلمات أخرى أو عدّل الفلاتر.'
+                    : `لا يوجد موظفون ضمن فئة «${currentCategory.label}» لهذا اليوم.`
               }
             />
             {isMissingCheckoutTab && !q ? (
@@ -709,7 +673,9 @@ export function AttendanceDrilldownPage() {
                   <th className="min-w-[170px] text-start font-bold whitespace-nowrap">الحضور / الانصراف</th>
                   <th className="min-w-[110px] text-center font-bold whitespace-nowrap">الموقع</th>
                   <th className="min-w-[200px] text-start font-bold">العذر والبيان</th>
-                  <th className="min-w-[120px] text-end font-bold whitespace-nowrap" aria-label="الإجراءات" data-hide-capture="true">الإجراءات</th>
+                  <th className="min-w-[120px] text-end font-bold whitespace-nowrap" aria-label="الإجراءات" data-hide-capture="true">
+                    الإجراءات
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -815,7 +781,10 @@ function Row({
                 </span>
               ) : null}
               {item.shiftName ? (
-                <span className="text-[10px] text-sky-400/90 font-mono font-medium truncate max-w-[160px]" title={`الوردية: ${formatShiftBadge(item.shiftName)}`}>
+                <span
+                  className="text-[10px] text-sky-400/90 font-mono font-medium truncate max-w-[160px]"
+                  title={`الوردية: ${formatShiftBadge(item.shiftName)}`}
+                >
                   · {formatShiftBadge(item.shiftName)}
                 </span>
               ) : null}
@@ -950,7 +919,10 @@ function Row({
             {item.lastCheckOut ? (
               <span className="font-bold text-[var(--text)] font-mono">{formatTime(item.lastCheckOut)}</span>
             ) : isMarked ? (
-              <span className="inline-flex items-center gap-1 font-bold text-amber-500 text-[11px] whitespace-nowrap shrink-0" title="غادر مقر العمل دون تسجيل بصمة انصراف">
+              <span
+                className="inline-flex items-center gap-1 font-bold text-amber-500 text-[11px] whitespace-nowrap shrink-0"
+                title="غادر مقر العمل دون تسجيل بصمة انصراف"
+              >
                 <Clock3 className="size-3 text-amber-500" />
                 انصرف بدون بصمة
               </span>
@@ -964,7 +936,10 @@ function Row({
                   خرج في مأمورية {missionInfo.destination ? `(${missionInfo.destination})` : ''}
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 font-bold text-emerald-500 text-[11px] whitespace-nowrap shrink-0" title="سجل حضور صباحاً ومتواجد حالياً في المجمع">
+                <span
+                  className="inline-flex items-center gap-1 font-bold text-emerald-500 text-[11px] whitespace-nowrap shrink-0"
+                  title="سجل حضور صباحاً ومتواجد حالياً في المجمع"
+                >
                   <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   متواجد حالياً في المجمع
                 </span>
@@ -993,9 +968,7 @@ function Row({
       {/* 7. العذر والملاحظات مع حماية الخصوصية التامة */}
       <td className="min-w-[200px] text-xs">
         {isMarked ? (
-          <span className="text-amber-500 text-[11px] font-bold flex items-center gap-1 whitespace-nowrap shrink-0">
-            ⚠️ مشي بدون بصمة انصراف
-          </span>
+          <span className="text-amber-500 text-[11px] font-bold flex items-center gap-1 whitespace-nowrap shrink-0">⚠️ مشي بدون بصمة انصراف</span>
         ) : hasExcuse ? (
           <div className="flex flex-col gap-1 items-start max-w-[240px]">
             {item.hasApprovedLeave ? (
@@ -1067,9 +1040,7 @@ function Row({
                 {missionInfo.purpose ? <span>💬 {missionInfo.purpose}</span> : null}
               </div>
             ) : item.pendingRequestType === 'leave' ? (
-              <span className="text-[10.5px] text-[var(--text-muted)]">
-                💬 {sanitizedLeaveReason}
-              </span>
+              <span className="text-[10.5px] text-[var(--text-muted)]">💬 {sanitizedLeaveReason}</span>
             ) : item.pendingRequestTitle ? (
               <span className="text-[10px] text-[var(--text-muted)] truncate max-w-[180px]">{item.pendingRequestTitle}</span>
             ) : null}

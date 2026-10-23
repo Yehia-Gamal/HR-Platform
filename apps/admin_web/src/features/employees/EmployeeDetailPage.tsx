@@ -1083,13 +1083,9 @@ export function DeleteEmployeeDialog({
           />
         </label>
         {reason.trim().length < 10 ? (
-          <span className="-mt-2 block text-xs text-[var(--muted)]">
-            يجب إدخال سبب واضح لا يقل عن 10 أحرف (المدخل حالياً: {reason.trim().length} من 10).
-          </span>
+          <span className="-mt-2 block text-xs text-[var(--muted)]">يجب إدخال سبب واضح لا يقل عن 10 أحرف (المدخل حالياً: {reason.trim().length} من 10).</span>
         ) : (
-          <span className="-mt-2 block text-xs text-[var(--success)] font-medium">
-            ✓ سبب الحذف مستوفٍ للحد الأدنى المطلوب.
-          </span>
+          <span className="-mt-2 block text-xs text-[var(--success)] font-medium">✓ سبب الحذف مستوفٍ للحد الأدنى المطلوب.</span>
         )}
         <label className="block">
           <span className="mb-1.5 block text-sm font-semibold">
@@ -1107,9 +1103,7 @@ export function DeleteEmployeeDialog({
             disabled={deleteEmployee.isPending}
           />
           {confirmText && !codeMatches ? (
-            <span className="mt-1 block text-xs text-[var(--danger)]">
-              كود الموظف غير متطابق تماماً مع ({employeeCode}).
-            </span>
+            <span className="mt-1 block text-xs text-[var(--danger)]">كود الموظف غير متطابق تماماً مع ({employeeCode}).</span>
           ) : null}
         </label>
         <div className="flex justify-end gap-3">
@@ -1494,18 +1488,18 @@ export function EmployeeDetailPage() {
                           item.todayStatus.status === 'present'
                             ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
                             : item.todayStatus.status === 'convoy'
-                            ? 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30'
-                            : item.todayStatus.status === 'fundraising'
-                            ? 'bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30'
-                            : item.todayStatus.status === 'mission'
-                            ? 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30'
-                            : item.todayStatus.status === 'on_leave'
-                            ? 'bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30'
-                            : item.todayStatus.status === 'late'
-                            ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30'
-                            : item.todayStatus.status === 'absent'
-                            ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30'
-                            : 'bg-gray-500/15 text-gray-700 dark:text-gray-300 border border-gray-500/30'
+                              ? 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30'
+                              : item.todayStatus.status === 'fundraising'
+                                ? 'bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30'
+                                : item.todayStatus.status === 'mission'
+                                  ? 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30'
+                                  : item.todayStatus.status === 'on_leave'
+                                    ? 'bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30'
+                                    : item.todayStatus.status === 'late'
+                                      ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30'
+                                      : item.todayStatus.status === 'absent'
+                                        ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30'
+                                        : 'bg-gray-500/15 text-gray-700 dark:text-gray-300 border border-gray-500/30'
                         }`}
                       >
                         <span className="relative flex size-2">
@@ -1590,9 +1584,7 @@ export function EmployeeDetailPage() {
                         </Link>
                       ) : null}
                     </div>
-                    <p className="font-medium text-[var(--text-secondary)] leading-relaxed">
-                      {item.roles.map((role) => role.name).join('، ') || 'لا توجد'}
-                    </p>
+                    <p className="font-medium text-[var(--text-secondary)] leading-relaxed">{item.roles.map((role) => role.name).join('، ') || 'لا توجد'}</p>
                   </div>
                 </div>
                 <button
@@ -1617,23 +1609,25 @@ export function EmployeeDetailPage() {
                     <div className="flex items-center gap-2">
                       <h3 className="font-black text-base">الحالة التشغيلية واليومية</h3>
                       {item.todayStatus ? (
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-black ${
-                          item.todayStatus.status === 'present'
-                            ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/30'
-                            : item.todayStatus.status === 'convoy'
-                            ? 'bg-purple-500/10 text-purple-600 border border-purple-500/30'
-                            : item.todayStatus.status === 'fundraising'
-                            ? 'bg-teal-500/10 text-teal-600 border border-teal-500/30'
-                            : item.todayStatus.status === 'mission'
-                            ? 'bg-blue-500/10 text-blue-600 border border-blue-500/30'
-                            : item.todayStatus.status === 'on_leave'
-                            ? 'bg-sky-500/10 text-sky-600 border border-sky-500/30'
-                            : item.todayStatus.status === 'late'
-                            ? 'bg-amber-500/10 text-amber-600 border border-amber-500/30'
-                            : item.todayStatus.status === 'absent'
-                            ? 'bg-rose-500/10 text-rose-600 border border-rose-500/30'
-                            : 'bg-gray-500/10 text-gray-600 border border-gray-500/30'
-                        }`}>
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-black ${
+                            item.todayStatus.status === 'present'
+                              ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/30'
+                              : item.todayStatus.status === 'convoy'
+                                ? 'bg-purple-500/10 text-purple-600 border border-purple-500/30'
+                                : item.todayStatus.status === 'fundraising'
+                                  ? 'bg-teal-500/10 text-teal-600 border border-teal-500/30'
+                                  : item.todayStatus.status === 'mission'
+                                    ? 'bg-blue-500/10 text-blue-600 border border-blue-500/30'
+                                    : item.todayStatus.status === 'on_leave'
+                                      ? 'bg-sky-500/10 text-sky-600 border border-sky-500/30'
+                                      : item.todayStatus.status === 'late'
+                                        ? 'bg-amber-500/10 text-amber-600 border border-amber-500/30'
+                                        : item.todayStatus.status === 'absent'
+                                          ? 'bg-rose-500/10 text-rose-600 border border-rose-500/30'
+                                          : 'bg-gray-500/10 text-gray-600 border border-gray-500/30'
+                          }`}
+                        >
                           <span className="size-1.5 rounded-full bg-current" />
                           {item.todayStatus.statusLabel ?? item.todayStatus.status}
                         </span>
@@ -1643,9 +1637,7 @@ export function EmployeeDetailPage() {
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                      متابعة الحالة التشغيلية والدوام لليوم الحالي
-                    </p>
+                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">متابعة الحالة التشغيلية والدوام لليوم الحالي</p>
                   </div>
                 </div>
 
@@ -1682,10 +1674,10 @@ export function EmployeeDetailPage() {
                     {item.todayStatus?.lateMinutes && item.todayStatus.lateMinutes > 0
                       ? `${item.todayStatus.lateMinutes} دقيقة`
                       : item.todayStatus?.workMinutes && item.todayStatus.workMinutes > 0
-                      ? `${(item.todayStatus.workMinutes / 60).toFixed(1)} ساعة`
-                      : (item.todayStatus?.status === 'convoy' || item.todayStatus?.status === 'mission' || item.todayStatus?.status === 'fundraising')
-                      ? 'مهمة عمل رسمية'
-                      : '—'}
+                        ? `${(item.todayStatus.workMinutes / 60).toFixed(1)} ساعة`
+                        : item.todayStatus?.status === 'convoy' || item.todayStatus?.status === 'mission' || item.todayStatus?.status === 'fundraising'
+                          ? 'مهمة عمل رسمية'
+                          : '—'}
                   </span>
                 </div>
                 <div>
@@ -1694,20 +1686,20 @@ export function EmployeeDetailPage() {
                     {!item.todayStatus
                       ? 'لم يسجل بعد'
                       : item.todayStatus.status === 'convoy'
-                      ? 'مشارك في قافلة مساعدات'
-                      : item.todayStatus.status === 'fundraising'
-                      ? 'يوم ترفيهي للموظفين (فاندي)'
-                      : item.todayStatus.status === 'mission'
-                      ? 'مأمورية عمل خارجية'
-                      : item.todayStatus.status === 'on_leave'
-                      ? 'إجازة رسمية معتمدة'
-                      : item.todayStatus.status === 'present'
-                      ? 'قيد الدوام'
-                      : item.todayStatus.status === 'late'
-                      ? 'حضر مع تأخير'
-                      : item.todayStatus.status === 'absent'
-                      ? 'لم يسجل حضور'
-                      : 'لم يسجل بعد'}
+                        ? 'مشارك في قافلة مساعدات'
+                        : item.todayStatus.status === 'fundraising'
+                          ? 'يوم ترفيهي للموظفين (فاندي)'
+                          : item.todayStatus.status === 'mission'
+                            ? 'مأمورية عمل خارجية'
+                            : item.todayStatus.status === 'on_leave'
+                              ? 'إجازة رسمية معتمدة'
+                              : item.todayStatus.status === 'present'
+                                ? 'قيد الدوام'
+                                : item.todayStatus.status === 'late'
+                                  ? 'حضر مع تأخير'
+                                  : item.todayStatus.status === 'absent'
+                                    ? 'لم يسجل حضور'
+                                    : 'لم يسجل بعد'}
                   </span>
                 </div>
               </div>
@@ -1723,9 +1715,7 @@ export function EmployeeDetailPage() {
                     <span className="text-xs text-[var(--text-secondary)]">جارٍ التحميل…</span>
                   ) : (
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-bold text-[var(--text)]">
-                        {activeShiftQuery.data?.shiftName ?? 'الدوام الأساسي العام'}
-                      </span>
+                      <span className="font-bold text-[var(--text)]">{activeShiftQuery.data?.shiftName ?? 'الدوام الأساسي العام'}</span>
                       {activeShiftQuery.data ? (
                         <span className="text-xs text-[var(--text-secondary)] font-sans">
                           ({formatShiftTiming(activeShiftQuery.data.startTime, activeShiftQuery.data.endTime, activeShiftQuery.data.graceInMinutes)})
@@ -1744,11 +1734,7 @@ export function EmployeeDetailPage() {
                   )}
                 </div>
                 {canEdit ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowShiftDialog(true)}
-                    className="btn-secondary btn-sm text-xs font-bold flex items-center gap-1.5"
-                  >
+                  <button type="button" onClick={() => setShowShiftDialog(true)} className="btn-secondary btn-sm text-xs font-bold flex items-center gap-1.5">
                     <Pencil className="size-3.5" aria-hidden="true" />
                     تغيير الوردية
                   </button>

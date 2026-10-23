@@ -202,7 +202,7 @@ export function ExecutiveMonitoringPage({ embedded: _embedded = false }: { embed
                           const address = e.lastAddressAr || '';
                           const parts = address.split('|').map((s) => s.trim());
                           const addrText = parts[0] || '';
-                          const mapUrl = parts.length > 1 ? parts[1] : (addrText.startsWith('http') ? addrText : null);
+                          const mapUrl = parts.length > 1 ? parts[1] : addrText.startsWith('http') ? addrText : null;
                           const cleanAddrText = mapUrl === addrText ? '' : addrText;
 
                           return (

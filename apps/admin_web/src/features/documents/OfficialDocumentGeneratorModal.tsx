@@ -1,15 +1,10 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef } from 'react';
 import { Printer, FileText, CheckCircle, Building2, ShieldCheck, Compass, Award, Share2 } from 'lucide-react';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { SignaturePad } from '../../ui/SignaturePad';
 import { shareOfficialDocumentNotice } from '../../core/whatsappShare';
 
-export type OfficialDocType =
-  | 'salary_certificate'
-  | 'employment_contract'
-  | 'clearance_settlement'
-  | 'mission_assignment'
-  | 'association_affiliation';
+export type OfficialDocType = 'salary_certificate' | 'employment_contract' | 'clearance_settlement' | 'mission_assignment' | 'association_affiliation';
 
 export interface OfficialDocEmployee {
   id: string;
@@ -465,7 +460,8 @@ export function OfficialDocumentGeneratorModal({ isOpen, onClose, employee, init
                       <strong>فترة التجربة:</strong> يخضع الطرف الثاني لفترة تجربة مدتها {probationMonths} أشهر وفقاً لأحكام قانون العمل.
                     </li>
                     <li>
-                      <strong>الراتب والمستحقات:</strong> يتقاضى الطرف الثاني راتباً شهرياً إجمالياً قدره ({total.toLocaleString('ar-EG-u-nu-latn')} ج.م) شاملاً كافة البدلات.
+                      <strong>الراتب والمستحقات:</strong> يتقاضى الطرف الثاني راتباً شهرياً إجمالياً قدره ({total.toLocaleString('ar-EG-u-nu-latn')} ج.م) شاملاً
+                      كافة البدلات.
                     </li>
                     <li>
                       <strong>السرية وحماية البيانات:</strong> يتعهد الطرف الثاني بالحفاظ التام على أسرار العمل وعدم إفشاء أي بيانات تشغيلية أو برمجية.
@@ -530,7 +526,8 @@ export function OfficialDocumentGeneratorModal({ isOpen, onClose, employee, init
                     تفيد إدارة الموارد البشرية والعمليات المركزية بجمعية «أحلى شباب» للتنمية بأن السيد/ <strong>{emp.fullNameAr}</strong> (الرقم القومي:{' '}
                     <span className="font-mono font-bold">{emp.nationalId || '—'}</span>، الكود الوظيفي:{' '}
                     <span className="font-mono font-bold">{emp.employeeCode}</span>)، والذي يشغل وظيفة <strong>{emp.jobTitle}</strong> بـ{' '}
-                    <strong>{emp.departmentName}</strong>، قد تم تكليفه رسمياً من قبل إدارة الجمعية بتنفيذ والإشراف على المأمورية والقافلة الميدانية الموضحة أدناه:
+                    <strong>{emp.departmentName}</strong>، قد تم تكليفه رسمياً من قبل إدارة الجمعية بتنفيذ والإشراف على المأمورية والقافلة الميدانية الموضحة
+                    أدناه:
                   </p>
 
                   <div className="my-3 border border-slate-300 rounded-lg overflow-hidden bg-slate-50 p-3 space-y-2">
@@ -555,7 +552,8 @@ export function OfficialDocumentGeneratorModal({ isOpen, onClose, employee, init
                   </div>
 
                   <p className="text-slate-700 leading-relaxed">
-                    نرجو من سيادتكم ومن كافة الأجهزة المعنية والأجهزة التنفيذية والأمنية ونقاط التفتيش ولجان التنسيق الميداني التفضل بتقديم كافة التسهيلات اللوجستية وتيسير مهام حركة القافلة وفريق العمل الإنساني، وذلك دعماً لجهود الإغاثة والعمل الأهلي والتطوعي بالقرى والمناطق المستهدفة.
+                    نرجو من سيادتكم ومن كافة الأجهزة المعنية والأجهزة التنفيذية والأمنية ونقاط التفتيش ولجان التنسيق الميداني التفضل بتقديم كافة التسهيلات
+                    اللوجستية وتيسير مهام حركة القافلة وفريق العمل الإنساني، وذلك دعماً لجهود الإغاثة والعمل الأهلي والتطوعي بالقرى والمناطق المستهدفة.
                   </p>
 
                   <p className="text-[11px] text-slate-500">
@@ -583,15 +581,15 @@ export function OfficialDocumentGeneratorModal({ isOpen, onClose, employee, init
                   <div className="my-3 border border-slate-300 rounded-lg p-3 bg-slate-50 space-y-1">
                     <div className="font-bold text-slate-800 text-xs">بيان التصريح والتمثيل الميداني:</div>
                     <p className="text-xs text-slate-700">
-                      المذكور مصرح له بتمثيل الجمعية في المهام الميدانية والمجتمعية، واستلام وتسليم المساعدات العينية والإشراف على فرق المتطوعين وفقاً لتوجيهات الإدارة:
+                      المذكور مصرح له بتمثيل الجمعية في المهام الميدانية والمجتمعية، واستلام وتسليم المساعدات العينية والإشراف على فرق المتطوعين وفقاً لتوجيهات
+                      الإدارة:
                     </p>
-                    <div className="p-2 bg-white rounded border border-slate-200 text-xs font-semibold text-slate-900 mt-1">
-                      «{affiliationPurpose}»
-                    </div>
+                    <div className="p-2 bg-white rounded border border-slate-200 text-xs font-semibold text-slate-900 mt-1">«{affiliationPurpose}»</div>
                   </div>
 
                   <p className="text-slate-700 leading-relaxed text-xs">
-                    أُعطيت له هذه الإفادة لتيسير مهمته الرسمية وإثبات انتسابه القانوني والتنظيمي لجمعية أحلى شباب الخاضعة لأحكام قانون تنظيم العمل الأهلي، دون أدنى مسؤولية مالية على الجمعية تجاه التزاماته الشخصية.
+                    أُعطيت له هذه الإفادة لتيسير مهمته الرسمية وإثبات انتسابه القانوني والتنظيمي لجمعية أحلى شباب الخاضعة لأحكام قانون تنظيم العمل الأهلي، دون
+                    أدنى مسؤولية مالية على الجمعية تجاه التزاماته الشخصية.
                   </p>
                 </div>
               )}
@@ -634,14 +632,10 @@ export function OfficialDocumentGeneratorModal({ isOpen, onClose, employee, init
                   <div className="text-[9px] text-slate-500 font-sans mt-0.5">
                     يمكن للجهات المعنية والأجهزة الرقابية مسح الكود للتحقق الفوري من صحة الوثيقة والتفويض الميداني
                   </div>
-                  <div className="text-[9px] font-mono text-slate-700 font-bold mt-0.5">
-                    Ref: {serialNo} | Ahla Shabab NGO Official Verification
-                  </div>
+                  <div className="text-[9px] font-mono text-slate-700 font-bold mt-0.5">Ref: {serialNo} | Ahla Shabab NGO Official Verification</div>
                 </div>
               </div>
-              <div className="text-end text-[9px] text-slate-400 font-mono hidden sm:block">
-                SECURED DOCUMENT
-              </div>
+              <div className="text-end text-[9px] text-slate-400 font-mono hidden sm:block">SECURED DOCUMENT</div>
             </div>
 
             {/* التذييل والتوقيعات الرسمية والأختام */}

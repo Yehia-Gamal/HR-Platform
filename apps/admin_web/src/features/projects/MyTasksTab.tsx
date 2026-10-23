@@ -45,7 +45,10 @@ export function MyTasksTab({ onOpenProject }: { onOpenProject: (projectId: strin
                 <li key={t.stepId} className="card flex flex-col gap-3 p-4 sm:flex-row sm:items-center" style={{ borderInlineStart: `4px solid ${g.tone}` }}>
                   <div className="min-w-0 flex-1">
                     <p className="font-black">{t.title}</p>
-                    <button className="mt-0.5 inline-flex items-center gap-1 text-xs font-bold text-[var(--brand-primary)] hover:underline" onClick={() => onOpenProject(t.projectId)}>
+                    <button
+                      className="mt-0.5 inline-flex items-center gap-1 text-xs font-bold text-[var(--brand-primary)] hover:underline"
+                      onClick={() => onOpenProject(t.projectId)}
+                    >
                       <FolderOpen className="size-3.5" aria-hidden="true" /> {t.projectName}
                     </button>
                     <p className="mt-1 flex flex-wrap items-center gap-x-3 text-xs text-[var(--text-muted)]">
@@ -68,7 +71,11 @@ export function MyTasksTab({ onOpenProject }: { onOpenProject: (projectId: strin
                         بدأت التنفيذ
                       </button>
                     )}
-                    <button className="btn-primary btn-sm" disabled={setStatus.isPending} onClick={() => setStatus.mutate({ stepId: t.stepId, status: 'done' })}>
+                    <button
+                      className="btn-primary btn-sm"
+                      disabled={setStatus.isPending}
+                      onClick={() => setStatus.mutate({ stepId: t.stepId, status: 'done' })}
+                    >
                       <CheckCircle2 className="size-4" aria-hidden="true" /> تمت
                     </button>
                   </div>

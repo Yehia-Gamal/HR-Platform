@@ -33,15 +33,7 @@ describe('PeoplePicker (فريق المشروع 0645)', () => {
 
   it('الأعضاء: إضافة وإزالة، والقائد مستبعد من القائمة', () => {
     const onChange = vi.fn();
-    render(
-      <PeoplePicker
-        label="أعضاء الفريق"
-        employees={employees}
-        selected={[IMAN]}
-        exclude={[AHMED]}
-        onChange={onChange}
-      />,
-    );
+    render(<PeoplePicker label="أعضاء الفريق" employees={employees} selected={[IMAN]} exclude={[AHMED]} onChange={onChange} />);
     expect(screen.queryByRole('button', { name: /أحمد علي/ })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /فاطمة حسن/ }));
     expect(onChange).toHaveBeenLastCalledWith([IMAN, FATMA]);

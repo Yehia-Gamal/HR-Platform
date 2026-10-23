@@ -7,14 +7,19 @@ import { Ban, Check, CornerUpLeft, Repeat2, Send, TimerOff, TrendingUp, X, type 
 /** اسم المرحلة الموحّد: تعريفات المسار القديمة تسمّي المرحلة نفسها بأسماء مختلفة. */
 export function requestStageName(name: string | null | undefined, roleSlug?: string | null, order?: number | null): string {
   let n = (name ?? '').trim();
-  if (roleSlug === 'operations-manager-1' || n.includes('مشرف العمليات') || n.includes('مدير التشغيل') || n.includes('الأوبريشن')) {
+  if (roleSlug === 'hr-manager' || roleSlug === 'hr' || roleSlug === 'hr-specialist' || roleSlug === 'hr-officer' || n === 'الموارد البشرية' || n === 'إدارة الموارد البشرية' || n.includes('الموارد البشرية')) {
+    return 'الموارد البشرية';
+  }
+  if (roleSlug === 'executive' || roleSlug === 'executive-director' || roleSlug === 'general-manager' || n.includes('المدير التنفيذي')) {
+    return 'المدير التنفيذي';
+  }
+  if (roleSlug === 'operations-manager-1' || roleSlug === 'operations' || n.includes('مشرف العمليات') || n.includes('مدير التشغيل') || n.includes('الأوبريشن')) {
     return 'مدير التشغيل 1';
   }
-  if (n.includes('المدير المباشر')) return 'المدير المباشر';
+  if (n.includes('المدير المباشر') || roleSlug === 'direct_manager') return 'المدير المباشر';
   for (const prefix of ['موافقة ', 'اعتماد ', 'مراجعة ']) {
     if (n.startsWith(prefix)) n = n.slice(prefix.length).trim();
   }
-  if (roleSlug === 'hr-manager' || n === 'الموارد البشرية' || n === 'إدارة الموارد البشرية') return 'الموارد البشرية';
   if (!n) return order === 1 ? 'المدير المباشر' : 'مرحلة الاعتماد';
   return n;
 }
@@ -105,8 +110,21 @@ function journeyEvents(history: RequestHistoryEntry[], employeeName: string): Jo
         break;
     }
   }
+  // استبعاد الأحداث المتطابقة المكررة لنفس المعتمِد والتعليق
+  const deduplicated: JourneyEvent[] = [];
+  for (const ev of events) {
+    const isDup = deduplicated.some(
+      (existing) =>
+        existing.title === ev.title &&
+        existing.comment === ev.comment &&
+        Math.abs(new Date(existing.at).getTime() - new Date(ev.at).getTime()) <= 120_000
+    );
+    if (!isDup) {
+      deduplicated.push(ev);
+    }
+  }
   // الأحدث أولًا (قاعدة المالك لكل قائمة)
-  return events.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+  return deduplicated.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
 }
 
 const dateTime = new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' });
@@ -133,9 +151,7 @@ export function RequestJourney({ history, employeeName }: { history: RequestHist
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-bold">{event.title}</p>
-                <p className="muted text-xs">
-                  {[event.subtitle, dateTime.format(new Date(event.at))].filter(Boolean).join(' · ')}
-                </p>
+                <p className="muted text-xs">{[event.subtitle, dateTime.format(new Date(event.at))].filter(Boolean).join(' · ')}</p>
                 {event.comment ? <p className="mt-1 rounded-xl bg-[var(--surface-muted)] px-3 py-2 text-xs leading-6">{event.comment}</p> : null}
               </div>
             </li>

@@ -57,10 +57,22 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
             trend: data.employees ? `${Math.round((data.activeEmployees / data.employees) * 100)}% نشط` : undefined,
             to: `${hrPrefix}/employees`,
           },
-          { label: 'طلبات معلقة', value: data.pendingRequests, icon: BadgeCheck, hint: 'وفق نطاق وصلاحيات المستخدم', to: `${hrPrefix}/requests?status=pending` },
+          {
+            label: 'طلبات معلقة',
+            value: data.pendingRequests,
+            icon: BadgeCheck,
+            hint: 'وفق نطاق وصلاحيات المستخدم',
+            to: `${hrPrefix}/requests?status=pending`,
+          },
           { label: 'حضور يحتاج مراجعة', value: data.attendancePendingReview, icon: Clock3, hint: 'تصحيحات واستثناءات اليوم', to: `${hrPrefix}/attendance` },
           { label: 'تقييمات قيد الدورة', value: data.pendingKpi, icon: Activity, hint: 'لم تصل للاعتماد النهائي', to: `${hrPrefix}/performance` },
-          { label: 'طلبات توظيف مفتوحة', value: data.openRequisitions, icon: BriefcaseBusiness, hint: 'طلبات معتمدة أو قيد النشر', to: `${hrPrefix}/recruitment` },
+          {
+            label: 'طلبات توظيف مفتوحة',
+            value: data.openRequisitions,
+            icon: BriefcaseBusiness,
+            hint: 'طلبات معتمدة أو قيد النشر',
+            to: `${hrPrefix}/recruitment`,
+          },
         ]
       : [
           {
@@ -155,7 +167,11 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
   const priorities = data
     ? type === 'hr'
       ? [
-          { title: `${data.attendancePendingReview} حالة حضور تحتاج مراجعة`, description: 'ابدأ بالتصحيحات الأقدم والأعلى تأثيرًا.', to: `${hrPrefix}/attendance` },
+          {
+            title: `${data.attendancePendingReview} حالة حضور تحتاج مراجعة`,
+            description: 'ابدأ بالتصحيحات الأقدم والأعلى تأثيرًا.',
+            to: `${hrPrefix}/attendance`,
+          },
           {
             title: `${data.pendingRequests} طلبًا داخل مسارات الاعتماد`,
             description: 'تابع الطلبات التي اقتربت من تجاوز SLA.',
@@ -246,10 +262,7 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
                     <span>التقرير التنفيذي</span>
                     <ArrowUpRight className="size-3" />
                   </Link>
-                  <Link
-                    to={`${hrPrefix}/attendance`}
-                    className="flex items-center gap-1 text-xs font-bold text-brand transition-colors hover:underline"
-                  >
+                  <Link to={`${hrPrefix}/attendance`} className="flex items-center gap-1 text-xs font-bold text-brand transition-colors hover:underline">
                     <span>شاشة الحضور والتتبع الحي</span>
                     <ArrowUpRight className="size-3.5" />
                   </Link>
@@ -628,7 +641,8 @@ export function DashboardPage({ type }: { type: 'hr' | 'admin' }) {
                 </span>
               </div>
               <div className="text-[var(--text-muted)]">
-                آخر مزامنة: {new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(data.lastUpdatedAt ?? Date.now()))}
+                آخر مزامنة:{' '}
+                {new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(data.lastUpdatedAt ?? Date.now()))}
               </div>
             </section>
           ) : null}

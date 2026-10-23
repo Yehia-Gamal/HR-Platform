@@ -92,9 +92,7 @@ const hrSections: NavSection[] = [
   },
   {
     title: 'الأداء والتطوير',
-    items: [
-      { label: 'KPI والأداء', to: '/hr/performance', icon: Gauge, permission: 'performance.kpi.read' },
-    ],
+    items: [{ label: 'KPI والأداء', to: '/hr/performance', icon: Gauge, permission: 'performance.kpi.read' }],
   },
   {
     title: 'رحلة الموظف',

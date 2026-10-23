@@ -1,19 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import {
-  AlertCircle,
-  Award,
-  Calendar,
-  CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
-  Copy,
-  Layers,
-  Printer,
-  Share2,
-  Sparkles,
-  TrendingUp,
-  X,
-} from 'lucide-react';
+import { AlertCircle, Award, Calendar, CheckCircle2, ChevronLeft, ChevronRight, Copy, Printer, Share2, Sparkles, TrendingUp } from 'lucide-react';
 import { shareMonthlyAchievementReport } from '../../core/whatsappShare';
 import { useEmployees } from '../employees/useEmployees';
 import { useEmployeeDailyReports } from '../employees/useEmployeeDossier';
@@ -21,20 +7,7 @@ import { DialogOverlay } from '../../ui/DialogOverlay';
 import { useToast } from '../../ui/Toast';
 import { UserAvatar } from '../../ui/UserAvatar';
 
-const ARABIC_MONTHS = [
-  'يناير',
-  'فبراير',
-  'مارس',
-  'أبريل',
-  'مايو',
-  'يونيو',
-  'يوليو',
-  'أغسطس',
-  'سبتمبر',
-  'أكتوبر',
-  'نوفمبر',
-  'ديسمبر',
-];
+const ARABIC_MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 
 interface MonthlyAchievementDigestModalProps {
   isOpen: boolean;
@@ -44,13 +17,7 @@ interface MonthlyAchievementDigestModalProps {
   initialMonth?: number; // 1-12
 }
 
-export function MonthlyAchievementDigestModal({
-  isOpen,
-  onClose,
-  initialEmployeeId,
-  initialYear,
-  initialMonth,
-}: MonthlyAchievementDigestModalProps) {
+export function MonthlyAchievementDigestModal({ isOpen, onClose, initialEmployeeId, initialYear, initialMonth }: MonthlyAchievementDigestModalProps) {
   const { toast } = useToast();
   const currentDate = new Date();
   const currentYear = initialYear ?? currentDate.getFullYear();
@@ -79,9 +46,7 @@ export function MonthlyAchievementDigestModal({
   // فلترة تقارير الشهر والسنة المحددة
   const monthPrefix = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
   const monthReports = useMemo(() => {
-    return dailyReports
-      .filter((r) => r.reportDate.startsWith(monthPrefix))
-      .sort((a, b) => a.reportDate.localeCompare(b.reportDate));
+    return dailyReports.filter((r) => r.reportDate.startsWith(monthPrefix)).sort((a, b) => a.reportDate.localeCompare(b.reportDate));
   }, [dailyReports, monthPrefix]);
 
   // إحصائيات الشهر
@@ -176,7 +141,7 @@ export function MonthlyAchievementDigestModal({
     if (stats.blockers.length > 0) {
       lines.push('──────────────────────────');
       lines.push('🛡️ التحديات التشغيلية المعالجة:');
-      stats.blockers.forEach((b, i) => {
+      stats.blockers.forEach((b) => {
         lines.push(`• [${b.date}] ${b.text}`);
       });
     }
@@ -231,11 +196,7 @@ export function MonthlyAchievementDigestModal({
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-3.5">
           {/* اختيار الموظف */}
           <div className="flex items-center gap-2.5 min-w-[240px]">
-            <UserAvatar
-              photoUrl={selectedEmployee?.photoUrl}
-              displayName={selectedEmployee?.fullNameAr || 'موظف'}
-              size="md"
-            />
+            <UserAvatar photoUrl={selectedEmployee?.photoUrl} displayName={selectedEmployee?.fullNameAr || 'موظف'} size="md" />
             <div className="flex-1">
               <label htmlFor="digest-employee-select" className="block text-[11px] font-bold text-[var(--text-muted)]">
                 الموظف المعني:
@@ -268,7 +229,9 @@ export function MonthlyAchievementDigestModal({
             </button>
             <div className="flex items-center gap-1 px-2 text-xs font-black text-[var(--text-primary)]">
               <Calendar className="size-3.5 text-brand" />
-              <span>{monthName} {selectedYear}</span>
+              <span>
+                {monthName} {selectedYear}
+              </span>
             </div>
             <button
               type="button"
@@ -308,9 +271,7 @@ export function MonthlyAchievementDigestModal({
               <AlertCircle className="size-3 text-amber-500" />
               تحديات عولجت
             </span>
-            <strong className="block text-xl font-black text-amber-600 dark:text-amber-400 mt-1">
-              {loadingReports ? '...' : stats.blockers.length}
-            </strong>
+            <strong className="block text-xl font-black text-amber-600 dark:text-amber-400 mt-1">{loadingReports ? '...' : stats.blockers.length}</strong>
           </div>
 
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-card)] p-3">
@@ -318,17 +279,13 @@ export function MonthlyAchievementDigestModal({
               <Award className="size-3 text-purple-500" />
               توجيهات الإدارة
             </span>
-            <strong className="block text-xl font-black text-purple-600 dark:text-purple-400 mt-1">
-              {loadingReports ? '...' : stats.managerNotes.length}
-            </strong>
+            <strong className="block text-xl font-black text-purple-600 dark:text-purple-400 mt-1">{loadingReports ? '...' : stats.managerNotes.length}</strong>
           </div>
         </div>
 
         {/* جسم التقرير وسجل الإنجازات */}
         {loadingReports ? (
-          <div className="py-12 text-center text-xs text-[var(--text-muted)]">
-            جاري استخلاص وتجميع تقارير الموظف من السجلات اليومية...
-          </div>
+          <div className="py-12 text-center text-xs text-[var(--text-muted)]">جاري استخلاص وتجميع تقارير الموظف من السجلات اليومية...</div>
         ) : stats.totalDays === 0 ? (
           <div className="rounded-2xl border border-dashed border-[var(--border)] p-8 text-center space-y-2">
             <Sparkles className="size-8 text-[var(--text-muted)] mx-auto opacity-40" />
@@ -357,9 +314,7 @@ export function MonthlyAchievementDigestModal({
                     key={`${ach.date}-${idx}`}
                     className="flex items-start gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-2.5 text-xs"
                   >
-                    <span className="shrink-0 rounded-md bg-brand/10 px-1.5 py-0.5 text-[10px] font-bold text-brand">
-                      {ach.date}
-                    </span>
+                    <span className="shrink-0 rounded-md bg-brand/10 px-1.5 py-0.5 text-[10px] font-bold text-brand">{ach.date}</span>
                     <p className="text-[var(--text-primary)] font-medium leading-relaxed">{ach.text}</p>
                   </div>
                 ))}
@@ -396,10 +351,7 @@ export function MonthlyAchievementDigestModal({
                 </div>
                 <div className="space-y-1.5">
                   {stats.managerNotes.map((note, idx) => (
-                    <div
-                      key={`mgr-${idx}`}
-                      className="rounded-lg bg-[var(--surface)] border border-purple-500/20 p-2 text-xs text-[var(--text-primary)]"
-                    >
+                    <div key={`mgr-${idx}`} className="rounded-lg bg-[var(--surface)] border border-purple-500/20 p-2 text-xs text-[var(--text-primary)]">
                       <div className="flex items-center justify-between text-[10px] text-[var(--text-muted)] mb-1">
                         <span>بواسطة: {note.reviewer}</span>
                         <span>{note.date}</span>

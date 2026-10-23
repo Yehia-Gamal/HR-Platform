@@ -1,27 +1,9 @@
 import React, { useState } from 'react';
-import {
-  BusFront,
-  CheckCircle2,
-  Clock,
-  Flag,
-  MapPin,
-  MessageCircle,
-  Package,
-  Plus,
-  Radio,
-  Send,
-  Sparkles,
-  Users,
-  X,
-} from 'lucide-react';
+import { BusFront, CheckCircle2, MessageCircle, Package, Radio } from 'lucide-react';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { openWhatsApp } from '../../core/whatsappShare';
-import {
-  ConvoyCheckpoint,
-  ConvoyRadarData,
-  formatConvoyWhatsAppBroadcast,
-  generateDefaultCheckpoints,
-} from './convoyRadarTypes';
+import type { ConvoyCheckpoint, ConvoyRadarData } from './convoyRadarTypes';
+import { formatConvoyWhatsAppBroadcast, generateDefaultCheckpoints } from './convoyRadarTypes';
 
 export function ConvoyRadarModal({
   convoy,
@@ -40,12 +22,10 @@ export function ConvoyRadarModal({
   };
   onClose: () => void;
 }) {
-  const [aidType, setAidType] = useState<string>('كراتين مواد غذائية وبطاطين');
-  const [targetAid, setTargetAid] = useState<number>(250);
+  const [aidType] = useState<string>('كراتين مواد غذائية وبطاطين');
+  const [targetAid] = useState<number>(250);
   const [deliveredAid, setDeliveredAid] = useState<number>(145);
-  const [checkpoints, setCheckpoints] = useState<ConvoyCheckpoint[]>(() =>
-    generateDefaultCheckpoints(convoy.destination || 'القرية المستهدفة'),
-  );
+  const [checkpoints, setCheckpoints] = useState<ConvoyCheckpoint[]>(() => generateDefaultCheckpoints(convoy.destination || 'القرية المستهدفة'));
 
   const [activeNoteInputId, setActiveNoteInputId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState<string>('');
@@ -114,11 +94,7 @@ export function ConvoyRadarModal({
   }
 
   return (
-    <DialogOverlay
-      title={`رادار القافلة الميداني — ${convoy.name}`}
-      onClose={onClose}
-      maxWidth="max-w-2xl"
-    >
+    <DialogOverlay title={`رادار القافلة الميداني — ${convoy.name}`} onClose={onClose} maxWidth="max-w-2xl">
       <div className="space-y-5" dir="rtl">
         {/* Header Summary */}
         <div className="rounded-2xl border border-brand/20 bg-brand/5 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -156,24 +132,18 @@ export function ConvoyRadarModal({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Package className="size-4 text-brand" />
-              <span className="text-xs font-bold text-[var(--text-primary)]">
-                نسبة توزيع المساعدات ({aidType})
-              </span>
+              <span className="text-xs font-bold text-[var(--text-primary)]">نسبة توزيع المساعدات ({aidType})</span>
             </div>
             <span className="text-xs font-black text-brand">{percent}% مكتمل</span>
           </div>
 
           <div className="h-2.5 w-full rounded-full bg-[var(--surface-muted)] overflow-hidden">
-            <div
-              className="h-full rounded-full bg-brand transition-all duration-500"
-              style={{ width: `${percent}%` }}
-            />
+            <div className="h-full rounded-full bg-brand transition-all duration-500" style={{ width: `${percent}%` }} />
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
             <span className="text-[var(--text-muted)]">
-              المنفذ حتى الآن: <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{deliveredAid}</strong> من{' '}
-              <strong>{targetAid}</strong>
+              المنفذ حتى الآن: <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{deliveredAid}</strong> من <strong>{targetAid}</strong>
             </span>
             <div className="flex items-center gap-1.5">
               <span className="text-[11px] text-[var(--text-muted)]">تحديث سريع:</span>
@@ -244,15 +214,9 @@ export function ConvoyRadarModal({
                       <div>
                         <div className="flex items-center gap-2">
                           <h5 className="font-bold text-xs text-[var(--text-primary)]">{cp.title}</h5>
-                          {cp.time ? (
-                            <span className="text-[10px] text-[var(--text-muted)] font-mono">({cp.time})</span>
-                          ) : null}
+                          {cp.time ? <span className="text-[10px] text-[var(--text-muted)] font-mono">({cp.time})</span> : null}
                         </div>
-                        {cp.notes ? (
-                          <p className="mt-1 text-[11px] text-[var(--text-muted)] leading-relaxed">
-                            {cp.notes}
-                          </p>
-                        ) : null}
+                        {cp.notes ? <p className="mt-1 text-[11px] text-[var(--text-muted)] leading-relaxed">{cp.notes}</p> : null}
                       </div>
                     </div>
 
@@ -298,11 +262,7 @@ export function ConvoyRadarModal({
                         onChange={(e) => setNoteText(e.target.value)}
                         className="input text-xs flex-1 h-8"
                       />
-                      <button
-                        type="button"
-                        onClick={() => handleSaveNote(cp.id)}
-                        className="btn-primary text-xs px-3 py-1.5 h-8 shrink-0"
-                      >
+                      <button type="button" onClick={() => handleSaveNote(cp.id)} className="btn-primary text-xs px-3 py-1.5 h-8 shrink-0">
                         حفظ
                       </button>
                     </div>

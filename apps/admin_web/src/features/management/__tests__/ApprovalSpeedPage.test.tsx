@@ -4,11 +4,12 @@ import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import { ApprovalSpeedPage } from '../ApprovalSpeedPage';
 import { MOCK_APPROVAL_SPEED_REPORT } from '../useApprovalSpeedReport';
+import type * as ApprovalSpeedModule from '../useApprovalSpeedReport';
 
 let mockHookState: () => Record<string, unknown>;
 
 vi.mock('../useApprovalSpeedReport', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../useApprovalSpeedReport')>();
+  const actual = await importOriginal<typeof ApprovalSpeedModule>();
   return {
     ...actual,
     useApprovalSpeedReport: () => mockHookState(),

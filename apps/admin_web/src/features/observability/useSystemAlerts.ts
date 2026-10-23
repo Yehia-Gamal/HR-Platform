@@ -76,10 +76,7 @@ export function useResolveAllAlerts() {
     mutationFn: async ({ ids }: { ids: string[] }) => {
       if (ids.length === 0) return;
       const supabase = await getSupabase();
-      const { error } = await supabase
-        .from('system_alerts')
-        .update({ status: 'resolved', resolved_at: new Date().toISOString() })
-        .in('id', ids);
+      const { error } = await supabase.from('system_alerts').update({ status: 'resolved', resolved_at: new Date().toISOString() }).in('id', ids);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -98,10 +95,7 @@ export function useAcknowledgeAllAlerts() {
     mutationFn: async ({ ids }: { ids: string[] }) => {
       if (ids.length === 0) return;
       const supabase = await getSupabase();
-      const { error } = await supabase
-        .from('system_alerts')
-        .update({ status: 'acknowledged', acknowledged_at: new Date().toISOString() })
-        .in('id', ids);
+      const { error } = await supabase.from('system_alerts').update({ status: 'acknowledged', acknowledged_at: new Date().toISOString() }).in('id', ids);
       if (error) throw error;
     },
     onSuccess: () => {

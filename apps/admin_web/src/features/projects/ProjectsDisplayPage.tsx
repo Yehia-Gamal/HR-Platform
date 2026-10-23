@@ -279,7 +279,10 @@ export function ProjectsDisplayPage() {
 
       {/* شريط التنبيه */}
       {stale && (
-        <div className="flex items-center gap-3 rounded-xl bg-amber-500/15 px-[1.2vw] py-[0.8vh] text-[clamp(0.85rem,1vw,2rem)] font-bold text-amber-300" role="status">
+        <div
+          className="flex items-center gap-3 rounded-xl bg-amber-500/15 px-[1.2vw] py-[0.8vh] text-[clamp(0.85rem,1vw,2rem)] font-bold text-amber-300"
+          role="status"
+        >
           <WifiOff className="size-[1.2em]" aria-hidden="true" />
           {online ? 'تعذّر التحديث' : 'لا يوجد اتصال بالإنترنت'} — المعروض آخر بيانات وصلت {updatedAgo ?? ''}، ويُعاد المحاولة تلقائياً.
         </div>
@@ -309,7 +312,11 @@ export function ProjectsDisplayPage() {
       <footer className="flex items-center justify-between gap-[2vw] text-[clamp(0.75rem,0.85vw,1.8rem)] text-slate-500">
         <span className="shrink-0">{updatedAgo ? `آخر تحديث ${updatedAgo} • يتحدّث كل دقيقة` : ''}</span>
         {latest && (
-          <p key={latest.id} className="projects-display__ticker min-w-0 flex-1 truncate text-center text-[clamp(0.85rem,1vw,2.2rem)] text-slate-300" aria-live="polite">
+          <p
+            key={latest.id}
+            className="projects-display__ticker min-w-0 flex-1 truncate text-center text-[clamp(0.85rem,1vw,2.2rem)] text-slate-300"
+            aria-live="polite"
+          >
             <span className="font-black text-sky-300">{latest.projectName}</span>
             <span className="mx-2 text-slate-500">•</span>
             {latest.note}

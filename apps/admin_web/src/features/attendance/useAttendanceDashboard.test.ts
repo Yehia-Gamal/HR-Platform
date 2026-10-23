@@ -67,4 +67,3 @@ describe('executive daily report mocks vs schema', () => {
     expect(() => executiveDailyReportSchema.parse(mockExecutiveDailyReport)).not.toThrow();
   });
 });
-

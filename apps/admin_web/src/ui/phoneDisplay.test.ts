@@ -62,4 +62,3 @@ describe('stripCountryCode', () => {
     expect(stripCountryCode('+966501234567')).toBe('+966501234567');
   });
 });
-

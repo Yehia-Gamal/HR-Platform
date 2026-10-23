@@ -64,7 +64,7 @@ export function AttendancePage() {
     setToastMessage('جاري التقاط لوحة الحضور بجودة فائقة...');
     try {
       const h2cModule = await import('html2canvas-pro');
-      const html2canvas = typeof h2cModule.default === 'function' ? h2cModule.default : (h2cModule as any);
+      const html2canvas = typeof h2cModule.default === 'function' ? h2cModule.default : (h2cModule as unknown as typeof h2cModule.default);
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
@@ -552,9 +552,7 @@ export function AttendancePage() {
         </div>
       ) : null}
 
-      {showExecutiveModal && (
-        <ExecutiveAttendanceModal dateIso={dateIso} onClose={() => setShowExecutiveModal(false)} />
-      )}
+      {showExecutiveModal && <ExecutiveAttendanceModal dateIso={dateIso} onClose={() => setShowExecutiveModal(false)} />}
     </div>
   );
 }

@@ -82,11 +82,7 @@ export function shareRequestDetails({
   currentStep?: string | null;
   phone?: string | null;
 }): void {
-  const lines: string[] = [
-    '📋 *تفاصيل طلب — منصة جمعية أحلى شباب*',
-    '',
-    `• النوع: *${typeLabel}*`,
-  ];
+  const lines: string[] = ['📋 *تفاصيل طلب — منصة جمعية أحلى شباب*', '', `• النوع: *${typeLabel}*`];
 
   if (number) {
     lines.push(`• رقم الطلب: *#${number}*`);
@@ -135,11 +131,7 @@ export function shareMonthlyAchievementReport({
   topAchievements: string[];
   phone?: string | null;
 }): void {
-  const lines: string[] = [
-    `📋 *تقرير إنجازات شهر (${monthName} ${year})*`,
-    '',
-    `👤 *الموظف:* ${employeeName}`,
-  ];
+  const lines: string[] = [`📋 *تقرير إنجازات شهر (${monthName} ${year})*`, '', `👤 *الموظف:* ${employeeName}`];
   if (department) {
     lines.push(`🏢 *القسم:* ${department}`);
   }

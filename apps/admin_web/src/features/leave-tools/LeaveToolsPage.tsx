@@ -70,15 +70,15 @@ function EmployeeMultiSelect({
             <label
               key={emp.id}
               className={`flex cursor-pointer items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm transition-colors ${
-                checked ? 'bg-[var(--brand-accent-soft)]/50 border border-[var(--brand-primary)]/40' : 'hover:bg-[var(--surface-raised)] border border-transparent'
+                checked
+                  ? 'bg-[var(--brand-accent-soft)]/50 border border-[var(--brand-primary)]/40'
+                  : 'hover:bg-[var(--surface-raised)] border border-transparent'
               } ${!emp.isActive ? 'opacity-45' : ''}`}
             >
               <div className="flex items-center gap-2.5 min-w-0 flex-1">
                 <UserAvatar displayName={emp.name} size="sm" />
                 <span className="min-w-0 truncate font-bold text-start">{emp.name}</span>
-                {emp.code && !emp.code.match(/^\+?\d{9,}$/) && (
-                  <span className="shrink-0 text-xs text-[var(--text-muted)] font-mono">({emp.code})</span>
-                )}
+                {emp.code && !emp.code.match(/^\+?\d{9,}$/) && <span className="shrink-0 text-xs text-[var(--text-muted)] font-mono">({emp.code})</span>}
               </div>
               <input
                 type="checkbox"
@@ -319,7 +319,11 @@ function AdjustBalanceSection() {
         />
       </label>
 
-      <button type="submit" className="btn-primary w-full py-2.5 text-sm font-bold" disabled={adjust.isPending || !selectedEmployee || !leaveTypeId || reason.trim().length < 5}>
+      <button
+        type="submit"
+        className="btn-primary w-full py-2.5 text-sm font-bold"
+        disabled={adjust.isPending || !selectedEmployee || !leaveTypeId || reason.trim().length < 5}
+      >
         {adjust.isPending ? 'جارٍ الحفظ...' : 'حفظ التعديل'}
       </button>
     </form>

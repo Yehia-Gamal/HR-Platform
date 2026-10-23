@@ -41,8 +41,7 @@ export function ExecutiveMonthlyReportPage() {
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
-  const { data: report, isLoading, isError, error, refetch, regenerate, isRegenerating } =
-    useExecutiveMonthlyReport(selectedYear, selectedMonth);
+  const { data: report, isLoading, isError, error, refetch, regenerate, isRegenerating } = useExecutiveMonthlyReport(selectedYear, selectedMonth);
 
   const handleExportPdf = async () => {
     if (!report) return;
@@ -72,9 +71,7 @@ export function ExecutiveMonthlyReportPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black text-[var(--text-strong)]">
-              التقرير الشهري التنفيذي الشامل
-            </h1>
+            <h1 className="text-2xl font-black text-[var(--text-strong)]">التقرير الشهري التنفيذي الشامل</h1>
             {report && (
               <span
                 className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-black ${
@@ -87,9 +84,7 @@ export function ExecutiveMonthlyReportPage() {
               </span>
             )}
           </div>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
-            الملخص الاستراتيجي لحضور المؤسسة، أداء الإدارات، الطلبات والمأموريات ومؤشرات الحوكمة
-          </p>
+          <p className="mt-1 text-sm text-[var(--text-muted)]">الملخص الاستراتيجي لحضور المؤسسة، أداء الإدارات، الطلبات والمأموريات ومؤشرات الحوكمة</p>
         </div>
 
         {/* أدوات التاريخ والأزرار */}
@@ -145,11 +140,7 @@ export function ExecutiveMonthlyReportPage() {
         </div>
       </div>
 
-      {exportError && (
-        <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-600 dark:text-red-400">
-          {exportError}
-        </div>
-      )}
+      {exportError && <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-600 dark:text-red-400">{exportError}</div>}
 
       {/* حالة التحميل أو الخطأ */}
       {isLoading ? (
@@ -183,9 +174,7 @@ export function ExecutiveMonthlyReportPage() {
                 </span>
               </div>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl font-black text-[var(--text-strong)]">
-                  {report.attendance.attendance_rate.toFixed(1)}%
-                </span>
+                <span className="text-2xl font-black text-[var(--text-strong)]">{report.attendance.attendance_rate.toFixed(1)}%</span>
                 <span className="text-xs text-[var(--text-muted)]">
                   ({report.attendance.attended_days} من {report.attendance.required_days} يوم)
                 </span>
@@ -200,9 +189,7 @@ export function ExecutiveMonthlyReportPage() {
                 </span>
               </div>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl font-black text-[var(--text-strong)]">
-                  {report.attendance.active_employees_count}
-                </span>
+                <span className="text-2xl font-black text-[var(--text-strong)]">{report.attendance.active_employees_count}</span>
                 <span className="text-xs text-[var(--text-muted)]">موظف بالمنظومة</span>
               </div>
             </div>
@@ -215,12 +202,8 @@ export function ExecutiveMonthlyReportPage() {
                 </span>
               </div>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl font-black text-[var(--text-strong)]">
-                  {report.requests.approved_count}
-                </span>
-                <span className="text-xs text-[var(--text-muted)]">
-                  معتمد من إجمالي {report.requests.total_requests}
-                </span>
+                <span className="text-2xl font-black text-[var(--text-strong)]">{report.requests.approved_count}</span>
+                <span className="text-xs text-[var(--text-muted)]">معتمد من إجمالي {report.requests.total_requests}</span>
               </div>
             </div>
 
@@ -232,12 +215,8 @@ export function ExecutiveMonthlyReportPage() {
                 </span>
               </div>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl font-black text-[var(--text-strong)]">
-                  {report.sla.avg_turnaround_hours.toFixed(1)} س
-                </span>
-                <span className="text-xs text-[var(--text-muted)]">
-                  وسيط: {report.sla.median_turnaround_hours.toFixed(1)} س
-                </span>
+                <span className="text-2xl font-black text-[var(--text-strong)]">{report.sla.avg_turnaround_hours.toFixed(1)} س</span>
+                <span className="text-xs text-[var(--text-muted)]">وسيط: {report.sla.median_turnaround_hours.toFixed(1)} س</span>
               </div>
             </div>
           </div>
@@ -247,13 +226,9 @@ export function ExecutiveMonthlyReportPage() {
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <BarChart3 className="h-5 w-5 text-[var(--brand-primary)]" />
-                <h2 className="text-base font-black text-[var(--text-strong)]">
-                  أداء الحضور والانضباط عبر الإدارات والأقسام
-                </h2>
+                <h2 className="text-base font-black text-[var(--text-strong)]">أداء الحضور والانضباط عبر الإدارات والأقسام</h2>
               </div>
-              <span className="text-xs text-[var(--text-muted)]">
-                {report.departments.length} إدارات مسجلة
-              </span>
+              <span className="text-xs text-[var(--text-muted)]">{report.departments.length} إدارات مسجلة</span>
             </div>
 
             <div className="overflow-x-auto">
@@ -273,18 +248,10 @@ export function ExecutiveMonthlyReportPage() {
                 <tbody className="divide-y divide-[var(--border)]">
                   {report.departments.map((dept, idx) => (
                     <tr key={idx} className="hover:bg-[var(--surface-hover)] transition-colors">
-                      <td className="py-3 font-bold text-[var(--text-strong)]">
-                        {dept.department_name}
-                      </td>
-                      <td className="py-3 text-center text-[var(--text-muted)] font-medium">
-                        {dept.employees_count}
-                      </td>
-                      <td className="py-3 text-center text-[var(--text-muted)] font-medium">
-                        {dept.required_days}
-                      </td>
-                      <td className="py-3 text-center font-bold text-emerald-600 dark:text-emerald-400">
-                        {dept.attended_days}
-                      </td>
+                      <td className="py-3 font-bold text-[var(--text-strong)]">{dept.department_name}</td>
+                      <td className="py-3 text-center text-[var(--text-muted)] font-medium">{dept.employees_count}</td>
+                      <td className="py-3 text-center text-[var(--text-muted)] font-medium">{dept.required_days}</td>
+                      <td className="py-3 text-center font-bold text-emerald-600 dark:text-emerald-400">{dept.attended_days}</td>
                       <td className="py-3 text-center font-bold">
                         {dept.absent_days > 0 ? (
                           <span className="text-red-600 dark:text-red-400">{dept.absent_days}</span>
@@ -292,20 +259,16 @@ export function ExecutiveMonthlyReportPage() {
                           <span className="text-[var(--text-muted)]">0</span>
                         )}
                       </td>
-                      <td className="py-3 text-center text-[var(--text-muted)]">
-                        {dept.late_days}
-                      </td>
-                      <td className="py-3 text-center text-[var(--text-muted)]">
-                        {dept.total_late_minutes} د
-                      </td>
+                      <td className="py-3 text-center text-[var(--text-muted)]">{dept.late_days}</td>
+                      <td className="py-3 text-center text-[var(--text-muted)]">{dept.total_late_minutes} د</td>
                       <td className="py-3 text-center">
                         <span
                           className={`inline-block rounded-md px-2 py-0.5 font-black ${
                             dept.attendance_rate >= 90
                               ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                               : dept.attendance_rate >= 75
-                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                              : 'bg-red-500/10 text-red-600 dark:text-red-400'
+                                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                : 'bg-red-500/10 text-red-600 dark:text-red-400'
                           }`}
                         >
                           {dept.attendance_rate.toFixed(1)}%
@@ -324,9 +287,7 @@ export function ExecutiveMonthlyReportPage() {
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
               <div className="mb-3 flex items-center gap-2">
                 <Award className="h-5 w-5 text-blue-500" />
-                <h3 className="text-sm font-black text-[var(--text-strong)]">
-                  حقائق الحضور والغياب (Attendance Day Facts)
-                </h3>
+                <h3 className="text-sm font-black text-[var(--text-strong)]">حقائق الحضور والغياب (Attendance Day Facts)</h3>
               </div>
               <div className="space-y-2 text-xs divide-y divide-[var(--border)]">
                 <div className="flex justify-between py-1.5">
@@ -364,9 +325,7 @@ export function ExecutiveMonthlyReportPage() {
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
               <div className="mb-3 flex items-center gap-2">
                 <FileText className="h-5 w-5 text-purple-500" />
-                <h3 className="text-sm font-black text-[var(--text-strong)]">
-                  حركة الطلبات والمعاملات الإدارية
-                </h3>
+                <h3 className="text-sm font-black text-[var(--text-strong)]">حركة الطلبات والمعاملات الإدارية</h3>
               </div>
               <div className="space-y-2 text-xs divide-y divide-[var(--border)]">
                 <div className="flex justify-between py-1.5">
@@ -391,9 +350,7 @@ export function ExecutiveMonthlyReportPage() {
                 </div>
                 <div className="flex justify-between py-1.5">
                   <span className="text-[var(--text-muted)]">المأموريات والقوافل الميدانية:</span>
-                  <span className="font-bold text-[var(--text-strong)]">
-                    {report.requests.mission_requests + report.requests.convoy_requests}
-                  </span>
+                  <span className="font-bold text-[var(--text-strong)]">{report.requests.mission_requests + report.requests.convoy_requests}</span>
                 </div>
                 <div className="flex justify-between py-1.5">
                   <span className="text-[var(--text-muted)]">أذونات التأخير والانصراف:</span>
@@ -406,9 +363,7 @@ export function ExecutiveMonthlyReportPage() {
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
               <div className="mb-3 flex items-center gap-2">
                 <Briefcase className="h-5 w-5 text-indigo-500" />
-                <h3 className="text-sm font-black text-[var(--text-strong)]">
-                  المأموريات الميدانية ومتابعة التقارير
-                </h3>
+                <h3 className="text-sm font-black text-[var(--text-strong)]">المأموريات الميدانية ومتابعة التقارير</h3>
               </div>
               <div className="space-y-2 text-xs divide-y divide-[var(--border)]">
                 <div className="flex justify-between py-1.5">
@@ -434,9 +389,7 @@ export function ExecutiveMonthlyReportPage() {
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
               <div className="mb-3 flex items-center gap-2">
                 <DollarSign className="h-5 w-5 text-emerald-500" />
-                <h3 className="text-sm font-black text-[var(--text-strong)]">
-                  الغرامات الفورية وصندوق الزمالة والـ SLA
-                </h3>
+                <h3 className="text-sm font-black text-[var(--text-strong)]">الغرامات الفورية وصندوق الزمالة والـ SLA</h3>
               </div>
               <div className="space-y-2 text-xs divide-y divide-[var(--border)]">
                 <div className="flex justify-between py-1.5">

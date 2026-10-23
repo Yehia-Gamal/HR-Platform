@@ -58,8 +58,6 @@ import {
   useBulkConfirmPenaltyPayments,
   useBulkCancelPenalties,
   useDailyOvertimeSummary,
-  type DailyOvertimeSummary,
-  type DailyOvertimeEmployee,
   type InstantPenalty,
   type PendingPenaltyEmployee,
 } from './useInstantPenalties';
@@ -551,11 +549,7 @@ export function InstantPenaltiesPage() {
                 </span>
               )}
             </div>
-            {isDoubled && (
-              <span className="text-[10px] text-[var(--text-muted)] font-mono">
-                الأصلية: {formatCurrency(p.originalAmount)}
-              </span>
-            )}
+            {isDoubled && <span className="text-[10px] text-[var(--text-muted)] font-mono">الأصلية: {formatCurrency(p.originalAmount)}</span>}
           </div>
         );
       },
@@ -566,7 +560,10 @@ export function InstantPenaltiesPage() {
       render: (p) => {
         if (p.awaitingCheckoutConfirmation) {
           return (
-            <div className="flex flex-col gap-0.5" title="أتم الموظف 8 ساعات عمل بنجاح، وبانتظار تسجيل بصمة الانصراف بمقر العمل لإلغاء الغرامة نهائياً وتأكيد التواجد.">
+            <div
+              className="flex flex-col gap-0.5"
+              title="أتم الموظف 8 ساعات عمل بنجاح، وبانتظار تسجيل بصمة الانصراف بمقر العمل لإلغاء الغرامة نهائياً وتأكيد التواجد."
+            >
               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 whitespace-nowrap">
                 <Clock className="size-3 text-amber-500 shrink-0" />
                 مستوفي 8 س (بانتظار بصمة الانصراف)
@@ -1135,15 +1132,15 @@ export function InstantPenaltiesPage() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-teal-950 dark:text-teal-200">
-                  صندوق ساعات العمل الإضافي — Overtime Hub
-                </span>
+                <span className="font-bold text-teal-950 dark:text-teal-200">صندوق ساعات العمل الإضافي — Overtime Hub</span>
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30">
                   {overtimeSummary.data?.employeesCount ?? 0} موظفاً قضوا وقتاً إضافياً اليوم
                 </span>
               </div>
               <p className="text-xs text-teal-900/80 dark:text-teal-300/80 mt-0.5">
-                إجمالي الوقت الإضافي لليوم: <span className="font-bold font-mono text-teal-700 dark:text-teal-300">{overtimeSummary.data?.totalOvertimeFormatted || '0 دقيقة'}</span> ({overtimeSummary.data?.totalOvertimeMinutes ?? 0} دقيقة زيادة فوق ساعات العمل المقررة)
+                إجمالي الوقت الإضافي لليوم:{' '}
+                <span className="font-bold font-mono text-teal-700 dark:text-teal-300">{overtimeSummary.data?.totalOvertimeFormatted || '0 دقيقة'}</span> (
+                {overtimeSummary.data?.totalOvertimeMinutes ?? 0} دقيقة زيادة فوق ساعات العمل المقررة)
               </p>
             </div>
           </div>
@@ -1288,7 +1285,8 @@ export function InstantPenaltiesPage() {
         <section className="card p-5">
           <h2 className="font-black">إنشاء غرامة فورية للتأخير</h2>
           <p className="mt-1 text-xs text-[var(--text-muted)]">
-            الحضور يبدأ 10:00 ص: من 1-15 دقيقة = سماح بدون خصم (0 ج.م) | حتى 10:30 (16-30 دقيقة) = 20 ج.م | حتى 11:00 (31-60 دقيقة) = 50 ج.م | من 11:01 وحتى 12:00 (61-120 دقيقة) = 150 ج.م.
+            الحضور يبدأ 10:00 ص: من 1-15 دقيقة = سماح بدون خصم (0 ج.م) | حتى 10:30 (16-30 دقيقة) = 20 ج.م | حتى 11:00 (31-60 دقيقة) = 50 ج.م | من 11:01 وحتى
+            12:00 (61-120 دقيقة) = 150 ج.م.
           </p>
           <form className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" onSubmit={(ev) => void submitPenalty(ev)}>
             <label className="block">
@@ -1480,7 +1478,14 @@ export function InstantPenaltiesPage() {
           {selectedIds.size > 0 && (
             <div className="flex flex-wrap items-center gap-3 rounded-xl border border-blue-300/80 dark:border-blue-700/60 bg-blue-50/70 dark:bg-blue-950/30 p-2.5 backdrop-blur-xs shadow-xs">
               <span className="text-xs font-bold text-blue-800 dark:text-blue-300 px-1">
-                تم تحديد {selectedIds.size === 1 ? 'غرامة واحدة' : selectedIds.size === 2 ? 'غرامتان' : selectedIds.size <= 10 ? `${selectedIds.size} غرامات` : `${selectedIds.size} غرامة`}
+                تم تحديد{' '}
+                {selectedIds.size === 1
+                  ? 'غرامة واحدة'
+                  : selectedIds.size === 2
+                    ? 'غرامتان'
+                    : selectedIds.size <= 10
+                      ? `${selectedIds.size} غرامات`
+                      : `${selectedIds.size} غرامة`}
               </span>
               <div className="flex-1" />
               <button
@@ -1638,7 +1643,9 @@ export function InstantPenaltiesPage() {
                             <tr key={e.employeeId} className="hover:bg-[var(--surface-hover)] transition-colors">
                               <td className="p-3">
                                 <p className="font-bold text-[var(--text-primary)]">{e.employeeName ?? '—'}</p>
-                                <p className="text-[10px] text-[var(--text-muted)] font-mono">{isPhoneLikeCode(e.employeeCode) ? '—' : <bdi dir="ltr">{e.employeeCode}</bdi>}</p>
+                                <p className="text-[10px] text-[var(--text-muted)] font-mono">
+                                  {isPhoneLikeCode(e.employeeCode) ? '—' : <bdi dir="ltr">{e.employeeCode}</bdi>}
+                                </p>
                               </td>
                               <td className="p-3 text-[var(--text-secondary)]">{e.departmentName ?? '—'}</td>
                               <td className="p-3 text-center font-bold font-mono text-amber-600">{e.pendingCount}</td>
@@ -1780,7 +1787,9 @@ export function InstantPenaltiesPage() {
                               <tr key={e.employeeId} className="hover:bg-[var(--surface-hover)] transition-colors">
                                 <td className="p-3">
                                   <p className="font-bold text-red-700 dark:text-red-400">{e.employeeName ?? '—'}</p>
-                                  <p className="text-[10px] text-[var(--text-muted)] font-mono">{isPhoneLikeCode(e.employeeCode) ? '—' : <bdi dir="ltr">{e.employeeCode}</bdi>}</p>
+                                  <p className="text-[10px] text-[var(--text-muted)] font-mono">
+                                    {isPhoneLikeCode(e.employeeCode) ? '—' : <bdi dir="ltr">{e.employeeCode}</bdi>}
+                                  </p>
                                 </td>
                                 <td className="p-3 text-[var(--text-secondary)]">{e.departmentName ?? '—'}</td>
                                 <td className="p-3 text-center font-bold font-mono text-red-600">{e.pendingCount}</td>
@@ -2184,12 +2193,7 @@ export function InstantPenaltiesPage() {
         inputPlaceholder="أي تفاصيل أو طريقة السداد…"
         inputValue={paymentNotes}
         onInputChange={setPaymentNotes}
-        quickSuggestions={[
-          'سداد نقدي تم التوريد للخزينة',
-          'تحويل إنستاباي InstaPay',
-          'تحويل فودافون كاش',
-          'استقطاع من الحافز/الراتب',
-        ]}
+        quickSuggestions={['سداد نقدي تم التوريد للخزينة', 'تحويل إنستاباي InstaPay', 'تحويل فودافون كاش', 'استقطاع من الحافز/الراتب']}
         confirmLabel="تأكيد الاستلام والإيداع بالصندوق"
         tone="info"
         required={false}
@@ -2223,12 +2227,7 @@ export function InstantPenaltiesPage() {
         inputPlaceholder="سبب رفع التعليق…"
         inputValue={liftReason}
         onInputChange={setLiftReason}
-        quickSuggestions={[
-          'تعهد بالسداد لاحقاً',
-          'مراعاة لظرف طارئ موثق',
-          'توجيه من المدير التنفيذي',
-          'استيفاء ساعات العمل والتزام',
-        ]}
+        quickSuggestions={['تعهد بالسداد لاحقاً', 'مراعاة لظرف طارئ موثق', 'توجيه من المدير التنفيذي', 'استيفاء ساعات العمل والتزام']}
         confirmLabel="رفع التعليق"
         tone="warning"
         loading={liftSuspension.isPending}
@@ -2301,12 +2300,7 @@ export function InstantPenaltiesPage() {
         inputPlaceholder="سبب الإلغاء…"
         inputValue={bulkCancelReason}
         onInputChange={setBulkCancelReason}
-        quickSuggestions={[
-          'مأمورية عمل جماعية',
-          'عطل عام في أجهزة البصمة',
-          'توجيه إداري من الإدارة التنفيذية',
-          'إعفاء جماعي معتمد',
-        ]}
+        quickSuggestions={['مأمورية عمل جماعية', 'عطل عام في أجهزة البصمة', 'توجيه إداري من الإدارة التنفيذية', 'إعفاء جماعي معتمد']}
         confirmLabel={`إلغاء ${selectedIds.size} غرامة`}
         tone="danger"
         loading={bulkCancel.isPending}
@@ -2611,12 +2605,13 @@ export function InstantPenaltiesPage() {
                 const msgText = generateEmployeePenaltyWhatsAppText(p, empName);
                 const isSent = sentWhatsAppIds.has(p.id);
 
-                const initials = empName
-                  .trim()
-                  .split(/\s+/)
-                  .slice(0, 2)
-                  .map((s) => s[0])
-                  .join('') || 'م';
+                const initials =
+                  empName
+                    .trim()
+                    .split(/\s+/)
+                    .slice(0, 2)
+                    .map((s) => s[0])
+                    .join('') || 'م';
 
                 return (
                   <div
@@ -2659,9 +2654,7 @@ export function InstantPenaltiesPage() {
                         <span className="font-mono font-bold text-xs bg-[var(--surface-muted)] px-2 py-1 rounded-md border border-[var(--border-subtle)]">
                           {formatCurrency(p.currentAmount)}
                         </span>
-                        <span className="text-xs text-[var(--text-secondary)] font-medium">
-                          {fmtLateDisplay(p.lateMinutes)}
-                        </span>
+                        <span className="text-xs text-[var(--text-secondary)] font-medium">{fmtLateDisplay(p.lateMinutes)}</span>
                       </div>
                     </div>
 
@@ -2705,38 +2698,26 @@ export function InstantPenaltiesPage() {
 
       {/* ─── نافذة تفاصيل ساعات العمل الإضافي ───────────────────────────── */}
       {overtimeModalOpen && (
-        <DialogOverlay
-          title="بيان ساعات العمل الإضافي لليوم (Overtime Hub)"
-          onClose={() => setOvertimeModalOpen(false)}
-          maxWidth="max-w-2xl"
-        >
+        <DialogOverlay title="بيان ساعات العمل الإضافي لليوم (Overtime Hub)" onClose={() => setOvertimeModalOpen(false)} maxWidth="max-w-2xl">
           <div className="space-y-4 max-h-[75vh] overflow-y-auto p-1">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div className="rounded-lg bg-[var(--surface-muted)] p-3 border border-[var(--border-subtle)] text-center">
                 <p className="text-xs text-[var(--text-muted)]">إجمالي الساعات الإضافية</p>
-                <p className="font-bold font-mono text-base text-teal-600 dark:text-teal-400 mt-0.5">
-                  {overtimeSummary.data?.totalOvertimeFormatted || '0'}
-                </p>
+                <p className="font-bold font-mono text-base text-teal-600 dark:text-teal-400 mt-0.5">{overtimeSummary.data?.totalOvertimeFormatted || '0'}</p>
               </div>
               <div className="rounded-lg bg-[var(--surface-muted)] p-3 border border-[var(--border-subtle)] text-center">
                 <p className="text-xs text-[var(--text-muted)]">عدد الموظفين المستحقين</p>
-                <p className="font-bold font-mono text-base text-[var(--text-primary)] mt-0.5">
-                  {overtimeSummary.data?.employeesCount ?? 0} موظفاً
-                </p>
+                <p className="font-bold font-mono text-base text-[var(--text-primary)] mt-0.5">{overtimeSummary.data?.employeesCount ?? 0} موظفاً</p>
               </div>
               <div className="rounded-lg bg-[var(--surface-muted)] p-3 border border-[var(--border-subtle)] text-center col-span-2 sm:col-span-1">
                 <p className="text-xs text-[var(--text-muted)]">إجمالي الدقائق الإضافية</p>
-                <p className="font-bold font-mono text-base text-[var(--text-secondary)] mt-0.5">
-                  {overtimeSummary.data?.totalOvertimeMinutes ?? 0} دقيقة
-                </p>
+                <p className="font-bold font-mono text-base text-[var(--text-secondary)] mt-0.5">{overtimeSummary.data?.totalOvertimeMinutes ?? 0} دقيقة</p>
               </div>
             </div>
 
             <div className="divide-y divide-[var(--border-subtle)] rounded-xl border border-[var(--border)] overflow-hidden">
               {(overtimeSummary.data?.employees ?? []).length === 0 ? (
-                <div className="p-6 text-center text-xs text-[var(--text-muted)]">
-                  لا يوجد وقت إضافي مسجل لهذا اليوم حتى الآن.
-                </div>
+                <div className="p-6 text-center text-xs text-[var(--text-muted)]">لا يوجد وقت إضافي مسجل لهذا اليوم حتى الآن.</div>
               ) : (
                 (overtimeSummary.data?.employees ?? []).map((emp) => (
                   <div key={emp.employeeId} className="p-3 bg-[var(--surface)] hover:bg-[var(--surface-muted)] flex items-center justify-between gap-3 text-xs">
@@ -2759,9 +2740,7 @@ export function InstantPenaltiesPage() {
                         <span className="inline-flex items-center gap-1 font-bold text-teal-600 dark:text-teal-400 bg-teal-500/10 px-2 py-0.5 rounded border border-teal-500/20">
                           +{emp.overtimeFormatted}
                         </span>
-                        <p className="text-[10px] text-[var(--text-muted)] mt-0.5 text-right">
-                          ({emp.overtimeMinutes} دقيقة إضافية)
-                        </p>
+                        <p className="text-[10px] text-[var(--text-muted)] mt-0.5 text-right">({emp.overtimeMinutes} دقيقة إضافية)</p>
                       </div>
                     </div>
                   </div>

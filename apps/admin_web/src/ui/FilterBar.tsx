@@ -35,7 +35,10 @@ export function FilterBar({
             البحث والتصفية
           </span>
           {resultText ? (
-            <span className="filter-result inline-block !m-0 !text-[11px] font-bold text-[var(--text-muted)] bg-[var(--surface-muted)] px-2.5 py-0.5 rounded-full border border-[var(--border-subtle)]" aria-live="polite">
+            <span
+              className="filter-result inline-block !m-0 !text-[11px] font-bold text-[var(--text-muted)] bg-[var(--surface-muted)] px-2.5 py-0.5 rounded-full border border-[var(--border-subtle)]"
+              aria-live="polite"
+            >
               {resultText}
             </span>
           ) : null}

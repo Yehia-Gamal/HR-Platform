@@ -140,26 +140,16 @@ function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIs
   const title = `كشف الحضور الرسمي — ${categoryLabel} — ${dateLabel}`;
 
   const isMissionItem = (i: AttendanceRosterItem): boolean =>
-    i.status === 'on_mission' ||
-    Boolean(i.hasMission) ||
-    (Boolean(i.hasPendingRequest) && i.pendingRequestType === 'mission');
+    i.status === 'on_mission' || Boolean(i.hasMission) || (Boolean(i.hasPendingRequest) && i.pendingRequestType === 'mission');
 
   const isLeaveItem = (i: AttendanceRosterItem): boolean =>
-    (i.status === 'on_leave' ||
-      Boolean(i.hasApprovedLeave) ||
-      (Boolean(i.hasPendingRequest) && i.pendingRequestType !== 'mission')) &&
-    !isMissionItem(i);
+    (i.status === 'on_leave' || Boolean(i.hasApprovedLeave) || (Boolean(i.hasPendingRequest) && i.pendingRequestType !== 'mission')) && !isMissionItem(i);
 
   // عدد الحضور يشمل الحضور الفعلي + المتأخرين الذين لديهم طلب موافقة يغطي الوقت
-  const presentCount = items.filter((i) =>
-    i.status === 'present' ||
-    (i.status === 'late' && i.hasPendingRequest)
-  ).length;
+  const presentCount = items.filter((i) => i.status === 'present' || (i.status === 'late' && i.hasPendingRequest)).length;
 
   // المتأخرون الفعليون هم الذين لا يوجد لديهم طلب يغطي الوقت
-  const lateCount = items.filter((i) =>
-    i.status === 'late' && !i.hasPendingRequest
-  ).length;
+  const lateCount = items.filter((i) => i.status === 'late' && !i.hasPendingRequest).length;
   const absentCount = items.filter((i) => (i.status === 'absent' || i.status === 'unexcused_absent') && !i.hasPendingRequest).length;
   const missionCount = items.filter(isMissionItem).length;
   const leaveCount = items.filter(isLeaveItem).length;
@@ -243,7 +233,10 @@ function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIs
           }
         } else {
           statusBadgeClass = 'status-badge-absent';
-          statusText = (item.status === 'unexcused_absent' || (!item.hasPendingRequest && !item.hasApprovedLeave && !item.hasMission && item.status === 'absent')) ? 'غياب بدون إذن' : 'غائب';
+          statusText =
+            item.status === 'unexcused_absent' || (!item.hasPendingRequest && !item.hasApprovedLeave && !item.hasMission && item.status === 'absent')
+              ? 'غياب بدون إذن'
+              : 'غائب';
         }
       } else if (item.status === 'on_leave' || item.hasApprovedLeave) {
         statusBadgeClass = 'status-badge-leave';
@@ -257,7 +250,8 @@ function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIs
       if (item.lastCheckOut) {
         checkOutDisplay = _fmt(item.lastCheckOut);
       } else if (item.firstCheckIn) {
-        const isMission = item.status === 'on_mission' || Boolean(item.hasMission) || (Boolean(item.hasPendingRequest) && item.pendingRequestType === 'mission');
+        const isMission =
+          item.status === 'on_mission' || Boolean(item.hasMission) || (Boolean(item.hasPendingRequest) && item.pendingRequestType === 'mission');
         if (isMission) {
           const dest = item.leaveTitle ?? item.pendingRequestTitle;
           checkOutDisplay = `<span style="color:#0284c7;font-weight:700">✈️ خرج لمأمورية${dest ? ` (${dest})` : ''}</span>`;
@@ -269,7 +263,7 @@ function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIs
       let excuseDisplay = '—';
       if (item.hasPendingRequest && !item.hasApprovedLeave) {
         const isMission = item.pendingRequestType === 'mission';
-        const reqTitle = item.pendingRequestTitle ?? item.leaveTitle ?? (isMission ? 'مأمورية رسمية' : item.leaveName ?? 'إجازة');
+        const reqTitle = item.pendingRequestTitle ?? item.leaveTitle ?? (isMission ? 'مأمورية رسمية' : (item.leaveName ?? 'إجازة'));
         const reqNum = item.pendingRequestNumber ? ` (#${item.pendingRequestNumber})` : '';
         const reasonPart = item.leaveReason ? ` - ${item.leaveReason}` : '';
         excuseDisplay = `⏳ ${isMission ? 'طلب مأمورية' : 'طلب معلّق'}: ${reqTitle}${reqNum}${reasonPart}`;

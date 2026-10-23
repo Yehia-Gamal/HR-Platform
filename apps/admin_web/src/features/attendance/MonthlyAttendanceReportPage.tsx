@@ -605,7 +605,12 @@ function StatementReport({ data }: { data: AttendanceStatement }) {
               </button>
             ))}
           </div>
-          <select className="input !w-auto min-w-[140px] shrink-0" value={daySort} onChange={(e) => setDaySort(e.target.value as DaySort)} aria-label="ترتيب الأيام">
+          <select
+            className="input !w-auto min-w-[140px] shrink-0"
+            value={daySort}
+            onChange={(e) => setDaySort(e.target.value as DaySort)}
+            aria-label="ترتيب الأيام"
+          >
             {DAY_SORTS.map((so) => (
               <option key={so.key} value={so.key}>
                 {so.label}

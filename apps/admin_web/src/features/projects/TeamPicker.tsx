@@ -4,13 +4,7 @@ import { Crown, Search, X } from 'lucide-react';
 
 /** تطبيع بسيط للبحث بالعربية (همزات/تاء مربوطة/ياء) حتى يجد «احمد» «أحمد». */
 function normalize(text: string): string {
-  return text
-    .replace(/[أإآ]/g, 'ا')
-    .replace(/ة/g, 'ه')
-    .replace(/ى/g, 'ي')
-    .replace(/[ً-ْ]/g, '')
-    .toLowerCase()
-    .trim();
+  return text.replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/[ً-ْ]/g, '').toLowerCase().trim();
 }
 
 function matches(e: AssociationProjectPickerEmployee, q: string): boolean {
@@ -37,10 +31,7 @@ export function PeoplePicker({ label, hint, employees, selected, onChange, singl
   const listId = useId();
   const q = normalize(query);
   const byId = useMemo(() => new Map(employees.map((e) => [e.id, e])), [employees]);
-  const visible = useMemo(
-    () => employees.filter((e) => !exclude.includes(e.id) && matches(e, q)).slice(0, 80),
-    [employees, exclude, q],
-  );
+  const visible = useMemo(() => employees.filter((e) => !exclude.includes(e.id) && matches(e, q)).slice(0, 80), [employees, exclude, q]);
 
   function toggle(id: string) {
     if (single) {
@@ -90,7 +81,12 @@ export function PeoplePicker({ label, hint, employees, selected, onChange, singl
               aria-controls={listId}
             />
           </label>
-          <ul id={listId} className="max-h-48 overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]" role="listbox" aria-multiselectable={!single}>
+          <ul
+            id={listId}
+            className="max-h-48 overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]"
+            role="listbox"
+            aria-multiselectable={!single}
+          >
             {visible.length === 0 ? (
               <li className="p-3 text-center text-xs text-[var(--text-muted)]">لا توجد نتائج</li>
             ) : (

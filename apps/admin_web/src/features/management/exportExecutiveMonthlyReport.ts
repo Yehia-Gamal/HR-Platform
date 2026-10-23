@@ -1,9 +1,6 @@
 import type { ExecutiveMonthlyReport } from './useExecutiveMonthlyReport';
 
-const MONTH_NAMES = [
-  'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-  'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
-];
+const MONTH_NAMES = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 
 function esc(value: unknown): string {
   return String(value ?? '')
@@ -20,14 +17,15 @@ function pctColor(pct: number): string {
 export function buildExecutiveMonthlyReportHtml(
   data: ExecutiveMonthlyReport,
   orgName = 'جمعية خواطر أحلى شباب',
-  systemName = 'منظومة أحلى شباب الإدارية'
+  systemName = 'منظومة أحلى شباب الإدارية',
 ): string {
   const { period, attendance, departments, requests, missions, penalties, sla, generatedAt } = data;
   const monthName = MONTH_NAMES[period.month - 1] ?? `شهر ${period.month}`;
 
-  const rowsHtml = departments.map((d) => {
-    const rateColor = pctColor(d.attendance_rate);
-    return `
+  const rowsHtml = departments
+    .map((d) => {
+      const rateColor = pctColor(d.attendance_rate);
+      return `
       <tr>
         <td style="font-weight: 700; text-align: right;">${esc(d.department_name)}</td>
         <td>${d.employees_count}</td>
@@ -43,7 +41,8 @@ export function buildExecutiveMonthlyReportHtml(
         </td>
       </tr>
     `;
-  }).join('');
+    })
+    .join('');
 
   return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -337,7 +336,7 @@ export function buildExecutiveMonthlyReportHtml(
 export function exportExecutiveMonthlyReport(
   data: ExecutiveMonthlyReport,
   orgName = 'جمعية خواطر أحلى شباب',
-  systemName = 'منظومة أحلى شباب الإدارية'
+  systemName = 'منظومة أحلى شباب الإدارية',
 ): Promise<void> {
   const html = buildExecutiveMonthlyReportHtml(data, orgName, systemName);
   const monthName = MONTH_NAMES[data.period.month - 1] ?? `${data.period.month}`;

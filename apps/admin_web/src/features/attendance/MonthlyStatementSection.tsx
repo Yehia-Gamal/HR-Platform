@@ -275,7 +275,11 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
               <th scope="col">إضافي</th>
               <th scope="col">الحالة</th>
               <th scope="col">ملاحظات</th>
-              {data.capabilities.canEditDays ? <th scope="col" className="cell-actions">إجراء</th> : null}
+              {data.capabilities.canEditDays ? (
+                <th scope="col" className="cell-actions">
+                  إجراء
+                </th>
+              ) : null}
             </tr>
           </thead>
           <tbody>
@@ -288,7 +292,9 @@ function StatementBody({ data }: { data: AttendanceStatement }) {
                   <td className="cell-day">{d.dayNameAr}</td>
                   <td className="cell-time">{fmtTime(d.checkIn)}</td>
                   <td className="cell-time">{fmtTime(d.checkOut)}</td>
-                  <td className="cell-shift" title={d.shiftName || ''}>{d.shiftName || <span className="dash">—</span>}</td>
+                  <td className="cell-shift" title={d.shiftName || ''}>
+                    {d.shiftName || <span className="dash">—</span>}
+                  </td>
                   <td className="cell-num">{d.workHours ? d.workHours.toFixed(1) : <span className="dash">—</span>}</td>
                   <td className={`cell-num${d.lateMinutes > 0 ? ' text-[var(--warning)] font-bold' : ''}`}>
                     {d.lateMinutes ? fmtMinutesCompact(d.lateMinutes) : <span className="dash">—</span>}

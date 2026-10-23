@@ -133,8 +133,7 @@ export function useMyProjectTasks() {
 /** تحريك خطوة لأعلى/لأسفل (0647). */
 export function useMoveProjectStep() {
   return useProjectMutation(
-    (input: { stepId: string; direction: 'up' | 'down' }) =>
-      rpc('move_project_step', { p_step_id: input.stepId, p_direction: input.direction }),
+    (input: { stepId: string; direction: 'up' | 'down' }) => rpc('move_project_step', { p_step_id: input.stepId, p_direction: input.direction }),
     'تم تغيير ترتيب الخطوة',
   );
 }

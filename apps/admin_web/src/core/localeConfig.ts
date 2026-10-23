@@ -11,7 +11,7 @@ export const APP_LOCALE = 'ar-EG-u-nu-latn';
 export function enforceLatinNumeralsGlobal(): void {
   if (typeof window === 'undefined') return;
 
-  const normalizeLocales = (locales?: unknown): any => {
+  const normalizeLocales = (locales?: unknown): Intl.LocalesArgument => {
     if (!locales) return APP_LOCALE;
     if (typeof locales === 'string') {
       if (locales === 'ar' || locales === 'ar-EG' || (locales.startsWith('ar') && !locales.includes('-u-nu-'))) {
@@ -21,12 +21,10 @@ export function enforceLatinNumeralsGlobal(): void {
     }
     if (Array.isArray(locales)) {
       return locales.map((l) =>
-        typeof l === 'string' && (l === 'ar' || l === 'ar-EG' || (l.startsWith('ar') && !l.includes('-u-nu-')))
-          ? `${l}-u-nu-latn`
-          : l,
-      );
+        typeof l === 'string' && (l === 'ar' || l === 'ar-EG' || (l.startsWith('ar') && !l.includes('-u-nu-'))) ? `${l}-u-nu-latn` : l,
+      ) as Intl.LocalesArgument;
     }
-    return locales;
+    return locales as Intl.LocalesArgument;
   };
 
   // 1. Intl.DateTimeFormat
@@ -34,7 +32,7 @@ export function enforceLatinNumeralsGlobal(): void {
   const PatchedDateTimeFormat = function (this: unknown, locales?: string | string[], options?: Intl.DateTimeFormatOptions) {
     return new OriginalDateTimeFormat(normalizeLocales(locales), options);
   } as unknown as typeof Intl.DateTimeFormat;
-  (PatchedDateTimeFormat as any).prototype = OriginalDateTimeFormat.prototype;
+  Object.defineProperty(PatchedDateTimeFormat, 'prototype', { value: OriginalDateTimeFormat.prototype });
   PatchedDateTimeFormat.supportedLocalesOf = OriginalDateTimeFormat.supportedLocalesOf;
   Intl.DateTimeFormat = PatchedDateTimeFormat;
 
@@ -43,7 +41,7 @@ export function enforceLatinNumeralsGlobal(): void {
   const PatchedNumberFormat = function (this: unknown, locales?: string | string[], options?: Intl.NumberFormatOptions) {
     return new OriginalNumberFormat(normalizeLocales(locales), options);
   } as unknown as typeof Intl.NumberFormat;
-  (PatchedNumberFormat as any).prototype = OriginalNumberFormat.prototype;
+  Object.defineProperty(PatchedNumberFormat, 'prototype', { value: OriginalNumberFormat.prototype });
   PatchedNumberFormat.supportedLocalesOf = OriginalNumberFormat.supportedLocalesOf;
   Intl.NumberFormat = PatchedNumberFormat;
 

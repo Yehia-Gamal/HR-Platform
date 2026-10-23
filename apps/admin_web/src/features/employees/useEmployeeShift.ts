@@ -106,7 +106,16 @@ export function useAvailableShifts() {
         .eq('is_active', true)
         .order('start_time', { ascending: true });
       if (error) throw new Error(error.message);
-      return (data ?? []).map((row: any) => ({
+      type ShiftDbRow = {
+        id: string;
+        code: string;
+        name: string;
+        name_en?: string | null;
+        start_time: string;
+        end_time: string;
+        grace_in_minutes?: number | null;
+      };
+      return ((data ?? []) as unknown as ShiftDbRow[]).map((row) => ({
         id: row.id,
         code: row.code,
         name: row.name,
@@ -148,7 +157,8 @@ export function useEmployeeActiveShift(employeeId: string | undefined) {
       // 1) فحص shift_assignments المعتمدة النشطة
       const { data, error } = await supabase
         .from('shift_assignments')
-        .select(`
+        .select(
+          `
           id,
           shift_id,
           effective_from,
@@ -163,7 +173,8 @@ export function useEmployeeActiveShift(employeeId: string | undefined) {
             end_time,
             grace_in_minutes
           )
-        `)
+        `,
+        )
         .eq('employee_id', employeeId)
         .eq('is_active', true)
         .lte('effective_from', today)
@@ -177,7 +188,15 @@ export function useEmployeeActiveShift(employeeId: string | undefined) {
       }
 
       if (data && data.shifts) {
-        const s = Array.isArray(data.shifts) ? data.shifts[0] : (data.shifts as any);
+        type ShiftRelRow = {
+          id: string;
+          code: string;
+          name: string;
+          start_time: string;
+          end_time: string;
+          grace_in_minutes?: number | null;
+        };
+        const s = (Array.isArray(data.shifts) ? data.shifts[0] : data.shifts) as unknown as ShiftRelRow;
         return {
           assignmentId: data.id,
           shiftId: s.id,
@@ -240,17 +259,7 @@ export function useSetEmployeeShiftAdmin() {
   const client = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      employeeId,
-      shiftId,
-      effectiveFrom,
-      notes,
-    }: {
-      employeeId: string;
-      shiftId: string;
-      effectiveFrom?: string;
-      notes?: string;
-    }) => {
+    mutationFn: async ({ employeeId, shiftId, effectiveFrom, notes }: { employeeId: string; shiftId: string; effectiveFrom?: string; notes?: string }) => {
       if (auth.isMock) {
         return { success: true };
       }

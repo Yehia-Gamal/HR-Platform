@@ -127,4 +127,3 @@ describe('generateReportHtml', () => {
     expect(html).toContain('nowrap');
   });
 });
-

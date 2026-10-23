@@ -318,12 +318,7 @@ export function OperationsCenterPage() {
         </section>
       ) : null}
 
-      {selectedRadarConvoy ? (
-        <ConvoyRadarModal
-          convoy={selectedRadarConvoy}
-          onClose={() => setSelectedRadarConvoy(null)}
-        />
-      ) : null}
+      {selectedRadarConvoy ? <ConvoyRadarModal convoy={selectedRadarConvoy} onClose={() => setSelectedRadarConvoy(null)} /> : null}
 
       {taskDraft ? (
         <DialogOverlay title="إنشاء مهمة تشغيلية" onClose={() => setTaskDraft(null)} maxWidth="max-w-2xl">

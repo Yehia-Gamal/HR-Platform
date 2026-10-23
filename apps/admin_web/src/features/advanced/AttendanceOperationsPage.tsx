@@ -199,7 +199,9 @@ export function AttendanceOperationsPage() {
                     <p className="muted mt-2 text-sm">
                       {roster.code} · {roster.periodStart} — {roster.periodEnd} · {roster.days} يوم
                     </p>
-                    {roster.publishedAt ? <p className="muted mt-1 text-xs">نُشر {new Date(roster.publishedAt).toLocaleDateString('ar-EG-u-nu-latn')}</p> : null}
+                    {roster.publishedAt ? (
+                      <p className="muted mt-1 text-xs">نُشر {new Date(roster.publishedAt).toLocaleDateString('ar-EG-u-nu-latn')}</p>
+                    ) : null}
                   </article>
                 ))}
               </div>

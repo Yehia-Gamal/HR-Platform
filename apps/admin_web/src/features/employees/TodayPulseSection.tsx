@@ -108,7 +108,6 @@ const CARD_TONES: Record<PulseDialogKind, string> = {
 
 export function TodayPulseSection() {
   const auth = useAuth();
-  const hrPrefix = useHrPrefix();
   const allowed = auth.access ? hasAnyPermission(auth.access, ['reports.attendance.read', 'live_location.request']) : false;
   const query = useTodayPulse(allowed);
   const trend = useAttendanceTrend(7, allowed);

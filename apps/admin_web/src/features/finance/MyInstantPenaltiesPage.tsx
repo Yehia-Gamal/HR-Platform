@@ -319,9 +319,9 @@ export function MyInstantPenaltiesPage() {
               <button
                 type="button"
                 onClick={() => {
-                  if (!disputeReason.trim()) return;
+                  if (!disputeReason.trim() || !disputeModal.penalty) return;
                   submitDispute.mutate(
-                    { penaltyId: disputeModal.penalty!.id, reason: disputeReason.trim() },
+                    { penaltyId: disputeModal.penalty.id, reason: disputeReason.trim() },
                     { onSuccess: () => setDisputeModal({ open: false, penalty: null }) },
                   );
                 }}

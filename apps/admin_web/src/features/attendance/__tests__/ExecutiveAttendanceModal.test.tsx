@@ -272,4 +272,3 @@ describe('ExecutiveAttendanceModal', () => {
     expect(screen.getByText('123')).toBeDefined();
   });
 });
-

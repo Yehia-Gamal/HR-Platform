@@ -147,11 +147,7 @@ function PendingDevicesPanel({ onSwitchToAll, allCount }: { onSwitchToAll?: () =
           description={allDevices.length === 0 ? 'لم يسجّل أي موظف جهازاً جديداً بانتظار الموافقة حالياً.' : 'لا توجد نتائج مطابقة للفلاتر المحددة.'}
           action={
             allDevices.length === 0 && onSwitchToAll && allCount && allCount > 0 ? (
-              <button
-                type="button"
-                className="btn-secondary mt-3 inline-flex items-center gap-1.5"
-                onClick={onSwitchToAll}
-              >
+              <button type="button" className="btn-secondary mt-3 inline-flex items-center gap-1.5" onClick={onSwitchToAll}>
                 <MonitorSmartphone className="size-4" aria-hidden="true" />
                 عرض كل الأجهزة المسجلة ({allCount})
               </button>

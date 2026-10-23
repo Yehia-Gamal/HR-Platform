@@ -1,7 +1,27 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { AssociationProjectDetail, AssociationProjectListItem, AssociationProjectStep, ProjectRole } from '@ahla/shared-contracts';
-import { AlertTriangle, Ban, Building2, CalendarClock, Check, CheckCircle2, ChevronDown, ChevronUp, Circle, Crown, Loader2, MessageSquarePlus, Pencil, Plus, Send, Trash2, UserCheck, Users, X } from 'lucide-react';
+import {
+  AlertTriangle,
+  Ban,
+  Building2,
+  CalendarClock,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Circle,
+  Crown,
+  Loader2,
+  MessageSquarePlus,
+  Pencil,
+  Plus,
+  Send,
+  Trash2,
+  UserCheck,
+  Users,
+  X,
+} from 'lucide-react';
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { ErrorState } from '../../ui/ErrorState';

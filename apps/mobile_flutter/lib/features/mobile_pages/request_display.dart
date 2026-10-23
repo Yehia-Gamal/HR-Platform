@@ -206,20 +206,31 @@ class RequestMetaChip extends StatelessWidget {
 /// «موافقة مشرف العمليات 1» و«مدير التشغيل 1» و«الأوبريشن».
 String requestStageName(String? name, {String? roleSlug, int? order}) {
   var n = (name ?? '').trim();
+  if (roleSlug == 'hr-manager' ||
+      roleSlug == 'hr-specialist' ||
+      roleSlug == 'hr-officer' ||
+      roleSlug == 'hr' ||
+      n == 'الموارد البشرية' ||
+      n == 'إدارة الموارد البشرية' ||
+      n.contains('الموارد البشرية')) {
+    return 'الموارد البشرية';
+  }
+  if (roleSlug == 'executive' ||
+      roleSlug == 'executive-director' ||
+      roleSlug == 'general-manager' ||
+      n.contains('المدير التنفيذي')) {
+    return 'المدير التنفيذي';
+  }
   if (roleSlug == 'operations-manager-1' ||
+      roleSlug == 'operations' ||
       n.contains('مشرف العمليات') ||
       n.contains('مدير التشغيل') ||
       n.contains('الأوبريشن')) {
     return 'مدير التشغيل 1';
   }
-  if (n.contains('المدير المباشر')) return 'المدير المباشر';
+  if (n.contains('المدير المباشر') || roleSlug == 'direct_manager') return 'المدير المباشر';
   for (final prefix in const ['موافقة ', 'اعتماد ', 'مراجعة ']) {
     if (n.startsWith(prefix)) n = n.substring(prefix.length).trim();
-  }
-  if (roleSlug == 'hr-manager' ||
-      n == 'الموارد البشرية' ||
-      n == 'إدارة الموارد البشرية') {
-    return 'الموارد البشرية';
   }
   if (n.isEmpty) return order == 1 ? 'المدير المباشر' : 'مرحلة الاعتماد';
   return n;

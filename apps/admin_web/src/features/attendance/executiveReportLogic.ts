@@ -105,11 +105,7 @@ export function getMinutesFromMidnight(timeOrIso: string | null | undefined): nu
 /**
  * هل بدأت وردية الموظف في توقيت إصدار التقرير؟
  */
-export function hasShiftStarted(
-  shift: ShiftTimeWindow | null,
-  currentMinutesFromMidnight: number,
-  graceMinutes = 15
-): boolean {
+export function hasShiftStarted(shift: ShiftTimeWindow | null, currentMinutesFromMidnight: number, graceMinutes = 15): boolean {
   if (!shift) return false;
   const shiftStartMin = shift.startHour * 60 + shift.startMinute;
   return currentMinutesFromMidnight >= shiftStartMin + graceMinutes;
@@ -118,10 +114,7 @@ export function hasShiftStarted(
 /**
  * هل الوردية لم تبدأ بعد؟ (مثل العيادات المسائية 3 م عند إصدار التقرير 2:25 م)
  */
-export function isShiftUpcoming(
-  shift: ShiftTimeWindow | null,
-  currentMinutesFromMidnight: number
-): boolean {
+export function isShiftUpcoming(shift: ShiftTimeWindow | null, currentMinutesFromMidnight: number): boolean {
   if (!shift) return false;
   const shiftStartMin = shift.startHour * 60 + shift.startMinute;
   return currentMinutesFromMidnight < shiftStartMin;
@@ -133,11 +126,7 @@ export function isShiftUpcoming(
  * إذا حضر 12:34 م لوردية 10:00 ص -> التأخير = 154 دقيقة (ساعتان و34 دقيقة).
  * إذا حضر 2:22 م لوردية 3:00 م -> التأخير = 0 (حضر مبكراً).
  */
-export function calculateTrueLateMinutes(
-  checkInIsoOrTime: string | null | undefined,
-  shift: ShiftTimeWindow | null,
-  fallbackBackendLate = 0
-): number {
+export function calculateTrueLateMinutes(checkInIsoOrTime: string | null | undefined, shift: ShiftTimeWindow | null, fallbackBackendLate = 0): number {
   if (!checkInIsoOrTime) return 0;
   if (!shift) return fallbackBackendLate > 0 ? fallbackBackendLate : 0;
 
@@ -194,17 +183,15 @@ export interface ClassifiedEmployee {
   isClinicStaff: boolean;
 }
 
-export function classifyEmployee(
-  item: AttendanceRosterItem,
-  currentMinutesFromMidnight: number
-): ClassifiedEmployee {
-  const shiftWindow = parseShiftWindow(item.shiftName, (item as any).shiftStart);
+export function classifyEmployee(item: AttendanceRosterItem, currentMinutesFromMidnight: number): ClassifiedEmployee {
+  const shiftWindow = parseShiftWindow(item.shiftName, (item as { shiftStart?: string | null }).shiftStart);
   const trueLate = calculateTrueLateMinutes(item.firstCheckIn, shiftWindow, item.lateMinutes ?? 0);
 
   const isMission = item.status === 'on_mission' || Boolean(item.hasMission) || (Boolean(item.hasPendingRequest) && item.pendingRequestType === 'mission');
   const isPendingMission = isMission && Boolean(item.hasPendingRequest) && !item.hasApprovedLeave && !item.hasMission;
 
-  const isLeave = (item.status === 'on_leave' || Boolean(item.hasApprovedLeave) || (Boolean(item.hasPendingRequest) && item.pendingRequestType === 'leave')) && !isMission;
+  const isLeave =
+    (item.status === 'on_leave' || Boolean(item.hasApprovedLeave) || (Boolean(item.hasPendingRequest) && item.pendingRequestType === 'leave')) && !isMission;
   const isPendingLeave = isLeave && Boolean(item.hasPendingRequest) && !item.hasApprovedLeave;
 
   const hasCheckIn = Boolean(item.firstCheckIn) || item.status === 'present' || item.status === 'late' || item.status === 'missing_checkout';
@@ -284,7 +271,7 @@ export interface ExecutiveMetrics {
 
 export function computeExecutiveMetrics(classified: ClassifiedEmployee[]): ExecutiveMetrics {
   const active = classified.filter((c) => c.category !== 'exempt');
-  
+
   const presentOnTime = active.filter((c) => c.category === 'present_on_time').length;
   const presentLate = active.filter((c) => c.category === 'present_late').length;
   const presentMissionApproved = active.filter((c) => c.category === 'present_mission_approved').length;
@@ -437,7 +424,7 @@ export function sanitizeMissionPurpose(title: string | null | undefined, reason:
  */
 export function formatShiftBadge(shiftName: string | null | undefined): string {
   if (!shiftName || shiftName === '—') return 'دوام مرن';
-  let formatted = shiftName.replace(/(\d+)\s*ع(?=[\s\–\-—\)]|$)/g, '$1 م');
+  let formatted = shiftName.replace(/(\d+)\s*ع(?=[\s–\-—)]|$)/g, '$1 م');
   // توضيح وسم "عيادات (١)" أو "عيادات (1)" غير المفهوم ليصبح صريحاً للمدير التنفيذي
   formatted = formatted.replace(/عيادات\s*\([١1]\)/g, 'العيادات الطبية (الفترة المسائية 3 م – 11 م)');
   return formatted;
@@ -450,7 +437,7 @@ export function generateSecurityVerificationCode(
   dateIso: string,
   totalScheduled: number,
   presentCount: number,
-  absentCount: number
+  absentCount: number,
 ): { code: string; shortHash: string; verifyUrl: string } {
   const rawPayload = `${dateIso}:${totalScheduled}:${presentCount}:${absentCount}:AHLA_EXECUTIVE_SECURE`;
   let hashNum = 0;
@@ -507,10 +494,7 @@ export interface EndOfDayMetrics {
 /**
  * حساب مؤشرات نهاية اليوم: الانصراف المبكر، البصمة الناقصة، ساعات العمل، والوقت الإضافي
  */
-export function computeEndOfDayMetrics(
-  classified: ClassifiedEmployee[],
-  currentMinutesFromMidnight: number
-): EndOfDayMetrics {
+export function computeEndOfDayMetrics(classified: ClassifiedEmployee[], currentMinutesFromMidnight: number): EndOfDayMetrics {
   const allStats: EndOfDayEmployeeStats[] = [];
 
   for (const c of classified) {
@@ -686,4 +670,3 @@ export function generateComparativeAudit(metrics: ExecutiveMetrics): Comparative
     },
   ];
 }
-

@@ -9,12 +9,7 @@ vi.mock('../../../core/whatsappShare', () => ({
 
 describe('OfficialDocumentGeneratorModal', () => {
   it('renders official document generator and switches to mission assignment with QR verification', () => {
-    render(
-      <OfficialDocumentGeneratorModal
-        isOpen={true}
-        onClose={vi.fn()}
-      />
-    );
+    render(<OfficialDocumentGeneratorModal isOpen={true} onClose={vi.fn()} />);
 
     // Initial default is salary certificate
     expect(screen.getByText('شهادة تعريف بالراتب (HR Letter)')).toBeDefined();
@@ -36,13 +31,7 @@ describe('OfficialDocumentGeneratorModal', () => {
   it('triggers whatsapp share notice with proper parameters', () => {
     const shareSpy = vi.spyOn(whatsappShare, 'shareOfficialDocumentNotice');
 
-    render(
-      <OfficialDocumentGeneratorModal
-        isOpen={true}
-        onClose={vi.fn()}
-        initialType="mission_assignment"
-      />
-    );
+    render(<OfficialDocumentGeneratorModal isOpen={true} onClose={vi.fn()} initialType="mission_assignment" />);
 
     const shareBtn = screen.getByText('مشاركة إشعار الوثيقة (WhatsApp)');
     fireEvent.click(shareBtn);
@@ -51,7 +40,7 @@ describe('OfficialDocumentGeneratorModal', () => {
     expect(shareSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         docTitle: expect.stringContaining('خطاب تكليف بمأمورية'),
-      })
+      }),
     );
   });
 });

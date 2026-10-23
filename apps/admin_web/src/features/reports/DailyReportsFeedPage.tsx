@@ -362,12 +362,7 @@ export function DailyReportsFeedPage() {
         }
       `}</style>
 
-      {showMonthlyDigest && (
-        <MonthlyAchievementDigestModal
-          isOpen={showMonthlyDigest}
-          onClose={() => setShowMonthlyDigest(false)}
-        />
-      )}
+      {showMonthlyDigest && <MonthlyAchievementDigestModal isOpen={showMonthlyDigest} onClose={() => setShowMonthlyDigest(false)} />}
     </div>
   );
 }

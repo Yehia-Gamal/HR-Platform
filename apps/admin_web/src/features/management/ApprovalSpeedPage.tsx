@@ -1,20 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import {
-  Clock,
-  CheckCircle2,
-  AlertTriangle,
-  TrendingUp,
-  Search,
-  Calendar,
-  Download,
-  Flame,
-  ArrowUpDown,
-  RefreshCw,
-  MessageCircle,
-} from 'lucide-react';
+import { Clock, CheckCircle2, AlertTriangle, TrendingUp, Search, Calendar, Download, Flame, ArrowUpDown, RefreshCw, MessageCircle } from 'lucide-react';
 import { shareApproverNudge } from '../../core/whatsappShare';
 import { useApprovalSpeedReport } from './useApprovalSpeedReport';
-import type { ApproverSpeedItem } from './useApprovalSpeedReport';
 
 const REQUEST_TYPE_LABELS: Record<string, string> = {
   mission: 'مأمورية عمل',
@@ -74,16 +61,14 @@ export function ApprovalSpeedPage() {
   const { data, isLoading, isError, error, refetch, isFetching } = useApprovalSpeedReport(fromDate, toDate);
 
   const summary = data?.summary;
-  const approvers = data?.approvers ?? [];
+  const approvers = useMemo(() => data?.approvers ?? [], [data?.approvers]);
   const byRequestType = data?.byRequestType ?? [];
 
   const filteredApprovers = useMemo(() => {
     let list = [...approvers];
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase();
-      list = list.filter(
-        (a) => a.name.toLowerCase().includes(q) || a.code.toLowerCase().includes(q),
-      );
+      list = list.filter((a) => a.name.toLowerCase().includes(q) || a.code.toLowerCase().includes(q));
     }
 
     list.sort((a, b) => {
@@ -208,10 +193,7 @@ export function ApprovalSpeedPage() {
     );
   }
 
-  const approvalRate =
-    summary && summary.total_decisions > 0
-      ? Math.round((summary.total_approved / summary.total_decisions) * 100)
-      : 0;
+  const approvalRate = summary && summary.total_decisions > 0 ? Math.round((summary.total_approved / summary.total_decisions) * 100) : 0;
 
   return (
     <div className="space-y-6" dir="rtl">
@@ -224,9 +206,7 @@ export function ApprovalSpeedPage() {
             </div>
             <div>
               <h1 className="text-lg font-black text-[var(--text-primary)]">لوحة سرعة الاعتمادات وSLA</h1>
-              <p className="text-xs text-[var(--text-muted)]">
-                رصد وتحليل زمن استجابة متخذي القرار ومعدل إنجاز مسارات الطلبات
-              </p>
+              <p className="text-xs text-[var(--text-muted)]">رصد وتحليل زمن استجابة متخذي القرار ومعدل إنجاز مسارات الطلبات</p>
             </div>
           </div>
         </div>
@@ -310,12 +290,8 @@ export function ApprovalSpeedPage() {
             <span>إجمالي القرارات</span>
             <TrendingUp className="h-4 w-4 text-[var(--brand-primary)]" />
           </div>
-          <div className="text-2xl font-black text-[var(--text-primary)]">
-            {summary?.total_decisions.toLocaleString('ar-EG-u-nu-latn') ?? 0}
-          </div>
-          <div className="text-[11px] text-[var(--text-muted)] mt-1">
-            {approvalRate}% نسبة القبول
-          </div>
+          <div className="text-2xl font-black text-[var(--text-primary)]">{summary?.total_decisions.toLocaleString('ar-EG-u-nu-latn') ?? 0}</div>
+          <div className="text-[11px] text-[var(--text-muted)] mt-1">{approvalRate}% نسبة القبول</div>
         </div>
 
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-card)] p-4 shadow-sm">
@@ -323,12 +299,8 @@ export function ApprovalSpeedPage() {
             <span>وسيط زمن الرد</span>
             <Clock className="h-4 w-4 text-emerald-500" />
           </div>
-          <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
-            {formatHours(summary?.median_turnaround_hours ?? 0)}
-          </div>
-          <div className="text-[11px] text-[var(--text-muted)] mt-1">
-            زمن 50% من القرارات
-          </div>
+          <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{formatHours(summary?.median_turnaround_hours ?? 0)}</div>
+          <div className="text-[11px] text-[var(--text-muted)] mt-1">زمن 50% من القرارات</div>
         </div>
 
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-card)] p-4 shadow-sm">
@@ -336,12 +308,8 @@ export function ApprovalSpeedPage() {
             <span>متوسط زمن الرد</span>
             <Clock className="h-4 w-4 text-blue-500" />
           </div>
-          <div className="text-2xl font-black text-blue-600 dark:text-blue-400">
-            {formatHours(summary?.avg_turnaround_hours ?? 0)}
-          </div>
-          <div className="text-[11px] text-[var(--text-muted)] mt-1">
-            المتوسط الحسابي
-          </div>
+          <div className="text-2xl font-black text-blue-600 dark:text-blue-400">{formatHours(summary?.avg_turnaround_hours ?? 0)}</div>
+          <div className="text-[11px] text-[var(--text-muted)] mt-1">المتوسط الحسابي</div>
         </div>
 
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-card)] p-4 shadow-sm">
@@ -354,9 +322,7 @@ export function ApprovalSpeedPage() {
             <span className="text-[var(--text-muted)] mx-1">/</span>
             <span className="text-rose-500">{summary?.total_rejected ?? 0}</span>
           </div>
-          <div className="text-[11px] text-[var(--text-muted)] mt-1">
-            مكتمل الإجراء
-          </div>
+          <div className="text-[11px] text-[var(--text-muted)] mt-1">مكتمل الإجراء</div>
         </div>
 
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-card)] p-4 shadow-sm">
@@ -364,12 +330,8 @@ export function ApprovalSpeedPage() {
             <span>طلبات معلقة</span>
             <Flame className="h-4 w-4 text-amber-500" />
           </div>
-          <div className="text-2xl font-black text-amber-600 dark:text-amber-400">
-            {summary?.total_pending.toLocaleString('ar-EG-u-nu-latn') ?? 0}
-          </div>
-          <div className="text-[11px] text-[var(--text-muted)] mt-1">
-            بانتظار قرار المعتمد
-          </div>
+          <div className="text-2xl font-black text-amber-600 dark:text-amber-400">{summary?.total_pending.toLocaleString('ar-EG-u-nu-latn') ?? 0}</div>
+          <div className="text-[11px] text-[var(--text-muted)] mt-1">بانتظار قرار المعتمد</div>
         </div>
 
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-card)] p-4 shadow-sm">
@@ -377,12 +339,8 @@ export function ApprovalSpeedPage() {
             <span>تم تصعيدها</span>
             <AlertTriangle className="h-4 w-4 text-rose-500" />
           </div>
-          <div className="text-2xl font-black text-rose-600 dark:text-rose-400">
-            {summary?.total_escalated.toLocaleString('ar-EG-u-nu-latn') ?? 0}
-          </div>
-          <div className="text-[11px] text-[var(--text-muted)] mt-1">
-            تجاوزت مهلة SLA
-          </div>
+          <div className="text-2xl font-black text-rose-600 dark:text-rose-400">{summary?.total_escalated.toLocaleString('ar-EG-u-nu-latn') ?? 0}</div>
+          <div className="text-[11px] text-[var(--text-muted)] mt-1">تجاوزت مهلة SLA</div>
         </div>
       </div>
 
@@ -396,24 +354,17 @@ export function ApprovalSpeedPage() {
           </div>
 
           {byRequestType.length === 0 ? (
-            <div className="p-6 text-center text-xs text-[var(--text-muted)]">
-              لا توجد قرارات في الفترة المحددة
-            </div>
+            <div className="p-6 text-center text-xs text-[var(--text-muted)]">لا توجد قرارات في الفترة المحددة</div>
           ) : (
             <div className="space-y-3">
               {byRequestType.map((item) => {
                 const label = REQUEST_TYPE_LABELS[item.request_type] || item.request_type;
                 const _badge = getSpeedBadge(item.avg_hours);
                 return (
-                  <div
-                    key={item.request_type}
-                    className="flex flex-col gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-3"
-                  >
+                  <div key={item.request_type} className="flex flex-col gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-[var(--text-primary)]">{label}</span>
-                      <span className="text-xs font-black text-[var(--brand-primary)]">
-                        {item.decisions_count} قرار
-                      </span>
+                      <span className="text-xs font-black text-[var(--brand-primary)]">{item.decisions_count} قرار</span>
                     </div>
 
                     <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)]">
@@ -423,13 +374,7 @@ export function ApprovalSpeedPage() {
 
                     <div className="h-1.5 w-full rounded-full bg-[var(--border)] overflow-hidden">
                       <div
-                        className={`h-full rounded-full ${
-                          item.avg_hours <= 4
-                            ? 'bg-emerald-500'
-                            : item.avg_hours <= 24
-                              ? 'bg-blue-500'
-                              : 'bg-rose-500'
-                        }`}
+                        className={`h-full rounded-full ${item.avg_hours <= 4 ? 'bg-emerald-500' : item.avg_hours <= 24 ? 'bg-blue-500' : 'bg-rose-500'}`}
                         style={{
                           width: `${Math.min(100, Math.max(10, (100 * item.decisions_count) / (summary?.total_decisions || 1)))}%`,
                         }}
@@ -447,9 +392,7 @@ export function ApprovalSpeedPage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <h2 className="text-sm font-bold text-[var(--text-primary)]">سجل المعتمدين وسرعة الإنجاز</h2>
-              <p className="text-xs text-[var(--text-muted)]">
-                تصنيف المسؤولين حسب سرعة اتخاذ القرارات وحجم المعلقات
-              </p>
+              <p className="text-xs text-[var(--text-muted)]">تصنيف المسؤولين حسب سرعة اتخاذ القرارات وحجم المعلقات</p>
             </div>
 
             <div className="relative">
@@ -469,38 +412,26 @@ export function ApprovalSpeedPage() {
               <thead className="bg-[var(--surface-raised)] text-[var(--text-muted)]">
                 <tr>
                   <th className="p-3 font-bold">المعتمد</th>
-                  <th
-                    className="p-3 font-bold cursor-pointer hover:text-[var(--text-primary)]"
-                    onClick={() => handleSort('decisions')}
-                  >
+                  <th className="p-3 font-bold cursor-pointer hover:text-[var(--text-primary)]" onClick={() => handleSort('decisions')}>
                     <div className="inline-flex items-center gap-1">
                       <span>القرارات</span>
                       <ArrowUpDown className="h-3 w-3" />
                     </div>
                   </th>
                   <th className="p-3 font-bold">قبول / رفض</th>
-                  <th
-                    className="p-3 font-bold cursor-pointer hover:text-[var(--text-primary)]"
-                    onClick={() => handleSort('avg_hours')}
-                  >
+                  <th className="p-3 font-bold cursor-pointer hover:text-[var(--text-primary)]" onClick={() => handleSort('avg_hours')}>
                     <div className="inline-flex items-center gap-1">
                       <span>الوسيط / المتوسط</span>
                       <ArrowUpDown className="h-3 w-3" />
                     </div>
                   </th>
-                  <th
-                    className="p-3 font-bold cursor-pointer hover:text-[var(--text-primary)]"
-                    onClick={() => handleSort('pending')}
-                  >
+                  <th className="p-3 font-bold cursor-pointer hover:text-[var(--text-primary)]" onClick={() => handleSort('pending')}>
                     <div className="inline-flex items-center gap-1">
                       <span>المعلقات</span>
                       <ArrowUpDown className="h-3 w-3" />
                     </div>
                   </th>
-                  <th
-                    className="p-3 font-bold cursor-pointer hover:text-[var(--text-primary)]"
-                    onClick={() => handleSort('escalated')}
-                  >
+                  <th className="p-3 font-bold cursor-pointer hover:text-[var(--text-primary)]" onClick={() => handleSort('escalated')}>
                     <div className="inline-flex items-center gap-1">
                       <span>المصعّدات</span>
                       <ArrowUpDown className="h-3 w-3" />
@@ -529,27 +460,19 @@ export function ApprovalSpeedPage() {
                             </div>
                             <div>
                               <div className="font-bold text-[var(--text-primary)]">{app.name}</div>
-                              {app.code ? (
-                                <div className="text-[10px] text-[var(--text-muted)] font-mono">{app.code}</div>
-                              ) : null}
+                              {app.code ? <div className="text-[10px] text-[var(--text-muted)] font-mono">{app.code}</div> : null}
                             </div>
                           </div>
                         </td>
-                        <td className="p-3 font-black text-[var(--text-primary)]">
-                          {app.total_decisions.toLocaleString('ar-EG-u-nu-latn')}
-                        </td>
+                        <td className="p-3 font-black text-[var(--text-primary)]">{app.total_decisions.toLocaleString('ar-EG-u-nu-latn')}</td>
                         <td className="p-3">
                           <span className="text-emerald-600 dark:text-emerald-400 font-bold">{app.approved_count}</span>
                           <span className="text-[var(--text-muted)] mx-1">/</span>
                           <span className="text-rose-500 font-bold">{app.rejected_count}</span>
                         </td>
                         <td className="p-3">
-                          <div className="font-bold text-[var(--text-primary)]">
-                            {formatHours(app.median_hours)}
-                          </div>
-                          <div className="text-[10px] text-[var(--text-muted)]">
-                            متوسط: {formatHours(app.avg_hours)}
-                          </div>
+                          <div className="font-bold text-[var(--text-primary)]">{formatHours(app.median_hours)}</div>
+                          <div className="text-[10px] text-[var(--text-muted)]">متوسط: {formatHours(app.avg_hours)}</div>
                         </td>
                         <td className="p-3">
                           {app.pending_count > 0 ? (
@@ -577,9 +500,7 @@ export function ApprovalSpeedPage() {
                           )}
                         </td>
                         <td className="p-3">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-lg border text-[11px] font-bold ${badge.className}`}
-                          >
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-lg border text-[11px] font-bold ${badge.className}`}>
                             {badge.text}
                           </span>
                         </td>

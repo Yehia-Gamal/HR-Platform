@@ -1,16 +1,11 @@
 import { useState } from 'react';
-import { Clock, Calendar, CheckCircle2, Info } from 'lucide-react';
+import { Clock, CheckCircle2, Info } from 'lucide-react';
 import { cairoTodayIso } from '../../core/cairoTime';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { ErrorBanner } from '../../ui/ErrorState';
 import { useToast } from '../../ui/Toast';
-import {
-  formatShiftTiming,
-  useAvailableShifts,
-  useEmployeeActiveShift,
-  useSetEmployeeShiftAdmin,
-} from './useEmployees';
+import { formatShiftTiming, useAvailableShifts, useEmployeeActiveShift, useSetEmployeeShiftAdmin } from './useEmployees';
 
 interface AssignShiftDialogProps {
   employeeId: string;
@@ -20,13 +15,7 @@ interface AssignShiftDialogProps {
   onSuccess?: () => void;
 }
 
-export function AssignShiftDialog({
-  employeeId,
-  employeeName,
-  employeeCode,
-  onClose,
-  onSuccess,
-}: AssignShiftDialogProps) {
+export function AssignShiftDialog({ employeeId, employeeName, employeeCode, onClose, onSuccess }: AssignShiftDialogProps) {
   const { toast } = useToast();
   const activeShiftQuery = useEmployeeActiveShift(employeeId);
   const availableShiftsQuery = useAvailableShifts();
@@ -77,9 +66,7 @@ export function AssignShiftDialog({
           {employeeName}
           <span className="muted ms-2 font-mono text-xs">({employeeCode})</span>
         </p>
-        <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-          تحديد الوردية الأساسية المعتمدة للموظف لاحتساب الحضور ودقائق التأخير ومواعيد الانصراف.
-        </p>
+        <p className="text-xs text-[var(--text-secondary)] mt-0.5">تحديد الوردية الأساسية المعتمدة للموظف لاحتساب الحضور ودقائق التأخير ومواعيد الانصراف.</p>
       </div>
 
       {error ? <ErrorBanner message={error} /> : null}
@@ -153,9 +140,7 @@ export function AssignShiftDialog({
                 disabled={setShiftMutation.isPending}
               />
             </div>
-            <span className="text-[11px] text-[var(--text-secondary)] mt-1 block">
-              يبدأ تطبيق الوردية واحتساب التأخيرات بناءً عليها من هذا التاريخ.
-            </span>
+            <span className="text-[11px] text-[var(--text-secondary)] mt-1 block">يبدأ تطبيق الوردية واحتساب التأخيرات بناءً عليها من هذا التاريخ.</span>
           </label>
 
           <label className="block">
@@ -173,25 +158,14 @@ export function AssignShiftDialog({
 
         <div className="rounded-xl bg-[var(--surface-muted)] p-3 text-xs text-[var(--text-secondary)] flex items-start gap-2">
           <Info className="size-4 shrink-0 text-[var(--brand-primary)] mt-0.5" />
-          <span>
-            سيتم تحديث الوردية المقررة فوراً، وتُحسب التأخيرات وساعات العمل اليومية تلقائياً وفقاً للوردية المعتمدة الجديدة.
-          </span>
+          <span>سيتم تحديث الوردية المقررة فوراً، وتُحسب التأخيرات وساعات العمل اليومية تلقائياً وفقاً للوردية المعتمدة الجديدة.</span>
         </div>
 
         <div className="flex justify-end gap-3 pt-2">
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={onClose}
-            disabled={setShiftMutation.isPending}
-          >
+          <button type="button" className="btn-secondary" onClick={onClose} disabled={setShiftMutation.isPending}>
             إلغاء
           </button>
-          <button
-            type="submit"
-            className="btn-primary"
-            disabled={setShiftMutation.isPending || !selectedShiftId}
-          >
+          <button type="submit" className="btn-primary" disabled={setShiftMutation.isPending || !selectedShiftId}>
             {setShiftMutation.isPending ? 'جارٍ الحفظ…' : 'حفظ وإسناد الوردية'}
           </button>
         </div>

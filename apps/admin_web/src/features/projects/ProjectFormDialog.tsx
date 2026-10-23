@@ -85,13 +85,7 @@ export function ProjectFormDialog({ project, permissions, isFullAccess, myDepart
         <section className="space-y-4">
           <label className="block">
             <span className="text-sm font-bold">اسم المشروع *</span>
-            <input
-              className="input mt-1"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="مثال: حملة كفالة الأيتام"
-              disabled={coreLocked}
-            />
+            <input className="input mt-1" value={name} onChange={(e) => setName(e.target.value)} placeholder="مثال: حملة كفالة الأيتام" disabled={coreLocked} />
           </label>
           <label className="block">
             <span className="text-sm font-bold">وصف مختصر وهدف المشروع</span>
@@ -104,7 +98,11 @@ export function ProjectFormDialog({ project, permissions, isFullAccess, myDepart
               disabled={coreLocked}
             />
           </label>
-          {coreLocked && <p className="text-xs font-bold text-[var(--text-muted)]">الاسم والوصف مقفلان بعد إرسال المشروع للاعتماد — يمكن تعديل الفريق والأولوية والمواعيد.</p>}
+          {coreLocked && (
+            <p className="text-xs font-bold text-[var(--text-muted)]">
+              الاسم والوصف مقفلان بعد إرسال المشروع للاعتماد — يمكن تعديل الفريق والأولوية والمواعيد.
+            </p>
+          )}
 
           <div className="grid gap-4 sm:grid-cols-3">
             <label className="block">
@@ -133,7 +131,9 @@ export function ProjectFormDialog({ project, permissions, isFullAccess, myDepart
         <section className="space-y-4 rounded-2xl border border-[var(--border)] p-4">
           <div className="flex items-baseline justify-between gap-3">
             <h3 className="font-black">فريق المشروع</h3>
-            <span className="text-xs text-[var(--text-muted)]">{teamSize} {teamSize === 1 ? 'شخص' : 'أشخاص'}</span>
+            <span className="text-xs text-[var(--text-muted)]">
+              {teamSize} {teamSize === 1 ? 'شخص' : 'أشخاص'}
+            </span>
           </div>
           {pickersLoading ? (
             <p className="flex items-center gap-2 text-sm text-[var(--text-muted)]">

@@ -104,9 +104,7 @@ function AlertRow({
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <span
-            className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-black shadow-xs ${
-              isP0 ? 'bg-rose-600 text-white' : 'bg-amber-500 text-white'
-            }`}
+            className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-black shadow-xs ${isP0 ? 'bg-rose-600 text-white' : 'bg-amber-500 text-white'}`}
           >
             {alert.severity}
           </span>
@@ -115,16 +113,12 @@ function AlertRow({
             <SourceIcon className="size-3" aria-hidden="true" />
             {alert.source}
           </span>
-          <span className="rounded-full bg-black/10 dark:bg-white/10 px-2 py-0.5 text-xs font-bold text-[var(--text-muted)]">
-            ×{alert.occurrences}
-          </span>
+          <span className="rounded-full bg-black/10 dark:bg-white/10 px-2 py-0.5 text-xs font-bold text-[var(--text-muted)]">×{alert.occurrences}</span>
         </div>
         {alert.detail && <p className="mt-1.5 text-xs text-[var(--text-muted)] leading-relaxed">{alert.detail}</p>}
         <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-[var(--text-muted)]">
           <span>آخر ظهور: {fmtTime(alert.last_seen_at)}</span>
-          {alert.first_seen_at && alert.first_seen_at !== alert.last_seen_at && (
-            <span>أول ظهور: {fmtTime(alert.first_seen_at)}</span>
-          )}
+          {alert.first_seen_at && alert.first_seen_at !== alert.last_seen_at && <span>أول ظهور: {fmtTime(alert.first_seen_at)}</span>}
         </div>
       </div>
       <div className="flex flex-wrap sm:flex-col items-end gap-1.5 shrink-0">
@@ -193,7 +187,7 @@ export function ObservabilityDashboardPage() {
   const eventsQuery = useObservabilityEvents(canReadDetail, 50);
 
   const health = healthQuery.data as Record<string, unknown> | undefined;
-  const alerts = alertsQuery.data ?? [];
+  const alerts = useMemo(() => alertsQuery.data ?? [], [alertsQuery.data]);
   const cronSummary = cronSummaryQuery.data;
   const cronJobs = cronJobsQuery.data ?? [];
   const events = eventsQuery.data ?? [];
@@ -313,9 +307,7 @@ export function ObservabilityDashboardPage() {
             <Bell className="size-5 text-[var(--brand)]" aria-hidden="true" />
             <h3 className="font-black text-base">التنبيهات المفتوحة</h3>
             {activeAlerts.length > 0 && (
-              <span className="rounded-full bg-rose-500/15 px-2.5 py-0.5 text-xs font-black text-rose-600 dark:text-rose-400">
-                {activeAlerts.length} نشط
-              </span>
+              <span className="rounded-full bg-rose-500/15 px-2.5 py-0.5 text-xs font-black text-rose-600 dark:text-rose-400">{activeAlerts.length} نشط</span>
             )}
           </div>
           {alertsQuery.isError && <ErrorBanner message={safeErrorMessage(alertsQuery.error)} />}
@@ -372,9 +364,7 @@ export function ObservabilityDashboardPage() {
                 aria-selected={alertTab === tab.id}
                 onClick={() => setAlertTab(tab.id)}
                 className={`rounded-lg px-3 py-1 text-xs font-bold transition-colors ${
-                  alertTab === tab.id
-                    ? 'bg-[var(--brand)] text-white'
-                    : 'text-[var(--text-muted)] hover:bg-[var(--surface-muted)]'
+                  alertTab === tab.id ? 'bg-[var(--brand)] text-white' : 'text-[var(--text-muted)] hover:bg-[var(--surface-muted)]'
                 }`}
               >
                 {tab.label}

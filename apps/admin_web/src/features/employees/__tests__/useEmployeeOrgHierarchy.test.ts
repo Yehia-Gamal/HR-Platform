@@ -132,9 +132,10 @@ vi.mock('../../management/useOrgChart', () => ({
 describe('useEmployeeOrgHierarchy', () => {
   it('يستخرج سلسلة القيادة الإدارية الصاعدة بشكل صحيح', () => {
     const { result } = renderHook(() => useEmployeeOrgHierarchy(EMPLOYEE_ID));
-    expect(result.current.data).toBeDefined();
+    const data = result.current.data;
+    expect(data).toBeDefined();
+    if (!data) return;
 
-    const data = result.current.data!;
     expect(data.employee.id).toBe(EMPLOYEE_ID);
     expect(data.ancestors.length).toBe(2);
     expect(data.ancestors[0].id).toBe(CEO_ID);
@@ -149,7 +150,9 @@ describe('useEmployeeOrgHierarchy', () => {
 
   it('يستخرج المرؤوسين المباشرين وغير المباشرين وشجرة الفريق التابع بدقة', () => {
     const { result } = renderHook(() => useEmployeeOrgHierarchy(EMPLOYEE_ID));
-    const data = result.current.data!;
+    const data = result.current.data;
+    expect(data).toBeDefined();
+    if (!data) return;
 
     expect(data.hasSubordinates).toBe(true);
     expect(data.directReports.length).toBe(1);
@@ -163,7 +166,9 @@ describe('useEmployeeOrgHierarchy', () => {
 
   it('يتعامل مع الموظف الفردي الذي ليس لديه مرؤوسين', () => {
     const { result } = renderHook(() => useEmployeeOrgHierarchy(SUBORDINATE_2_ID));
-    const data = result.current.data!;
+    const data = result.current.data;
+    expect(data).toBeDefined();
+    if (!data) return;
 
     expect(data.hasSubordinates).toBe(false);
     expect(data.directReports.length).toBe(0);
@@ -184,7 +189,9 @@ describe('useEmployeeOrgHierarchy', () => {
       }),
     );
 
-    const data = result.current.data!;
+    const data = result.current.data;
+    expect(data).toBeDefined();
+    if (!data) return;
     expect(data.employee.fullNameAr).toBe('موظف تجريبي جديد');
     expect(data.ancestors.length).toBe(1);
     expect(data.ancestors[0].id).toBe(DIRECTOR_ID);

@@ -189,7 +189,6 @@ export function DataTable<T>({
                 const ariaSortValue = col.sortable && sortKey === col.key ? sortDir : undefined;
                 const isPinnedFirst = pinFirstColumn && colIdx === 0;
                 const isPinnedLast = pinLastColumn && colIdx === columns.length - 1;
-                const isPinned = isPinnedFirst || isPinnedLast;
                 return (
                   <th
                     key={col.key}

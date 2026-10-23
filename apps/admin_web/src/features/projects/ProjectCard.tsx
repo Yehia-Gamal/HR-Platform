@@ -79,7 +79,10 @@ export function ProjectCard({ project: p, onOpen, onQuickUpdate, myEmployeeId }:
           <Flag className="size-3" aria-hidden="true" /> {PRIORITY_LABELS[p.priority]}
         </span>
         {p.members.length > 1 && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-muted)] px-2 py-0.5 font-bold" title={p.members.map((m) => m.name).join('، ')}>
+          <span
+            className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-muted)] px-2 py-0.5 font-bold"
+            title={p.members.map((m) => m.name).join('، ')}
+          >
             <Users className="size-3" aria-hidden="true" /> فريق من {p.members.length}
           </span>
         )}

@@ -100,8 +100,7 @@ export function AssociationProjectsPage() {
     const list = board.filter(
       (p) =>
         (ledFilter === 'all' || p.ledStatus === ledFilter) &&
-        (department === 'all' ||
-          (department === 'none' ? p.departments.length === 0 : p.departments.some((d) => d.id === department))) &&
+        (department === 'all' || (department === 'none' ? p.departments.length === 0 : p.departments.some((d) => d.id === department))) &&
         (scope === 'all' || (scope === 'leading' ? p.myRole === 'leader' : p.myRole === 'leader' || p.myRole === 'member')) &&
         (!q ||
           p.name.includes(q) ||
@@ -250,7 +249,12 @@ export function AssociationProjectsPage() {
             <label className="relative flex-1">
               <span className="sr-only">بحث</span>
               <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
-              <input className="input !ps-9" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ابحث باسم المشروع أو الإدارة أو أحد أفراد الفريق" />
+              <input
+                className="input !ps-9"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="ابحث باسم المشروع أو الإدارة أو أحد أفراد الفريق"
+              />
             </label>
             {myProjectsCount > 0 && (
               <select className="input md:!w-48" value={scope} onChange={(e) => setScope(e.target.value as ScopeFilter)} aria-label="مشاريعي">

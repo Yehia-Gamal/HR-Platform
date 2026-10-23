@@ -1,21 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import {
-  AlertTriangle,
-  CalendarCheck,
-  CalendarDays,
-  CheckCircle2,
-  Clock,
-  Sparkles,
-  Users,
-  Send,
-  Info,
-} from 'lucide-react';
+import { AlertTriangle, CalendarCheck, CheckCircle2, Sparkles, Users, Send } from 'lucide-react';
 import { cairoTodayIso } from '../../core/cairoTime';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { useEmployees } from '../employees/useEmployees';
 import { useAdminLeaves } from '../leaves/useLeaves';
-import { useCreateLeaveForEmployee, useLeaveTypes } from './useLeaveTools';
-import { UserAvatar } from '../../ui/UserAvatar';
+import { useCreateLeaveForEmployee } from './useLeaveTools';
 
 const LEAVE_TYPE_CODES: Record<string, string> = {
   annual: 'سنوية',
@@ -53,7 +42,6 @@ export function LeaveSimulatorSection() {
   const currentYear = new Date().getFullYear();
 
   const { data: employees = [], isLoading: loadingEmployees } = useEmployees();
-  const { data: leaveTypes = [] } = useLeaveTypes();
   const { data: leavesData } = useAdminLeaves({ year: currentYear });
   const createLeave = useCreateLeaveForEmployee();
 
@@ -61,7 +49,7 @@ export function LeaveSimulatorSection() {
   const [leaveTypeCode, setLeaveTypeCode] = useState<string>('annual');
   const [startDate, setStartDate] = useState<string>(today);
   const [endDate, setEndDate] = useState<string>(today);
-  const [reason, setReason] = useState<string>('تخطيط إجازة ومحاكاة الرصيد');
+  const [reason] = useState<string>('تخطيط إجازة ومحاكاة الرصيد');
   const [submittedSuccess, setSubmittedSuccess] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -81,10 +69,7 @@ export function LeaveSimulatorSection() {
   }, [employees, employeeId]);
 
   // حساب الأيام
-  const { totalDays, workDays } = useMemo(
-    () => countWorkingDays(startDate, endDate),
-    [startDate, endDate],
-  );
+  const { totalDays, workDays } = useMemo(() => countWorkingDays(startDate, endDate), [startDate, endDate]);
 
   // رصيد افتراضي وتقديري للمحاكاة
   const balanceInfo = useMemo(() => {
@@ -167,9 +152,7 @@ export function LeaveSimulatorSection() {
           </span>
           <div>
             <h2 className="text-sm font-black text-[var(--text-primary)]">محاكي ومخطط الإجازات الذكي</h2>
-            <p className="text-xs text-[var(--text-muted)]">
-              محاكاة الرصيد حتى نهاية العام وكشف تعارض إجازات الزملاء في نفس القسم مسبقاً
-            </p>
+            <p className="text-xs text-[var(--text-muted)]">محاكاة الرصيد حتى نهاية العام وكشف تعارض إجازات الزملاء في نفس القسم مسبقاً</p>
           </div>
         </div>
         <span className="rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
@@ -178,9 +161,7 @@ export function LeaveSimulatorSection() {
       </div>
 
       {submitError ? (
-        <div className="rounded-xl bg-rose-500/10 p-3 text-xs text-rose-600 dark:text-rose-400 border border-rose-500/20">
-          {submitError}
-        </div>
+        <div className="rounded-xl bg-rose-500/10 p-3 text-xs text-rose-600 dark:text-rose-400 border border-rose-500/20">{submitError}</div>
       ) : null}
 
       {submittedSuccess ? (
@@ -302,18 +283,14 @@ export function LeaveSimulatorSection() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Users className="size-4 text-[var(--text-muted)]" />
-            <span className="text-xs font-black text-[var(--text-primary)]">
-              رادار تعارضات القسم ({selectedEmployee?.department || 'القسم التابع'})
-            </span>
+            <span className="text-xs font-black text-[var(--text-primary)]">رادار تعارضات القسم ({selectedEmployee?.department || 'القسم التابع'})</span>
           </div>
           {conflicts.length > 0 ? (
             <span className="rounded-lg bg-amber-500/15 px-2 py-0.5 text-[11px] font-black text-amber-600 dark:text-amber-400">
               يوجد {conflicts.length} تعارض
             </span>
           ) : (
-            <span className="rounded-lg bg-emerald-500/15 px-2 py-0.5 text-[11px] font-black text-emerald-600 dark:text-emerald-400">
-              لا يوجد تعارض
-            </span>
+            <span className="rounded-lg bg-emerald-500/15 px-2 py-0.5 text-[11px] font-black text-emerald-600 dark:text-emerald-400">لا يوجد تعارض</span>
           )}
         </div>
 
@@ -353,9 +330,7 @@ export function LeaveSimulatorSection() {
       >
         <Send className="size-3.5" />
         <span>
-          {createLeave.isPending
-            ? 'جارٍ اعتماد الإجازة...'
-            : `اعتماد وإنشاء الإجازة لـ ${selectedEmployee?.fullNameAr || 'الموظف'} (${workDays} أيام)`}
+          {createLeave.isPending ? 'جارٍ اعتماد الإجازة...' : `اعتماد وإنشاء الإجازة لـ ${selectedEmployee?.fullNameAr || 'الموظف'} (${workDays} أيام)`}
         </span>
       </button>
     </div>

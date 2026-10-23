@@ -378,8 +378,9 @@ describe('InstantPenaltiesPage', () => {
     expect(screen.getByText('500 ج.م')).toBeDefined();
 
     // النقر على صندوق 20 ج.م لتفعيله
-    const tier20Box = screen.getByText('20 ج.م').closest('button')!;
-    fireEvent.click(tier20Box);
+    const tier20Box = screen.getByText('20 ج.م').closest('button');
+    expect(tier20Box).not.toBeNull();
+    if (tier20Box) fireEvent.click(tier20Box);
 
     // التحقق من ظهور شريط التصفية النشطة
     expect(screen.getByText('تصفية:')).toBeDefined();
@@ -398,8 +399,9 @@ describe('InstantPenaltiesPage', () => {
     renderPage();
 
     // تحديد شريحة 20 ج.م أولاً
-    const tier20Box = screen.getByText('20 ج.م').closest('button')!;
-    fireEvent.click(tier20Box);
+    const tier20Box = screen.getByText('20 ج.م').closest('button');
+    expect(tier20Box).not.toBeNull();
+    if (tier20Box) fireEvent.click(tier20Box);
 
     const detailBtn = screen.getByText('الكشف التفصيلي ↗');
     fireEvent.click(detailBtn);
@@ -415,8 +417,9 @@ describe('InstantPenaltiesPage', () => {
     employeesData = emptyEmployees;
     renderPage();
 
-    const pendingBtn = screen.getByText(/موظف مطالب بالدفع/).closest('button')!;
-    fireEvent.click(pendingBtn);
+    const pendingBtn = screen.getByText(/موظف مطالب بالدفع/).closest('button');
+    expect(pendingBtn).not.toBeNull();
+    if (pendingBtn) fireEvent.click(pendingBtn);
 
     // فتح المودال عبر زر الكشف التفصيلي
     const detailBtn = screen.getByText('الكشف التفصيلي ↗');
@@ -499,11 +502,11 @@ describe('InstantPenaltiesPage', () => {
     renderPage();
 
     // يجب أن يحسب فقط الغرامة غير الملغاة (1 غرامة)
-    const tier500Card = screen.getByText('500 ج.م').closest('button')!;
-    expect(tier500Card).toBeDefined();
+    const tier500Card = screen.getByText('500 ج.م').closest('button');
+    expect(tier500Card).not.toBeNull();
+    if (tier500Card) fireEvent.click(tier500Card);
 
     // تحديد شريحة 500 ج.م ثم فتح تفاصيلها
-    fireEvent.click(tier500Card);
     const detailBtn = screen.getByText('الكشف التفصيلي ↗');
     fireEvent.click(detailBtn);
 

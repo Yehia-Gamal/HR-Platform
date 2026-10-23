@@ -448,7 +448,9 @@ export function RecruitmentPage() {
                           <p className="font-black">{offer.candidateName}</p>
                           <p className="muted mt-1 text-sm">
                             {offer.title ?? 'عرض توظيف'} · نسخة {offer.version}
-                            {offer.startDate ? ` · يبدأ ${new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium' }).format(new Date(offer.startDate))}` : ''}
+                            {offer.startDate
+                              ? ` · يبدأ ${new Intl.DateTimeFormat('ar-EG-u-nu-latn', { dateStyle: 'medium' }).format(new Date(offer.startDate))}`
+                              : ''}
                           </p>
                         </div>
                         <StatusBadge value={offer.status} />

@@ -238,14 +238,14 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
 
   const roles = auth?.access?.roles ?? [];
   const isExec = roles.includes('executive-director') || roles.includes('executive') || (auth?.access?.displayName?.includes('محمد يوسف') ?? false);
-  const canAdminEdit = !isExec && (
-    roles.includes('hr-manager') ||
-    roles.includes('hr-specialist') ||
-    roles.includes('executive-secretary') ||
-    roles.includes('admin') ||
-    roles.includes('super-admin') ||
-    (auth?.access?.employeeCode?.includes('01154869616') ?? false)
-  );
+  const canAdminEdit =
+    !isExec &&
+    (roles.includes('hr-manager') ||
+      roles.includes('hr-specialist') ||
+      roles.includes('executive-secretary') ||
+      roles.includes('admin') ||
+      roles.includes('super-admin') ||
+      (auth?.access?.employeeCode?.includes('01154869616') ?? false));
 
   const [dayType, setDayType] = useState<string>((day.adminOverride?.dayType as string | undefined) ?? 'work');
   const [leaveType, setLeaveType] = useState<string>(
@@ -510,11 +510,22 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
                 </div>
 
                 <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                  <div className={`space-y-1 rounded-lg border p-2.5 transition ${clearCheckIn ? 'border-[var(--border)] bg-[var(--surface-muted)]/50 opacity-60' : 'border-[var(--border)] bg-[var(--surface)]'}`}>
+                  <div
+                    className={`space-y-1 rounded-lg border p-2.5 transition ${clearCheckIn ? 'border-[var(--border)] bg-[var(--surface-muted)]/50 opacity-60' : 'border-[var(--border)] bg-[var(--surface)]'}`}
+                  >
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-[var(--text-secondary)]">وقت الحضور</label>
-                      <label htmlFor={clearCheckInId} className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)] cursor-pointer select-none hover:text-[var(--text-primary)]">
-                        <input id={clearCheckInId} type="checkbox" className="rounded accent-[var(--primary)]" checked={clearCheckIn} onChange={(e) => setClearCheckIn(e.target.checked)} />
+                      <label
+                        htmlFor={clearCheckInId}
+                        className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)] cursor-pointer select-none hover:text-[var(--text-primary)]"
+                      >
+                        <input
+                          id={clearCheckInId}
+                          type="checkbox"
+                          className="rounded accent-[var(--primary)]"
+                          checked={clearCheckIn}
+                          onChange={(e) => setClearCheckIn(e.target.checked)}
+                        />
                         <span>بدون بصمة حضور</span>
                       </label>
                     </div>
@@ -527,11 +538,22 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
                     />
                   </div>
 
-                  <div className={`space-y-1 rounded-lg border p-2.5 transition ${clearCheckOut ? 'border-[var(--border)] bg-[var(--surface-muted)]/50 opacity-60' : 'border-[var(--border)] bg-[var(--surface)]'}`}>
+                  <div
+                    className={`space-y-1 rounded-lg border p-2.5 transition ${clearCheckOut ? 'border-[var(--border)] bg-[var(--surface-muted)]/50 opacity-60' : 'border-[var(--border)] bg-[var(--surface)]'}`}
+                  >
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-[var(--text-secondary)]">وقت الانصراف</label>
-                      <label htmlFor={clearCheckOutId} className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)] cursor-pointer select-none hover:text-[var(--text-primary)]">
-                        <input id={clearCheckOutId} type="checkbox" className="rounded accent-[var(--primary)]" checked={clearCheckOut} onChange={(e) => setClearCheckOut(e.target.checked)} />
+                      <label
+                        htmlFor={clearCheckOutId}
+                        className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)] cursor-pointer select-none hover:text-[var(--text-primary)]"
+                      >
+                        <input
+                          id={clearCheckOutId}
+                          type="checkbox"
+                          className="rounded accent-[var(--primary)]"
+                          checked={clearCheckOut}
+                          onChange={(e) => setClearCheckOut(e.target.checked)}
+                        />
                         <span>بدون بصمة انصراف</span>
                       </label>
                     </div>
@@ -600,7 +622,12 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
               <button type="button" className="btn-secondary text-xs" onClick={() => setOpen(false)}>
                 إلغاء
               </button>
-              <button type="button" className="btn-primary text-xs flex items-center gap-1.5" disabled={saveMutation.isPending} onClick={() => saveMutation.mutate()}>
+              <button
+                type="button"
+                className="btn-primary text-xs flex items-center gap-1.5"
+                disabled={saveMutation.isPending}
+                onClick={() => saveMutation.mutate()}
+              >
                 <Check className="size-3.5" />
                 <span>{saveMutation.isPending ? 'جارٍ الحفظ…' : 'حفظ التعديل'}</span>
               </button>
@@ -731,8 +758,8 @@ export function AttendanceDayEditor({ employeeId, day }: { employeeId: string; d
                     markType === 'convoy'
                       ? 'مثال: قرى الفيوم، قافلة أسقف ومياه ومساعدات للأسر المستحقة…'
                       : markType === 'fundraising'
-                      ? 'مثال: فيلا سقارة، منتجع وادي النخيل، مكان الترفيه…'
-                      : 'مثال: مقر الفرع، زيارة فرع، مأمورية عمل خارجية…'
+                        ? 'مثال: فيلا سقارة، منتجع وادي النخيل، مكان الترفيه…'
+                        : 'مثال: مقر الفرع، زيارة فرع، مأمورية عمل خارجية…'
                   }
                 />
               </div>
