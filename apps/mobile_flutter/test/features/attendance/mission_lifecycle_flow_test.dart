@@ -100,7 +100,7 @@ void main() {
       // التحقق من فتح نافذة الإنهاء وخياراتها
       expect(find.text('تقرير المأمورية (اختياري)'), findsOneWidget);
       expect(find.text('إنهاء والعودة للجمعية (استمرار الدوام)'), findsOneWidget);
-      expect(find.text('إنهاء مع الانصراف من موقعي (من برّة برّة)'), findsOneWidget);
+      expect(find.text('إنهاء المأمورية مع تسجيل الانصراف الميداني'), findsOneWidget);
 
       // إغلاق النافذة
       await tester.tap(find.text('إلغاء'));

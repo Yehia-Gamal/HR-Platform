@@ -1075,7 +1075,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
               FilledButton.icon(
                 onPressed: () => Navigator.pop(dialogContext, true),
                 icon: const Icon(Icons.logout_rounded),
-                label: const Text('إنهاء مع الانصراف من موقعي (من برّة برّة)'),
+                label: const Text('إنهاء المأمورية مع تسجيل الانصراف الميداني'),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.statusSuccess,
                   foregroundColor: Colors.white,
