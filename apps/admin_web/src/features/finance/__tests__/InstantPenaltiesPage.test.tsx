@@ -273,7 +273,7 @@ describe('InstantPenaltiesPage', () => {
     renderPage();
     expect(screen.getByText('أحمد محمد')).toBeDefined();
     expect(screen.getByText('الإدارة العامة')).toBeDefined();
-    expect(screen.getByText(/25/)).toBeDefined();
+    expect(screen.getByText(/25 دقيقة/)).toBeDefined();
   });
 
   it('يعرض أزرار تأكيد الدفع والإلغاء للغرامة غير المدفوعة', () => {
