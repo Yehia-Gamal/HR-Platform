@@ -192,3 +192,74 @@ bool canWithdrawFromFund(WidgetRef ref) {
   };
   return access.roles.any(roles.contains);
 }
+
+
+/// بيانات الموظف الموقوف عن العمل والغرامات المترتبة عليه
+class SuspendedEmployeeInfo {
+  const SuspendedEmployeeInfo({
+    required this.employeeId,
+    required this.employeeName,
+    this.employeeCode,
+    this.departmentName,
+    this.jobTitle,
+    this.photoUrl,
+    this.phone,
+    required this.status,
+    required this.isActive,
+    required this.totalCurrentDue,
+    required this.totalOriginalDue,
+    required this.has500Penalty,
+    required this.unpaidCount,
+    required this.penalties,
+  });
+
+  factory SuspendedEmployeeInfo.fromJson(Map<String, dynamic> j) =>
+      SuspendedEmployeeInfo(
+        employeeId: _str(j['employeeId']) ?? '',
+        employeeName: _str(j['employeeName']) ?? 'موظف',
+        employeeCode: _str(j['employeeCode']),
+        departmentName: _str(j['departmentName']),
+        jobTitle: _str(j['jobTitle']),
+        photoUrl: _str(j['photoUrl']),
+        phone: _str(j['phone']),
+        status: _str(j['status']) ?? 'active',
+        isActive: j['isActive'] == true,
+        totalCurrentDue: _num(j['totalCurrentDue']),
+        totalOriginalDue: _num(j['totalOriginalDue']),
+        has500Penalty: j['has500Penalty'] == true,
+        unpaidCount: _int(j['unpaidCount']),
+        penalties: (j['penalties'] as List<dynamic>? ?? const [])
+            .whereType<Map<dynamic, dynamic>>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList(growable: false),
+      );
+
+  final String employeeId;
+  final String employeeName;
+  final String? employeeCode;
+  final String? departmentName;
+  final String? jobTitle;
+  final String? photoUrl;
+  final String? phone;
+  final String status;
+  final bool isActive;
+  final double totalCurrentDue;
+  final double totalOriginalDue;
+  final bool has500Penalty;
+  final int unpaidCount;
+  final List<Map<String, dynamic>> penalties;
+}
+
+/// قائمة الموظفين الموقوفين عن العمل للإدارة — get_suspended_employees_admin (0712).
+final suspendedEmployeesProvider =
+    FutureProvider.autoDispose<List<SuspendedEmployeeInfo>>((ref) async {
+      final data = await rpcWithTimeout(
+        ref.watch(supabaseProvider).rpc<dynamic>('get_suspended_employees_admin'),
+      );
+      return (data as List<dynamic>? ?? const [])
+          .whereType<Map<dynamic, dynamic>>()
+          .map(
+            (e) => SuspendedEmployeeInfo.fromJson(Map<String, dynamic>.from(e)),
+          )
+          .toList(growable: false);
+    });

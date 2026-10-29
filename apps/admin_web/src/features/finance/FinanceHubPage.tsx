@@ -3,12 +3,14 @@ import { lazy, Suspense } from 'react';
 import { ListSkeleton } from '../../ui/Skeletons';
 
 const InstantPenaltiesPage = lazy(() => import('./InstantPenaltiesPage').then((m) => ({ default: m.InstantPenaltiesPage })));
+const SuspendedEmployeesPage = lazy(() => import('./SuspendedEmployeesPage').then((m) => ({ default: m.SuspendedEmployeesPage })));
 const FellowshipFundPage = lazy(() => import('./FellowshipFundPage').then((m) => ({ default: m.FellowshipFundPage })));
 const PenaltyDashboardPage = lazy(() => import('./PenaltyDashboardPage').then((m) => ({ default: m.PenaltyDashboardPage })));
 const PenaltySettingsPage = lazy(() => import('./PenaltySettingsPage').then((m) => ({ default: m.PenaltySettingsPage })));
 
 const TABS = [
   { key: 'instant-penalties', label: 'غرامات الحضور والانصراف' },
+  { key: 'suspended-employees', label: 'الموظفون الموقوفون عن العمل' },
   { key: 'dashboard', label: 'لوحة الإحصائيات' },
   { key: 'settings', label: 'الإعدادات' },
   { key: 'fellowship-fund', label: 'صندوق الزمالة والتكافل' },
@@ -60,6 +62,8 @@ export function FinanceHubPage() {
         <Suspense fallback={<ListSkeleton rows={3} label="جارٍ التحميل…" />}>
           {tab === 'fellowship-fund' ? (
             <FellowshipFundPage />
+          ) : tab === 'suspended-employees' ? (
+            <SuspendedEmployeesPage />
           ) : tab === 'dashboard' ? (
             <PenaltyDashboardPage />
           ) : tab === 'settings' ? (

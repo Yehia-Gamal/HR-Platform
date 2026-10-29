@@ -427,3 +427,90 @@ export function useDailyOvertimeSummary(date?: string) {
     refetchInterval: 30000,
   });
 }
+
+// ─── إرجاع الغرامة المضاعفة لأصلها بدون مضاعفة 500 ج.م ─────────────
+
+export function useRevertDoubledPenalty() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { penaltyId: string; reason?: string }) => {
+      return rpc('revert_doubled_instant_penalty', {
+        p_penalty_id: args.penaltyId,
+        p_reason: args.reason ?? null,
+      });
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: [INSTANT_PENALTIES_KEY] });
+      void queryClient.invalidateQueries({ queryKey: [PENDING_EMPLOYEES_KEY] });
+      void queryClient.invalidateQueries({ queryKey: ['suspended-employees-admin'] });
+      void queryClient.invalidateQueries({ queryKey: ['fellowship-fund-summary'] });
+      void queryClient.invalidateQueries({ queryKey: ['employees'] });
+    },
+  });
+}
+
+// ─── الموظفون الموقوفون عن العمل للإدارة ─────────────────────────────
+
+export interface SuspendedEmployeePenalty {
+  id: string;
+  workDate: string;
+  lateMinutes: number;
+  originalAmount: number;
+  currentAmount: number;
+  status: string;
+  escalationLevel: string;
+  notes?: string;
+  suspendedAt?: string;
+}
+
+export interface SuspendedEmployeeAdmin {
+  employeeId: string;
+  employeeName: string;
+  employeeCode?: string;
+  departmentName?: string;
+  jobTitle?: string;
+  photoUrl?: string;
+  phone?: string;
+  status: string;
+  isActive: boolean;
+  totalCurrentDue: number;
+  totalOriginalDue: number;
+  has500Penalty: boolean;
+  unpaidCount: number;
+  penalties: SuspendedEmployeePenalty[];
+}
+
+export function useSuspendedEmployeesAdmin() {
+  const auth = useAuth();
+  return useQuery<SuspendedEmployeeAdmin[]>({
+    queryKey: ['suspended-employees-admin', auth.isMock],
+    enabled: auth.status === 'authenticated',
+    queryFn: async (): Promise<SuspendedEmployeeAdmin[]> => {
+      if (auth.isMock) return [];
+      const res = await rpc<SuspendedEmployeeAdmin[]>('get_suspended_employees_admin');
+      return (res as SuspendedEmployeeAdmin[]) ?? [];
+    },
+    refetchInterval: 15000,
+  });
+}
+
+// ─── رفع الإيقاف إدارياً عن الموظف ──────────────────────────────────
+
+export function useLiftEmployeeSuspensionAdmin() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { employeeId: string; reason?: string }) => {
+      return rpc('lift_employee_suspension_admin', {
+        p_employee_id: args.employeeId,
+        p_reason: args.reason ?? null,
+      });
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: [INSTANT_PENALTIES_KEY] });
+      void queryClient.invalidateQueries({ queryKey: [PENDING_EMPLOYEES_KEY] });
+      void queryClient.invalidateQueries({ queryKey: ['suspended-employees-admin'] });
+      void queryClient.invalidateQueries({ queryKey: ['employees'] });
+    },
+  });
+}
+

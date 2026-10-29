@@ -4699,6 +4699,17 @@ class _CorrectionsSectionState extends ConsumerState<_CorrectionsSection> {
                 ),
                 _QuickCorrectionActionChip(
                   icon: Icons.logout_rounded,
+                  label: 'نسيت انصراف اليوم؟',
+                  color: const Color(0xFF059669),
+                  onTap: () => showAttendanceCorrectionSheet(
+                    context,
+                    ref,
+                    initialWorkDate: DateTime.now(),
+                    initialType: 'missing_check_out',
+                  ),
+                ),
+                _QuickCorrectionActionChip(
+                  icon: Icons.history_toggle_off_rounded,
                   label: 'نسيت انصراف الأمس؟',
                   color: const Color(0xFFD97706),
                   onTap: () => showAttendanceCorrectionSheet(

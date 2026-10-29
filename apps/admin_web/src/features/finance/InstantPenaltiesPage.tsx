@@ -53,6 +53,7 @@ import {
   useGenerateInstantPenalty,
   useInstantPenalties,
   useLiftInstantPenaltySuspension,
+  useRevertDoubledPenalty,
   usePendingPenaltyEmployees,
   useTriggerCheckPenaltiesNow,
   useBulkConfirmPenaltyPayments,
@@ -150,6 +151,7 @@ export function InstantPenaltiesPage() {
   const generatePenalty = useGenerateInstantPenalty();
   const cancelPenalty = useCancelInstantPenalty();
   const liftSuspension = useLiftInstantPenaltySuspension();
+  const revertPenalty = useRevertDoubledPenalty();
   const triggerCheck = useTriggerCheckPenaltiesNow();
   const { data: employees } = useEmployees();
 
@@ -171,6 +173,10 @@ export function InstantPenaltiesPage() {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [paymentTarget, setPaymentTarget] = useState<{ id: string; name: string; msg: string } | null>(null);
   const [paymentNotes, setPaymentNotes] = useState('');
+
+  const [revertDialogOpen, setRevertDialogOpen] = useState(false);
+  const [revertTarget, setRevertTarget] = useState<{ id: string; name: string; originalAmount: number } | null>(null);
+  const [revertReason, setRevertReason] = useState('');
 
   const [liftDialogOpen, setLiftDialogOpen] = useState(false);
   const [liftTarget, setLiftTarget] = useState<{ id: string; name: string } | null>(null);
@@ -663,6 +669,22 @@ export function InstantPenaltiesPage() {
                 }}
               >
                 رفع التعليق
+              </button>
+            )}
+            {(p.currentAmount > p.originalAmount || p.status === 'doubled' || p.status === 'suspended') && (
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-800 transition-all whitespace-nowrap cursor-pointer"
+                disabled={revertPenalty.isPending}
+                onClick={() => {
+                  setRevertTarget({ id: p.id, name: p.employeeName ?? '', originalAmount: p.originalAmount });
+                  setRevertReason('');
+                  setRevertDialogOpen(true);
+                }}
+                title={`إرجاع الغرامة إلى قيمتها الأصلية (${formatCurrency(p.originalAmount)}) بدون مضاعفة`}
+              >
+                <RotateCcw className="size-3.5 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
+                <span>إرجاع للأصل ({formatCurrency(p.originalAmount)})</span>
               </button>
             )}
             {(p.status === 'pending_payment' || p.status === 'doubled') && (
@@ -2249,6 +2271,46 @@ export function InstantPenaltiesPage() {
           setLiftDialogOpen(false);
           setLiftTarget(null);
           setLiftReason('');
+        }}
+      />
+
+      <InputDialog
+        open={revertDialogOpen}
+        title="إرجاع الغرامة لقيمتها الأصلية بدون مضاعفة"
+        message={`هل تريد إرجاع غرامة ${revertTarget?.name ?? ''} من 500 ج.م إلى قيمتها الأصلية (${formatCurrency(revertTarget?.originalAmount)}) لتمكينه من السداد؟ اذكر السبب (اختياري):`}
+        inputLabel="سبب الإرجاع الإداري (اختياري)"
+        inputPlaceholder="مثال: مراعاة لظرف الموظف وطلب سداد القيمة الأصلية"
+        inputValue={revertReason}
+        onInputChange={setRevertReason}
+        quickSuggestions={['مراعاة لظرف الموظف واستعداده للسداد', 'توجيه إداري بالسداد بالقيمة الأصلية', 'طلب الموظف تسوية ودية']}
+        confirmLabel="إرجاع للأصل"
+        tone="info"
+        loading={revertPenalty.isPending}
+        error={revertPenalty.isError ? safeErrorMessage(revertPenalty.error) : null}
+        onConfirm={async () => {
+          if (revertTarget) {
+            try {
+              await revertPenalty.mutateAsync({
+                penaltyId: revertTarget.id,
+                reason: revertReason.trim() || undefined,
+              });
+              toast({
+                message: `تم إرجاع غرامة ${revertTarget.name} إلى قيمتها الأصلية (${formatCurrency(revertTarget.originalAmount)}) بنجاح`,
+                tone: 'success',
+              });
+              setRevertDialogOpen(false);
+              setRevertTarget(null);
+              setRevertReason('');
+            } catch {
+              // Error is displayed inside InputDialog
+            }
+          }
+        }}
+        onCancel={() => {
+          revertPenalty.reset();
+          setRevertDialogOpen(false);
+          setRevertTarget(null);
+          setRevertReason('');
         }}
       />
 

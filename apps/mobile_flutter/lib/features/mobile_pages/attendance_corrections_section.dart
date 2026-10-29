@@ -135,7 +135,7 @@ Future<void> showAttendanceCorrectionSheet(
   DateTime? initialWorkDate,
   String? initialType,
 }) async {
-  DateTime workDate = initialWorkDate ?? DateTime.now().subtract(const Duration(days: 1));
+  DateTime workDate = initialWorkDate ?? DateTime.now();
   String type = initialType ?? 'missing_check_in';
   TimeOfDay? actualTime;
   final reason = TextEditingController();
@@ -172,27 +172,87 @@ Future<void> showAttendanceCorrectionSheet(
                   sheetContext,
                 ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
               ),
-              const SizedBox(height: 14),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('يوم العمل'),
-                subtitle: Text(DateFormat('d MMMM y', 'ar').format(workDate)),
-                trailing: const Tooltip(
-                  message: 'اختيار يوم العمل',
-                  child: Icon(Icons.calendar_month_outlined),
-                ),
-                onTap: () async {
-                  final picked = await showDatePicker(
-                    context: sheetContext,
-                    firstDate: DateTime.now().subtract(
-                      const Duration(days: 365),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  ChoiceChip(
+                    label: const Text('اليوم'),
+                    selected: DateUtils.isSameDay(workDate, DateTime.now()),
+                    onSelected: (_) => setState(() => workDate = DateTime.now()),
+                  ),
+                  ChoiceChip(
+                    label: const Text('أمس'),
+                    selected: DateUtils.isSameDay(
+                      workDate,
+                      DateTime.now().subtract(const Duration(days: 1)),
                     ),
-                    lastDate: DateTime.now(),
-                    initialDate: workDate,
-                  );
-                  if (picked != null) setState(() => workDate = picked);
-                },
+                    onSelected: (_) => setState(
+                      () => workDate = DateTime.now().subtract(const Duration(days: 1)),
+                    ),
+                  ),
+                  ActionChip(
+                    avatar: const Icon(Icons.edit_calendar_rounded, size: 16),
+                    label: Text(
+                      DateUtils.isSameDay(workDate, DateTime.now()) ||
+                              DateUtils.isSameDay(
+                                workDate,
+                                DateTime.now().subtract(const Duration(days: 1)),
+                              )
+                          ? 'تاريخ آخر…'
+                          : DateFormat('d MMMM y', 'ar').format(workDate),
+                    ),
+                    onPressed: () async {
+                      final picked = await showDatePicker(
+                        context: sheetContext,
+                        firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                        lastDate: DateTime.now(),
+                        initialDate: workDate,
+                      );
+                      if (picked != null) setState(() => workDate = picked);
+                    },
+                  ),
+                ],
               ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Theme.of(sheetContext)
+                      .colorScheme
+                      .primaryContainer
+                      .withValues(alpha: .25),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: Theme.of(sheetContext)
+                        .colorScheme
+                        .primary
+                        .withValues(alpha: .3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.event_available_rounded,
+                      size: 18,
+                      color: Theme.of(sheetContext).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'سيتم تصحيح البصمة ليوم: ${DateFormat('EEEE d MMMM y', 'ar').format(workDate)} (${DateUtils.isSameDay(workDate, DateTime.now()) ? 'اليوم' : DateUtils.isSameDay(workDate, DateTime.now().subtract(const Duration(days: 1))) ? 'أمس' : 'تاريخ سابق'})',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(sheetContext).colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 value: type,
                 decoration: const InputDecoration(labelText: 'نوع التصحيح'),
