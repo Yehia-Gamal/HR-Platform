@@ -148,21 +148,24 @@ Future<void> showAttendanceCorrectionSheet(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
+    useSafeArea: true,
     builder: (sheetContext) => StatefulBuilder(
       builder: (sheetContext, setState) {
         final day = _scheduleDayFor(schedule, workDate);
         final expectedLabel = _expectedTimeLabel(type, day);
-        return Padding(
-          padding: EdgeInsets.fromLTRB(
-            20,
-            0,
-            20,
-            MediaQuery.viewInsetsOf(sheetContext).bottom + 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              20,
+              0,
+              20,
+              MediaQuery.viewInsetsOf(sheetContext).bottom + 24,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
               Text(
                 'طلب تصحيح حضور',
                 style: Theme.of(
@@ -319,10 +322,11 @@ Future<void> showAttendanceCorrectionSheet(
               ),
             ],
           ),
-        );
-      },
-    ),
-  );
+        ),
+      );
+    },
+  ),
+);
   if (accepted == null) {
     reason.dispose();
     return;

@@ -454,6 +454,7 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
     final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       builder: (ctx) => NewRequestSheet(type: type, permitKind: permitKind),
     );
     if (result == null || !context.mounted) return;
@@ -498,6 +499,7 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
     final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       builder: (ctx) => const _ForgotPunchSheet(),
     );
     if (result == null || !context.mounted) return;
@@ -798,9 +800,13 @@ class NewRequestSheetState extends State<NewRequestSheet> {
             ? 'مأمورية عمل خارجية'
             : _locationController.text.trim();
         final now = DateTime.now();
+        final todayStr = now.toIso8601String().substring(0, 10);
+        final effectiveEndDate = (_endDate != null && _endDate!.isAfter(DateUtils.dateOnly(now)))
+            ? _endDate!.toIso8601String().substring(0, 10)
+            : todayStr;
         payload = {
-          'startDate': now.toIso8601String().substring(0, 10),
-          'endDate': now.toIso8601String().substring(0, 10),
+          'startDate': todayStr,
+          'endDate': effectiveEndDate,
           'location': loc,
           'startTime': _formatTime(TimeOfDay.fromDateTime(now)),
           'startedAtCreation': true,
@@ -855,17 +861,19 @@ class NewRequestSheetState extends State<NewRequestSheet> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    return SingleChildScrollView(
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 20,
-        bottom: bottomInset > 0 ? bottomInset + 16 : 40,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
+    return SafeArea(
+      top: false,
+      child: SingleChildScrollView(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: bottomInset > 0 ? bottomInset + 16 : 16,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
           Text(
             _typeLabel,
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
@@ -1114,6 +1122,44 @@ class NewRequestSheetState extends State<NewRequestSheet> {
               ),
             ),
             const SizedBox(height: 12),
+            Row(
+              children: [
+                const Icon(Icons.today_outlined, size: 18),
+                const SizedBox(width: 6),
+                Text(
+                  'بداية المأمورية: اليوم (تلقائي)',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: () => _pickDate(false),
+              icon: const Icon(Icons.calendar_today, size: 18),
+              label: Text(
+                _endDate == null || !_endDate!.isAfter(DateUtils.dateOnly(DateTime.now()))
+                    ? 'تمديد المأمورية حتى تاريخ (اختياري)'
+                    : 'تمديد المأمورية حتى: ${DateFormat('d/M/y').format(_endDate!)}',
+              ),
+            ),
+            if (_endDate != null && _endDate!.isAfter(DateUtils.dateOnly(DateTime.now()))) ...[
+              const SizedBox(height: 4),
+              Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: TextButton.icon(
+                  onPressed: () => setState(() => _endDate = null),
+                  icon: const Icon(Icons.close, size: 14),
+                  label: const Text('إلغاء التمديد', style: TextStyle(fontSize: 12)),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.error,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
             TextFormField(
               controller: _locationController,
               decoration: const InputDecoration(
@@ -1280,7 +1326,8 @@ class NewRequestSheetState extends State<NewRequestSheet> {
           FilledButton(onPressed: _submit, child: const Text('إرسال الطلب')),
         ],
       ),
-    );
+    ),
+  );
   }
 }
 
@@ -1307,17 +1354,19 @@ class _ForgotPunchSheetState extends State<_ForgotPunchSheet> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 20,
-        bottom: bottomInset > 0 ? bottomInset + 16 : 40,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: bottomInset > 0 ? bottomInset + 16 : 16,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
           const Text(
             'تصحيح حضور',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
@@ -1423,7 +1472,8 @@ class _ForgotPunchSheetState extends State<_ForgotPunchSheet> {
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 }
 

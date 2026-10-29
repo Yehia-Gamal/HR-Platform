@@ -103,6 +103,7 @@ Future<bool> showRequestDecisionSheet(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
+    useSafeArea: true,
     builder: (_) => RequestActionSheet(
       config: config,
       subject: '${requestTypeLabel(type)} · طلب رقم $number · $employeeName',
@@ -257,134 +258,138 @@ class _RequestActionSheetState extends State<RequestActionSheet> {
   Widget build(BuildContext context) {
     final config = widget.config;
     final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        0,
-        20,
-        MediaQuery.viewInsetsOf(context).bottom + 20,
-      ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: config.color.withValues(alpha: .12),
-                  child: Icon(config.icon, color: config.color),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        config.title,
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        widget.subject,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
+    final viewInsets = MediaQuery.viewInsetsOf(context);
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          0,
+          20,
+          viewInsets.bottom > 0 ? viewInsets.bottom + 16 : 16,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: config.color.withValues(alpha: .12),
+                    child: Icon(config.icon, color: config.color),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: config.color.withValues(alpha: .07),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                config.explanation,
-                style: const TextStyle(fontSize: 13, height: 1.55),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final text in config.suggestions)
-                  ActionChip(
-                    label: Text(text, style: const TextStyle(fontSize: 12)),
-                    onPressed: _busy
-                        ? null
-                        : () {
-                            _controller.text = text;
-                            _controller.selection = TextSelection.collapsed(
-                              offset: text.length,
-                            );
-                            setState(() => _error = null);
-                          },
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          config.title,
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          widget.subject,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _controller,
-              enabled: !_busy,
-              maxLines: 3,
-              maxLength: 300,
-              onChanged: (_) {
-                if (_error != null) setState(() => _error = null);
-              },
-              decoration: InputDecoration(
-                labelText: config.inputLabel,
-                errorText: _error,
-                errorMaxLines: 3,
-                border: OutlineInputBorder(
+                ],
+              ),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: config.color.withValues(alpha: .07),
                   borderRadius: BorderRadius.circular(12),
                 ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                TextButton(
-                  onPressed: _busy ? null : () => Navigator.of(context).pop(),
-                  child: const Text('رجوع'),
+                child: Text(
+                  config.explanation,
+                  style: const TextStyle(fontSize: 13, height: 1.55),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: config.color,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size.fromHeight(48),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final text in config.suggestions)
+                    ActionChip(
+                      label: Text(text, style: const TextStyle(fontSize: 12)),
+                      onPressed: _busy
+                          ? null
+                          : () {
+                              _controller.text = text;
+                              _controller.selection = TextSelection.collapsed(
+                                offset: text.length,
+                              );
+                              setState(() => _error = null);
+                            },
                     ),
-                    onPressed: _busy ? null : _submit,
-                    icon: _busy
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : Icon(config.icon, size: 20),
-                    label: Text(_busy ? 'جارٍ التنفيذ…' : config.confirmLabel),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _controller,
+                enabled: !_busy,
+                maxLines: 3,
+                maxLength: 300,
+                onChanged: (_) {
+                  if (_error != null) setState(() => _error = null);
+                },
+                decoration: InputDecoration(
+                  labelText: config.inputLabel,
+                  errorText: _error,
+                  errorMaxLines: 3,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  TextButton(
+                    onPressed: _busy ? null : () => Navigator.of(context).pop(),
+                    child: const Text('رجوع'),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: config.color,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size.fromHeight(48),
+                      ),
+                      onPressed: _busy ? null : _submit,
+                      icon: _busy
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Icon(config.icon, size: 20),
+                      label: Text(_busy ? 'جارٍ التنفيذ…' : config.confirmLabel),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

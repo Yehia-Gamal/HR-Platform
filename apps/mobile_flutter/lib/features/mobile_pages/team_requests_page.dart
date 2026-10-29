@@ -90,6 +90,7 @@ class _TeamRequestsPageState extends ConsumerState<TeamRequestsPage> {
       isScrollControlled: true,
       isDismissible: false,
       enableDrag: false,
+      useSafeArea: true,
       builder: (_) => _BulkApproveSheet(requests: picked),
     );
     if (!mounted) return;
@@ -262,6 +263,7 @@ class _TeamRequestsPageState extends ConsumerState<TeamRequestsPage> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
+      useSafeArea: true,
       builder: (_) => RequestActionSheet(
         config: RequestSheetConfig(
           title: approve ? 'اعتماد تصحيح البصمة' : 'رفض تصحيح البصمة',
@@ -977,14 +979,17 @@ class _BulkApproveSheetState extends ConsumerState<_BulkApproveSheet> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        20,
-        20,
-        MediaQuery.viewInsetsOf(context).bottom + 20,
-      ),
-      child: SingleChildScrollView(
+    final viewInsets = MediaQuery.viewInsetsOf(context);
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          20,
+          20,
+          viewInsets.bottom > 0 ? viewInsets.bottom + 16 : 16,
+        ),
+        child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1113,6 +1118,7 @@ class _BulkApproveSheetState extends ConsumerState<_BulkApproveSheet> {
           ],
         ),
       ),
+    ),
     );
   }
 }

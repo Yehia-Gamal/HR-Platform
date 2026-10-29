@@ -38,6 +38,7 @@ class AdminAttendanceDayEditSheet extends ConsumerStatefulWidget {
     final result = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (_) => AdminAttendanceDayEditSheet(
         employeeId: employeeId,

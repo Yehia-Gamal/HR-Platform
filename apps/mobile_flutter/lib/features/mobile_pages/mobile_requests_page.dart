@@ -286,14 +286,19 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
+      useSafeArea: true,
       builder: (sheetContext) => StatefulBuilder(
-        builder: (sheetContext, setModalState) => Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            bottom: MediaQuery.viewInsetsOf(sheetContext).bottom + 20,
-          ),
-          child: SingleChildScrollView(
+        builder: (sheetContext, setModalState) {
+          final viewInsets = MediaQuery.viewInsetsOf(sheetContext);
+          return SafeArea(
+            top: false,
+            child: Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                bottom: viewInsets.bottom > 0 ? viewInsets.bottom + 16 : 16,
+              ),
+              child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -335,6 +340,9 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                     permitDate = null;
                     startTime = null;
                     if (type == 'mission') {
+                      final now = DateTime.now();
+                      startDate = DateTime(now.year, now.month, now.day);
+                      endDate = DateTime(now.year, now.month, now.day);
                       if (title.text.trim().isEmpty) title.text = 'مأمورية عمل خارجية';
                       if (reason.text.trim().isEmpty) reason.text = 'مأمورية عمل رسمية بتكليف من الإدارة';
                       if (location.text.trim().isEmpty) location.text = 'مأمورية عمل خارجية';
@@ -426,6 +434,53 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  // بداية المأمورية: اليوم (تلقائي)
+                  Row(
+                    children: [
+                      const Icon(Icons.today_outlined, size: 18),
+                      const SizedBox(width: 6),
+                      Text(
+                        'بداية المأمورية: اليوم (تلقائي)',
+                        style: Theme.of(sheetContext).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(sheetContext).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  // تمديد المأمورية لأكثر من يوم (اختياري)
+                  _DateButton(
+                    label: 'تمديد المأمورية حتى تاريخ (اختياري)',
+                    value: endDate?.isAfter(startDate ?? DateTime.now()) == true ? endDate : null,
+                    firstDate: DateTime.now(),
+                    onPressed: () async {
+                      final today = DateUtils.dateOnly(DateTime.now());
+                      final picked = await _pickDate(
+                        sheetContext,
+                        endDate != null && endDate!.isAfter(today) ? endDate : today,
+                        firstDate: today,
+                      );
+                      if (picked != null) {
+                        setModalState(() => endDate = picked);
+                      }
+                    },
+                  ),
+                  if (endDate != null && endDate!.isAfter(startDate ?? DateTime.now())) ...[
+                    const SizedBox(height: 4),
+                    Align(
+                      alignment: AlignmentDirectional.centerEnd,
+                      child: TextButton.icon(
+                        onPressed: () => setModalState(() => endDate = startDate),
+                        icon: const Icon(Icons.close, size: 14),
+                        label: const Text('إلغاء التمديد', style: TextStyle(fontSize: 12)),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Theme.of(sheetContext).colorScheme.error,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                 ],
                 if (type == 'leave' ||
@@ -678,8 +733,10 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
             ),
           ),
         ),
-      ),
-    );
+      );
+    },
+  ),
+);
 
     final requestTitle = title.text.trim();
     final requestReason = reason.text.trim();
@@ -706,9 +763,14 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
           '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
       final effectiveLocation =
           requestLocation.isEmpty ? 'مأمورية عمل خارجية' : requestLocation;
+      // إذا مدّد المستخدم المأمورية لأكثر من يوم، استخدم تاريخ النهاية المحدد
+      final today = DateUtils.dateOnly(now);
+      final effectiveEndDate = (endDate != null && endDate!.isAfter(today))
+          ? '${endDate!.year.toString().padLeft(4, '0')}-${endDate!.month.toString().padLeft(2, '0')}-${endDate!.day.toString().padLeft(2, '0')}'
+          : todayStr;
       payload.addAll({
         'startDate': todayStr,
-        'endDate': todayStr,
+        'endDate': effectiveEndDate,
         'startTime': timeStr,
         'location': effectiveLocation,
         'startedAtCreation': true,
