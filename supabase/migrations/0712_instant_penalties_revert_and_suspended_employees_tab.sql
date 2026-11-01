@@ -128,7 +128,7 @@ begin
     v_row.employee_id,
     'إعادة قيمة الغرامة للأصل',
     'تم إرجاع غرامة التأخير ليوم ' || v_row.work_date || ' إلى قيمتها الأصلية (' || v_row.original_amount || ' ج.م) بقرار إداري. يمكنك الآن السداد لدى الـ HR دون مضاعفة.',
-    'financial', 'normal', 'instant_attendance_penalties', p_penalty_id,
+    'attendance', 'normal', 'instant_attendance_penalties', p_penalty_id,
     jsonb_build_object('penaltyId', p_penalty_id, 'amount', v_row.original_amount)
   );
 
