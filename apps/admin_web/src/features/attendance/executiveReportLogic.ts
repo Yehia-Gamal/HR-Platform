@@ -685,17 +685,17 @@ export function generateComparativeAudit(metrics: ExecutiveMetrics): Comparative
   return [
     {
       metric: 'الغياب غير المبرر',
-      oldValue: '10 موظفين (تضخيم مضلل)',
-      newValue: `${metrics.unexcusedAbsent} موظف فقط (مصطفى أحمد خيري)`,
+      oldValue: 'تضخيم غير واقعي أو تصفير خاطئ',
+      newValue: `${metrics.unexcusedAbsent} موظفاً (محسوبون بدقة وفق الورديات)`,
       status: 'corrected',
-      explanation: 'تم استبعاد 9 موظفين: 5 بدون وردية (راحة أسبوعية)، و4 من الطاقم الطبي للعيادات دوامهم يبدأ 3 م والتقرير صُدّر 2:25 م.',
+      explanation: 'احتساب الغياب الحقيقي الفعلي فقط لمن بدأت ورديتهم وتجاوزوا فترة السماح دون عذر، مع استبعاد المعفيين وتيم العيادات المسائي (3 م).',
     },
     {
-      metric: 'نسبة الحضور الفعلي',
-      oldValue: '66% (منخفضة وغير منصفة)',
-      newValue: `${metrics.attendancePercentage}% (تتجاوز 95%)`,
+      metric: 'نسبة الحضور والالتزام',
+      oldValue: 'نسب مضللة وغير منصفة',
+      newValue: `حضور: ${metrics.actualPresenceRate}% · التزام: ${metrics.overallComplianceRate}%`,
       status: 'corrected',
-      explanation: 'احتساب نسبة الحضور الصافية الحقيقية لمن بدأت ورديتهم فعلياً ومطالبين بالعمل، بدلاً من قسمة الحضور على إجمالي قاعدة البيانات.',
+      explanation: 'احتساب نسبة الحضور الصافية والالتزام الشامل لقوة العمل المجدولة المطالبة بالعمل فعلياً بدلاً من قسمة الحضور على إجمالي قاعدة البيانات.',
     },
     {
       metric: 'المأموريات المعلقة (خرج قبل الاعتماد)',
