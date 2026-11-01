@@ -86,35 +86,101 @@ class AttendanceCorrectionsSection extends ConsumerWidget {
               children: catalog.corrections.map((item) {
                 final isHighlighted = item.id == highlightId;
                 final scheme = Theme.of(context).colorScheme;
+                final timeText = item.requestedCheckIn != null
+                    ? 'وقت الحضور المطلوب: ${DateFormat('hh:mm a', 'ar').format(item.requestedCheckIn!.toLocal())}'
+                    : item.requestedCheckOut != null
+                        ? 'وقت الانصراف المطلوب: ${DateFormat('hh:mm a', 'ar').format(item.requestedCheckOut!.toLocal())}'
+                        : null;
                 return Card(
-                  shape: isHighlighted
-                      ? RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(color: scheme.primary, width: 2),
-                        )
-                      : null,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    side: BorderSide(
+                      color: isHighlighted
+                          ? scheme.primary
+                          : scheme.outlineVariant.withValues(alpha: .3),
+                      width: isHighlighted ? 2 : 1,
+                    ),
+                  ),
                   color: isHighlighted
                       ? scheme.primaryContainer.withValues(alpha: .15)
                       : null,
                   child: ListTile(
-                    leading: Icon(
-                      item.status == 'approved'
-                          ? Icons.check_circle_outline
-                          : item.status == 'rejected'
-                          ? Icons.cancel_outlined
-                          : Icons.schedule_outlined,
-                      color: item.status == 'approved'
-                          ? const Color(0xFF0F9F6E)
-                          : item.status == 'rejected'
-                          ? const Color(0xFFDC3D4B)
-                          : Theme.of(context).colorScheme.onSurfaceVariant,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: (item.status == 'approved'
+                                ? const Color(0xFF0F9F6E)
+                                : item.status == 'rejected'
+                                ? const Color(0xFFDC3D4B)
+                                : scheme.onSurfaceVariant)
+                            .withValues(alpha: .12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        item.status == 'approved'
+                            ? Icons.check_circle_rounded
+                            : item.status == 'rejected'
+                            ? Icons.cancel_rounded
+                            : Icons.schedule_rounded,
+                        size: 20,
+                        color: item.status == 'approved'
+                            ? const Color(0xFF0F9F6E)
+                            : item.status == 'rejected'
+                            ? const Color(0xFFDC3D4B)
+                            : scheme.onSurfaceVariant,
+                      ),
                     ),
                     title: Text(
-                      '${_correctionType(item.type)} · ${DateFormat('d MMM y', 'ar').format(item.workDate)}',
-                      style: const TextStyle(fontWeight: FontWeight.w800),
+                      '${_correctionType(item.type)} · ${DateFormat('EEEE d MMM y', 'ar').format(item.workDate)}',
+                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5),
                     ),
-                    subtitle: Text(
-                      '${item.reason}${item.reviewNote == null ? '' : '\nرد المراجعة: ${item.reviewNote}'}',
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (timeText != null) ...[
+                          const SizedBox(height: 3),
+                          Text(
+                            timeText,
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: scheme.primary,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 2),
+                        Text(
+                          item.reason,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                        if (item.reviewNote != null && item.reviewNote!.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: (item.status == 'approved'
+                                      ? const Color(0xFF0F9F6E)
+                                      : const Color(0xFFDC3D4B))
+                                  .withValues(alpha: .08),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              'رد المراجعة: ${item.reviewNote}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: item.status == 'approved'
+                                    ? const Color(0xFF0F9F6E)
+                                    : const Color(0xFFDC3D4B),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     trailing: MobileStatusPill(item.status),
                   ),
