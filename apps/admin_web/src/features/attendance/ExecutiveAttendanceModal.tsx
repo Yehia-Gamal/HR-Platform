@@ -34,6 +34,7 @@ import {
   formatShiftBadge,
   generateComparativeAudit,
   generateSecurityVerificationCode,
+  isClinicTeamMember,
   sanitizeLeaveReason,
   sanitizeMissionPurpose,
   type ClassifiedEmployee,
@@ -57,6 +58,7 @@ interface Props {
 export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
   const [activeReportTab, setActiveReportTab] = useState<'live' | 'end_of_day' | 'comparison'>('live');
   const [numberSystem, setNumberSystem] = useState<'latn' | 'arab'>('latn');
+  const [excludeClinics, setExcludeClinics] = useState(true); // استبعاد تيم العيادات افتراضياً لأن ورديتهم تبدأ 3:00 م والتقرير يصدر ظهراً
   const [isCapturing, setIsCapturing] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [copiedType, setCopiedType] = useState<'image' | 'text' | 'print' | null>(null);
@@ -88,7 +90,12 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
     item.employeeName.includes('محمد عبدالباسط') ||
     item.employeeName.includes('ابو عمار');
 
-  const items = rawItems.filter((i) => !isAttendanceExempt(i));
+  // استبعاد المعفيين وتيم العيادات الطبية (فترة عملهم 3:00 عصراً لعدم التأثير على تقرير 12:00 ظهراً)
+  const items = rawItems.filter((i) => {
+    if (isAttendanceExempt(i)) return false;
+    if (excludeClinics && isClinicTeamMember(i)) return false;
+    return true;
+  });
 
   // حساب التوقيت الحالي بالقاهرة بالدقائق من منتصف الليل
   // إذا كان تاريخ الكشف سابقاً لليوم، تُعتبر جميع الورديات قد بدأت وانتهت
@@ -365,24 +372,24 @@ ${comparativeAudit
 📅 *اليوم:* ${dateFormatted}
 🏢 *جمعية خواطر أحلى شباب - الإدارة التنفيذية*
 ⏰ *توقيت الإصدار:* ${nowFormatted}
-━━━━━━━━━━━━━━━━━━━━
+${excludeClinics ? `🏥 *ملاحظة:* تم استبعاد طاقم العيادات الطبية (فترة عملهم تبدأ 3:00 عصراً لعدم التأثير على كشف الظهيرة).\n` : ''}━━━━━━━━━━━━━━━━━━━━
 ${
   metrics.needsDecisionCount > 0
     ? `🚨 *يحتاج قرار فوري من الإدارة (${metrics.needsDecisionCount} حالات):*
 • ${metrics.missionsPendingLeft} خرجوا لمأمورية قبل الاعتماد (طلبات معلقة)
-• ${metrics.unexcusedAbsent} غياب بدون إذن
+${metrics.leavesPendingCount > 0 ? `• ${metrics.leavesPendingCount} طلبات إجازة معلّقة بانتظار الاعتماد\n` : ''}• ${metrics.unexcusedAbsent} غياب بدون إذن
 • ${metrics.presentLate} متأخرون عن الموعد
 ━━━━━━━━━━━━━━━━━━━━\n`
     : ''
 }📊 *المؤشرات الإجمالية المعتمدة:*
 • قوة العمل المجدولة (المطالبة): ${metrics.totalScheduledEmployees} موظف
-• الحضور الفعلي: ${metrics.presentTotal} موظف (نسبة: ${metrics.attendancePercentage}%)
+• الحضور الفعلي: ${metrics.presentTotal} موظف (حضور: ${metrics.actualPresenceRate}% · التزام شامل: ${metrics.overallComplianceRate}%)
 • الحاضرون في الموعد: ${metrics.presentOnTime} موظف
 • المتأخرون: ${metrics.presentLate} موظف
 • المأموريات الرسمية المعتمدة: ${metrics.missionsApproved} موظف
-• إجازات معتمدة ومعلقة: ${metrics.leavesTotal} موظف
+• إجازات وراحات: ${metrics.leavesTotal} موظف (${metrics.leavesApprovedCount} معتمدة · ${metrics.leavesPendingCount} معلقة)
 • غياب بدون إذن: ${metrics.unexcusedAbsent} موظف
-${metrics.shiftNotStartedYet > 0 ? `• فترات مسائية لم تبدأ بعد (عيادات): ${metrics.shiftNotStartedYet} موظف` : ''}
+${metrics.shiftNotStartedYet > 0 ? `• فترات مسائية لم تبدأ بعد: ${metrics.shiftNotStartedYet} موظف` : ''}
 ━━━━━━━━━━━━━━━━━━━━
 🔴 *الغياب بدون إذن (${unexcusedAbsentList.length}):*
 ${
@@ -527,6 +534,21 @@ ${
               >
                 <span className="text-sky-400 font-bold">{numberSystem === 'latn' ? '123' : '١٢٣'}</span>
                 <span className="text-[11px] hidden sm:inline">{numberSystem === 'latn' ? 'أرقام موحدة' : 'أرقام مشرقية'}</span>
+              </button>
+
+              {/* زر استبعاد / تضمين تيم العيادات (فترة 3:00 م) */}
+              <button
+                type="button"
+                onClick={() => setExcludeClinics((prev) => !prev)}
+                className={`btn-secondary btn-sm h-9 px-3 text-xs font-bold rounded-xl inline-flex items-center gap-1.5 transition-all ${
+                  excludeClinics
+                    ? 'bg-sky-950 border-sky-500/50 text-sky-300 hover:bg-sky-900/60'
+                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
+                }`}
+                title="استبعاد طاقم العيادات الطبية المسائي (3:00 عصراً) لضبط تقرير فترة الصباح والظهيرة"
+              >
+                <span>🏥</span>
+                <span>{excludeClinics ? 'تيم العيادات: مستبعد (دوام 3 م)' : 'تيم العيادات: مشمول'}</span>
               </button>
 
               {/* زر الإغلاق */}
@@ -681,6 +703,19 @@ ${
                   </div>
                 </div>
 
+                {/* شريط تنويه ضبط توقيت الكشف واستبعاد العيادات المسائية */}
+                {excludeClinics && (
+                  <div className="flex items-center justify-between px-4 py-2 rounded-xl bg-sky-950/40 border border-sky-500/20 text-[11px] font-bold text-sky-300">
+                    <span className="flex items-center gap-2">
+                      <span>🏥</span>
+                      <span>كشف منضبط خاص بفترة الصباح والظهيرة (12:00 ظهراً) · تم استبعاد طاقم العيادات الطبية (فترة عملهم تبدأ 3:00 عصراً)</span>
+                    </span>
+                    <span className="bg-sky-500/20 text-sky-200 px-2 py-0.5 rounded-full text-[10px] font-mono shrink-0">
+                      وردية 3 م مستبعدة تلقائياً
+                    </span>
+                  </div>
+                )}
+
                 {activeReportTab === 'live' && (
                   <Fragment>
                     {/* 2. شريط "يحتاج قرار فوري" (Action Required Bar) */}
@@ -698,6 +733,11 @@ ${
                               {metrics.missionsPendingLeft > 0 && (
                                 <span className="bg-amber-500/20 px-2 py-0.5 rounded-full border border-amber-500/30">
                                   ⚠️ {metrics.missionsPendingLeft} خرجوا لمأمورية قبل الاعتماد (طلب معلق)
+                                </span>
+                              )}
+                              {metrics.leavesPendingCount > 0 && (
+                                <span className="bg-purple-500/20 text-purple-200 px-2 py-0.5 rounded-full border border-purple-500/30">
+                                  🏖️ {metrics.leavesPendingCount} طلبات إجازة معلقة تنتظر الاعتماد
                                 </span>
                               )}
                               {metrics.unexcusedAbsent > 0 && (
@@ -733,7 +773,9 @@ ${
                       <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-center">
                         <span className="block text-[11px] font-bold text-emerald-300 mb-1">الحضور الفعلي</span>
                         <span className="text-2xl font-black text-emerald-400 font-mono">{fmtNum(metrics.presentTotal)}</span>
-                        <span className="text-[10px] font-bold text-emerald-400/90 block mt-0.5 font-mono">نسبة: {fmtNum(metrics.attendancePercentage)}%</span>
+                        <span className="text-[10px] font-bold text-emerald-400/90 block mt-0.5 font-mono">
+                          حضور: {fmtNum(metrics.actualPresenceRate)}% · التزام: {fmtNum(metrics.overallComplianceRate)}%
+                        </span>
                       </div>
 
                       <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-500/30 text-center">
@@ -763,7 +805,11 @@ ${
                       <div className="p-3 rounded-xl bg-teal-950/40 border border-teal-500/30 text-center">
                         <span className="block text-[11px] font-bold text-teal-300 mb-1">الإجازات والراحات</span>
                         <span className="text-2xl font-black text-teal-400 font-mono">{fmtNum(metrics.leavesTotal)}</span>
-                        <span className="text-[10px] text-teal-400/80 block mt-0.5">رسمية معتمدة</span>
+                        <span className="text-[10px] text-teal-400/80 block mt-0.5 font-mono">
+                          {metrics.leavesPendingCount > 0
+                            ? `${fmtNum(metrics.leavesApprovedCount)} معتمدة · ${fmtNum(metrics.leavesPendingCount)} معلقة`
+                            : 'رسمية معتمدة'}
+                        </span>
                       </div>
                     </div>
 

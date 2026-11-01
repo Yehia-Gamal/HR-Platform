@@ -9,6 +9,7 @@ import {
   formatShiftBadge,
   generateComparativeAudit,
   generateSecurityVerificationCode,
+  isClinicTeamMember,
   parseShiftWindow,
   sanitizeLeaveReason,
   sanitizeMissionPurpose,
@@ -252,5 +253,133 @@ describe('executiveReportLogic', () => {
     expect(audit.some((a) => a.metric.includes('الغياب غير المبرر'))).toBe(true);
     expect(audit.some((a) => a.metric.includes('الصف 21'))).toBe(true);
     expect(audit.some((a) => a.metric.includes('الصف 5'))).toBe(true);
+  });
+
+  it('التعرف على كوادر تيم العيادات الطبية لاستبعادهم من تقرير 12 ظهراً', () => {
+    // 1. بواسطة اسم الإدارة
+    const clinicByDept = createMockItem({ departmentName: 'إدارة العيادات الطبية' });
+    expect(isClinicTeamMember(clinicByDept)).toBe(true);
+
+    // 2. بواسطة علامة الكادر الطبي
+    const clinicByFlag = createMockItem({ departmentName: 'إدارة عامة', isClinicMedicalStaff: true });
+    expect(isClinicTeamMember(clinicByFlag)).toBe(true);
+
+    // 3. بواسطة اسم الوردية
+    const clinicByShift = createMockItem({ departmentName: 'تشغيل', shiftName: 'عيادات (1)' });
+    expect(isClinicTeamMember(clinicByShift)).toBe(true);
+
+    // 4. موظف إداري عادي
+    const regularEmp = createMockItem({ departmentName: 'إدارة تكنولوجيا المعلومات', shiftName: 'الدوام الأساسي (10 ص – 6 م)' });
+    expect(isClinicTeamMember(regularEmp)).toBe(false);
+  });
+
+  it('حساب نسبة الالتزام للإدارات التي موظفوها في إجازات رسمية معتمدة = 100% بدلاً من 0%', () => {
+    const currentMinutes = 12 * 60; // 12:00 ظهراً
+
+    // موظفان في إدارة الميديا كلاهما في إجازة رسمية معتمدة
+    const mediaEmp1 = createMockItem({
+      employeeId: 'm1',
+      employeeName: 'بلال',
+      departmentName: 'إدارة الميديا',
+      hasApprovedLeave: true,
+      status: 'on_leave',
+    });
+    const mediaEmp2 = createMockItem({
+      employeeId: 'm2',
+      employeeName: 'عمار',
+      departmentName: 'إدارة الميديا',
+      hasApprovedLeave: true,
+      status: 'on_leave',
+    });
+
+    const summaries = computeDepartmentSummaries([classifyEmployee(mediaEmp1, currentMinutes), classifyEmployee(mediaEmp2, currentMinutes)]);
+
+    expect(summaries.length).toBe(1);
+    expect(summaries[0].departmentName).toBe('إدارة الميديا');
+    expect(summaries[0].total).toBe(2);
+    expect(summaries[0].leave).toBe(2);
+    expect(summaries[0].present).toBe(0);
+    expect(summaries[0].absent).toBe(0);
+    // يجب أن تكون 100% لأن الإجازات الرسمية معتمدة ومبررة وليست تقصيراً
+    expect(summaries[0].commitmentRate).toBe(100);
+  });
+
+  it('حساب نسبة الحضور الفعلي البحتة وفصلها عن نسبة الالتزام الشاملة وفصل الإجازات المعلقة', () => {
+    const currentMinutes = 12 * 60;
+
+    // 15 حاضرون
+    const presentEmps = Array.from({ length: 15 }, (_, i) =>
+      classifyEmployee(
+        createMockItem({
+          employeeId: `p${i}`,
+          employeeName: `حاضر ${i}`,
+          status: 'present',
+          firstCheckIn: '2026-11-01T09:50:00+03:00',
+        }),
+        currentMinutes,
+      ),
+    );
+
+    // 1 مأمورية معتمدة (لم يبصم بالمقر)
+    const missionEmp = classifyEmployee(
+      createMockItem({
+        employeeId: 'm_app',
+        employeeName: 'محمد عبد العظيم',
+        status: 'on_mission',
+        hasMission: true,
+      }),
+      currentMinutes,
+    );
+
+    // 1 إجازة معتمدة
+    const leaveApprovedEmp = classifyEmployee(
+      createMockItem({
+        employeeId: 'l_app',
+        employeeName: 'عمار',
+        status: 'on_leave',
+        hasApprovedLeave: true,
+      }),
+      currentMinutes,
+    );
+
+    // 2 إجازة معلقة
+    const leavePendingEmp1 = classifyEmployee(
+      createMockItem({
+        employeeId: 'l_pend1',
+        employeeName: 'بلال',
+        status: 'on_leave',
+        hasPendingRequest: true,
+        pendingRequestType: 'leave',
+      }),
+      currentMinutes,
+    );
+    const leavePendingEmp2 = classifyEmployee(
+      createMockItem({
+        employeeId: 'l_pend2',
+        employeeName: 'مصطفى فايد',
+        status: 'on_leave',
+        hasPendingRequest: true,
+        pendingRequestType: 'leave',
+      }),
+      currentMinutes,
+    );
+
+    const all = [...presentEmps, missionEmp, leaveApprovedEmp, leavePendingEmp1, leavePendingEmp2];
+    const metrics = computeExecutiveMetrics(all);
+
+    // إجمالي قوة العمل المجدولة = 15 + 1 + 1 + 2 = 19
+    expect(metrics.totalScheduledEmployees).toBe(19);
+    expect(metrics.presentTotal).toBe(15);
+
+    // نسبة الحضور الفعلي البحتة: 15 / 19 = 78.9% ≈ 79%
+    expect(metrics.actualPresenceRate).toBe(79);
+
+    // نسبة الالتزام الكلية شاملة المأموريات المعتمدة: (15 + 1) / 19 = 16 / 19 = 84.2% ≈ 84%
+    expect(metrics.overallComplianceRate).toBe(84);
+
+    // تفصيل الإجازات: 1 معتمدة و 2 معلقة
+    expect(metrics.leavesTotal).toBe(3);
+    expect(metrics.leavesApprovedCount).toBe(1);
+    expect(metrics.leavesPendingCount).toBe(2);
   });
 });

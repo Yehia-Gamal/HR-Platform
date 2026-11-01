@@ -141,6 +141,19 @@ export function calculateTrueLateMinutes(checkInIsoOrTime: string | null | undef
 }
 
 /**
+ * هل الموظف ينتمي إلى طاقم العيادات الطبية؟
+ * يشمل إدارة العيادات الطبية، والمهن الطبية والتمريض، وورديات العيادات المسائية (3:00 عصراً)
+ */
+export function isClinicTeamMember(item: AttendanceRosterItem): boolean {
+  if (item.isClinicMedicalStaff) return true;
+  const dept = (item.departmentName ?? '').trim();
+  if (dept.includes('عياد') || dept.includes('العيادات') || dept.includes('تمريض')) return true;
+  const shift = (item.shiftName ?? '').trim();
+  if (shift.includes('عياد') || shift.includes('العيادات')) return true;
+  return false;
+}
+
+/**
  * هل الموظف غير مجدول اليوم / راحة أسبوعية؟
  */
 export function isOffOrUnscheduled(item: AttendanceRosterItem): boolean {
@@ -256,16 +269,24 @@ export function classifyEmployee(item: AttendanceRosterItem, currentMinutesFromM
 export interface ExecutiveMetrics {
   totalScheduledEmployees: number; // إجمالي قوة العمل المجدولة التي بدأت ورديتها أو حضرت
   totalActiveRoster: number; // إجمالي المسجلين في كشف اليوم
-  presentTotal: number; // إجمالي الحضور (منتظم + متأخر + خرج لمأمورية)
+  presentTotal: number; // إجمالي الحضور الفعلي (منتظم + متأخر + خرج لمأمورية)
   presentOnTime: number; // حاضر في الموعد
   presentLate: number; // متأخرون
-  missionsApproved: number; // مأموريات رسمية معتمدة
+  presentMissionApproved: number; // حضر بالمقر ثم خرج لمأمورية معتمدة
+  presentMissionPending: number; // حضر بالمقر ثم خرج لمأمورية معلقة
+  missionsApproved: number; // مأموريات رسمية معتمدة إجمالاً
+  missionsApprovedOnly: number; // خرجوا لمأمورية رسمية معتمدة مباشرة دون بصمة بالمقر
   missionsPendingLeft: number; // خرجوا لمأمورية قبل الاعتماد (تطلب قراراً)
-  leavesTotal: number; // إجازات معتمدة ومعلقة
+  missionsPendingOnly: number; // خرج لمأمورية معلقة دون بصمة بالمقر
+  leavesTotal: number; // إجمالي الإجازات والراحات المسجلة
+  leavesApprovedCount: number; // إجازات معتمدة رسمياً
+  leavesPendingCount: number; // طلبات إجازة معلّقة تنتظر القرار
   unexcusedAbsent: number; // غياب حقيقي بدون إذن لمن بدأت ورديتهم فقط
   shiftNotStartedYet: number; // فترات مسائية لم تبدأ بعد (مثل العيادات 3 م)
   unscheduledRest: number; // راحة أسبوعية / غير مجدول
-  attendancePercentage: number; // نسبة الحضور الصافية الحقيقية %
+  actualPresenceRate: number; // نسبة الحضور الفعلي الصافية بالمقر %
+  overallComplianceRate: number; // نسبة الالتزام الكلية (حضور + مأموريات معتمدة) %
+  attendancePercentage: number; // للتوافق العكسي: نسبة الالتزام الشاملة %
   needsDecisionCount: number; // عناصر شريط "يحتاج قرار فوري"
 }
 
@@ -285,23 +306,32 @@ export function computeExecutiveMetrics(classified: ClassifiedEmployee[]): Execu
   const missionsApproved = presentMissionApproved + missionsApprovedOnly;
   const missionsPendingLeft = presentMissionPending + missionsPendingOnly;
 
-  const leavesTotal = active.filter((c) => c.category === 'leave_approved' || c.category === 'leave_pending').length;
+  const leavesApprovedCount = active.filter((c) => c.category === 'leave_approved').length;
+  const leavesPendingCount = active.filter((c) => c.category === 'leave_pending').length;
+  const leavesTotal = leavesApprovedCount + leavesPendingCount;
 
   const unexcusedAbsent = active.filter((c) => c.category === 'unexcused_absent').length;
   const shiftNotStartedYet = active.filter((c) => c.category === 'shift_not_started').length;
   const unscheduledRest = active.filter((c) => c.category === 'unscheduled_rest').length;
 
   // قوة العمل المجدولة المطالبة بالحضور حتى الآن:
-  // الحاضرون + الغائبون بدون إذن + المأموريات المعتمدة + الإجازات
-  const denominator = presentTotal + unexcusedAbsent + missionsApprovedOnly + leavesTotal;
-  const attendancePercentage = denominator > 0 ? Math.round(((presentTotal + missionsApprovedOnly) / denominator) * 100) : 100;
+  // الحاضرون + الغائبون بدون إذن + المأموريات (معتمدة ومعلقة) + الإجازات
+  const denominator = presentTotal + unexcusedAbsent + missionsApprovedOnly + missionsPendingOnly + leavesTotal;
+
+  // 1. نسبة الحضور الفعلي البحتة بالمقر
+  const actualPresenceRate = denominator > 0 ? Math.round((presentTotal / denominator) * 100) : 100;
+
+  // 2. نسبة الالتزام الشاملة (حضور + مأموريات رسمية معتمدة)
+  const overallComplianceRate = denominator > 0 ? Math.round(((presentTotal + missionsApprovedOnly) / denominator) * 100) : 100;
+  const attendancePercentage = overallComplianceRate;
 
   // عناصر تحتاج قرار فوري من المدير التنفيذي:
   // 1. مأموريات خرج أصحابها قبل الاعتماد
-  // 2. غياب قطعي بدون إذن
-  // 3. تأخيرات حرجة (> 60 دقيقة)
+  // 2. طلبات إجازة معلّقة لم تُعتمد بعد
+  // 3. غياب قطعي بدون إذن
+  // 4. تأخيرات حرجة (> 60 دقيقة)
   const criticalLate = active.filter((c) => c.category === 'present_late' && c.trueLateMinutes >= 60).length;
-  const needsDecisionCount = missionsPendingLeft + unexcusedAbsent + criticalLate;
+  const needsDecisionCount = missionsPendingLeft + leavesPendingCount + unexcusedAbsent + criticalLate;
 
   return {
     totalScheduledEmployees: denominator,
@@ -309,12 +339,20 @@ export function computeExecutiveMetrics(classified: ClassifiedEmployee[]): Execu
     presentTotal,
     presentOnTime,
     presentLate,
+    presentMissionApproved,
+    presentMissionPending,
     missionsApproved,
+    missionsApprovedOnly,
     missionsPendingLeft,
+    missionsPendingOnly,
     leavesTotal,
+    leavesApprovedCount,
+    leavesPendingCount,
     unexcusedAbsent,
     shiftNotStartedYet,
     unscheduledRest,
+    actualPresenceRate,
+    overallComplianceRate,
     attendancePercentage,
     needsDecisionCount,
   };
@@ -359,7 +397,18 @@ export function computeDepartmentSummaries(classified: ClassifiedEmployee[]): De
 
   const rows: DepartmentSummaryRow[] = [];
   map.forEach((val, dept) => {
-    const rate = val.total > 0 ? Math.round(((val.present + val.mission) / val.total) * 100) : 100;
+    // حساب نسبة الالتزام: الإجازات المعتمدة والمبررة لا تُعد تقصيراً أو فشلاً
+    // الموظفون المطلوب حضورهم فعلياً = الإجمالي - الإجازات
+    const activeRequired = val.total - val.leave;
+    let rate = 100;
+    if (activeRequired > 0) {
+      rate = Math.round(((val.present + val.mission) / activeRequired) * 100);
+    } else if (val.total > 0 && val.leave === val.total) {
+      // جميع موظفي الإدارة في إجازات رسمية معتمدة -> التزام كامل بنسبة 100%
+      rate = 100;
+    }
+    rate = Math.min(100, Math.max(0, rate));
+
     rows.push({
       departmentName: dept,
       total: val.total,

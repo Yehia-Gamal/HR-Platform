@@ -28,35 +28,51 @@ export function ExecutiveWorkforceChart({ metrics, isLight = false, numberSystem
   const slices: ChartSlice[] = [
     {
       key: 'on_time',
-      label: 'حضور منتظم',
+      label: 'حضور منتظم في الموعد',
       count: metrics.presentOnTime,
       pct: Math.round((metrics.presentOnTime / total) * 1000) / 10,
       color: '#10b981', // emerald-500
       glowColor: 'rgba(16, 185, 129, 0.4)',
     },
     {
-      key: 'approved_mission_leave',
-      label: 'في إجازة / مأمورية معتمدة',
-      count: metrics.missionsApproved + metrics.leavesTotal,
-      pct: Math.round(((metrics.missionsApproved + metrics.leavesTotal) / total) * 1000) / 10,
-      color: '#38bdf8', // sky-400
-      glowColor: 'rgba(56, 189, 248, 0.4)',
-    },
-    {
       key: 'late',
-      label: 'متأخرون',
+      label: 'حضور بعد الموعد (متأخر)',
       count: metrics.presentLate,
       pct: Math.round((metrics.presentLate / total) * 1000) / 10,
       color: '#f59e0b', // amber-500
       glowColor: 'rgba(245, 158, 11, 0.4)',
     },
     {
+      key: 'approved_mission',
+      label: 'مأمورية رسمية معتمدة',
+      count: metrics.missionsApproved,
+      pct: Math.round((metrics.missionsApproved / total) * 1000) / 10,
+      color: '#0284c7', // sky-600
+      glowColor: 'rgba(2, 132, 199, 0.4)',
+    },
+    {
       key: 'pending_mission',
-      label: 'خرج قبل الاعتماد (معلق)',
+      label: 'خرج لمأمورية قبل الاعتماد',
       count: metrics.missionsPendingLeft,
       pct: Math.round((metrics.missionsPendingLeft / total) * 1000) / 10,
       color: '#f97316', // orange-500
       glowColor: 'rgba(249, 115, 22, 0.4)',
+    },
+    {
+      key: 'approved_leave',
+      label: 'إجازة / راحة معتمدة',
+      count: metrics.leavesApprovedCount,
+      pct: Math.round((metrics.leavesApprovedCount / total) * 1000) / 10,
+      color: '#14b8a6', // teal-500
+      glowColor: 'rgba(20, 184, 166, 0.4)',
+    },
+    {
+      key: 'pending_leave',
+      label: 'طلب إجازة معلّق',
+      count: metrics.leavesPendingCount,
+      pct: Math.round((metrics.leavesPendingCount / total) * 1000) / 10,
+      color: '#a855f7', // purple-500
+      glowColor: 'rgba(168, 85, 247, 0.4)',
     },
     {
       key: 'absent',
@@ -68,7 +84,7 @@ export function ExecutiveWorkforceChart({ metrics, isLight = false, numberSystem
     },
     {
       key: 'upcoming',
-      label: 'فترات لم تبدأ بعد',
+      label: 'فترات مسائية لم تبدأ بعد',
       count: metrics.shiftNotStartedYet,
       pct: Math.round((metrics.shiftNotStartedYet / total) * 1000) / 10,
       color: '#818cf8', // indigo-400
@@ -109,11 +125,19 @@ export function ExecutiveWorkforceChart({ metrics, isLight = false, numberSystem
             <span className="size-2.5 rounded-full bg-emerald-400 animate-pulse" />
             <span>توزيع قوى العمل اليوم</span>
           </h3>
-          <p className="text-xs text-slate-400 mt-0.5">نظرة بصرية شاملة على توزيع الحالات والانضباط الميداني</p>
+          <p className="text-xs text-slate-400 mt-0.5">نظرة بصرية دقيقة على توزيع الحالات والانضباط الميداني دون تضخيم</p>
         </div>
         <div className="text-end">
-          <span className="text-xs text-slate-400 block font-medium">نسبة الحضور الفعلي</span>
-          <span className="text-xl font-black text-emerald-400 font-mono">{fmt(metrics.attendancePercentage)}%</span>
+          <div className="flex items-center gap-2">
+            <div>
+              <span className="text-[11px] text-slate-400 block font-medium">حضور فعلي</span>
+              <span className="text-lg font-black text-emerald-400 font-mono">{fmt(metrics.actualPresenceRate)}%</span>
+            </div>
+            <div className="border-s border-slate-700/80 ps-2.5">
+              <span className="text-[11px] text-slate-400 block font-medium">التزام شامل</span>
+              <span className="text-lg font-black text-sky-400 font-mono">{fmt(metrics.overallComplianceRate)}%</span>
+            </div>
+          </div>
         </div>
       </div>
 
