@@ -1053,38 +1053,38 @@ class _SuspendedAccountPage extends StatelessWidget {
   final VoidCallback onRetry;
   final VoidCallback onSignOut;
 
+  static const String yehiaPhone = '+201154869616';
+  static const String yehiaWhatsapp = '201154869616';
+  static const String yehiaName = 'م. يحيى جمال السبع';
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final message = access.suspensionMessage?.trim().isNotEmpty == true
         ? access.suspensionMessage!
-        : 'تم وقفك عن العمل لعدم سداد قيمة الخصم 500جنيه توجه الي قسم ال HR لسداد المبلغ';
+        : 'تم إيقافك عن العمل، راجع المسؤول م. يحيى لسداد الغرامات التي عليك';
     final amount = access.suspensionAmount ?? 500.0;
+    final contactName = access.managerContactName ?? yehiaName;
+    final contactPhone = access.managerContactPhone ?? yehiaPhone;
+    final contactWa = access.managerContactWhatsapp ?? yehiaWhatsapp;
 
-    final errorBase = theme.colorScheme.error;
-    final errorContainer = theme.colorScheme.errorContainer;
+    const redColor = Color(0xFFDC2626);
+    const redLight = Color(0xFFEF4444);
 
     final bannerBg = isDark
-        ? errorContainer.withValues(alpha: 0.35)
-        : const Color(0xFFFDE8E8);
+        ? const Color(0xFF450A0A).withValues(alpha: 0.65)
+        : const Color(0xFFFEF2F2);
     final bannerBorder = isDark
-        ? errorBase.withValues(alpha: 0.45)
-        : const Color(0xFFF8B4B4);
+        ? const Color(0xFF991B1B).withValues(alpha: 0.6)
+        : const Color(0xFFFECACA);
     final bannerTextColor = isDark
-        ? const Color(0xFFFFDAD6)
+        ? const Color(0xFFFCA5A5)
         : const Color(0xFF991B1B);
 
     final iconCircleBg = isDark
-        ? errorContainer.withValues(alpha: 0.4)
+        ? const Color(0xFF7F1D1D).withValues(alpha: 0.45)
         : const Color(0xFFFEE2E2);
-    final iconColor = isDark
-        ? const Color(0xFFFFB4AB)
-        : const Color(0xFFDC2626);
-
-    final headerTextColor = isDark
-        ? const Color(0xFFFFB4AB)
-        : const Color(0xFF991B1B);
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -1093,75 +1093,105 @@ class _SuspendedAccountPage extends StatelessWidget {
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 460),
+              constraints: const BoxConstraints(maxWidth: 480),
               child: Card(
-                elevation: isDark ? 2 : 4,
+                elevation: isDark ? 2 : 5,
                 color: theme.colorScheme.surface,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24),
                   side: BorderSide(
                     color: isDark
-                        ? errorBase.withValues(alpha: 0.35)
-                        : const Color(0xFFFCA5A5).withValues(alpha: 0.6),
+                        ? const Color(0xFF7F1D1D).withValues(alpha: 0.6)
+                        : const Color(0xFFFCA5A5),
                     width: 1.5,
                   ),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(28),
+                  padding: const EdgeInsets.all(26),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // علامة في / الإيقاف البارزة
                       Container(
-                        padding: const EdgeInsets.all(18),
+                        width: 80,
+                        height: 80,
                         decoration: BoxDecoration(
                           color: iconCircleBg,
                           shape: BoxShape.circle,
+                          border: Border.all(
+                            color: redColor.withValues(alpha: 0.35),
+                            width: 2,
+                          ),
                         ),
-                        child: Icon(
-                          Icons.lock_person_rounded,
-                          size: 56,
-                          color: iconColor,
+                        child: const Center(
+                          child: Icon(
+                            Icons.cancel_rounded,
+                            size: 58,
+                            color: redColor,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 20),
-                      Text(
-                        'تم إيقاف الحساب عن العمل',
+                      const SizedBox(height: 18),
+                      // العنوان الرئيسي الصريح
+                      const Text(
+                        'تم إيقافك عن العمل',
                         style: TextStyle(
-                          fontSize: 22,
+                          fontSize: 23,
                           fontWeight: FontWeight.w900,
-                          color: headerTextColor,
+                          color: redColor,
+                          letterSpacing: -0.5,
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 14),
+                      // شريط التنبيه وتوجيه الموظف لم. يحيى
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         decoration: BoxDecoration(
                           color: bannerBg,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color: bannerBorder,
+                            width: 1.2,
                           ),
                         ),
-                        child: Text(
-                          message,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            height: 1.65,
-                            color: bannerTextColor,
-                          ),
+                        child: Column(
+                          children: [
+                            Text(
+                              message,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                height: 1.6,
+                                color: bannerTextColor,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'تم تجميد صلاحيات تسجيل البصمة واستخدام التطبيق مؤقتاً حتى سداد الغرامات.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: bannerTextColor.withValues(alpha: 0.85),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 18),
+                      // بطاقة تفاصيل الحساب والغرامات
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: theme.colorScheme.surfaceContainerHighest
                               .withValues(alpha: isDark ? 0.35 : 0.5),
                           borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+                          ),
                         ),
                         child: Column(
                           children: [
@@ -1177,18 +1207,25 @@ class _SuspendedAccountPage extends StatelessWidget {
                             const Divider(height: 16),
                             _buildInfoRow(
                               context,
-                              'قيمة الخصم المستحق:',
+                              'إجمالي الغرامات المستحقة:',
                               '${amount.toStringAsFixed(0)} ج.م',
                               isBold: true,
-                              valueColor: isDark
-                                  ? const Color(0xFFFFB4AB)
-                                  : const Color(0xFFDC2626),
+                              valueColor: isDark ? redLight : redColor,
                             ),
                             const Divider(height: 16),
                             _buildInfoRow(
                               context,
-                              'حالة التطبيق:',
-                              'موقوف حتى سداد المبلغ',
+                              'المسؤول للمراجعة والسداد:',
+                              contactName,
+                              isBold: true,
+                              valueColor: const Color(0xFF0284C7),
+                            ),
+                            const Divider(height: 16),
+                            _buildInfoRow(
+                              context,
+                              'حالة الحساب:',
+                              'موقوف عن العمل',
+                              isBold: true,
                               valueColor: isDark
                                   ? const Color(0xFFFFB74D)
                                   : const Color(0xFFC2410C),
@@ -1196,41 +1233,51 @@ class _SuspendedAccountPage extends StatelessWidget {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 22),
+                      // زر واتساب مباشر لم. يحيى
                       SizedBox(
                         width: double.infinity,
                         child: FilledButton.icon(
-                          onPressed: onRetry,
-                          icon: const Icon(Icons.refresh_rounded),
-                          label: const Text('إعادة التحقق من حالة الحساب'),
-                          style: FilledButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton.tonalIcon(
                           onPressed: () {
                             final code = PhoneDisplay.stripCountryCode(access.employeeCode);
                             final name = access.displayName;
                             final owed = amount.toStringAsFixed(0);
                             final text =
-                                'السلام عليكم، أنا الموظف $name${code.isNotEmpty ? ' (كود: $code)' : ''}. تم إيقاف حسابي بالمنظومة لعدم سداد الغرامة المستحقة بقيمة $owed ج.م. برجاء المساعدة في تسوية المبلغ لإعادة تفعيل الحساب.';
+                                'السلام عليكم م. يحيى، أنا الموظف $name${code.isNotEmpty ? ' (كود: $code)' : ''}. تم إيقاف حسابي بالمنظومة لوجود غرامات مستحقة بقيمة $owed ج.م. برجاء مراجعة الحساب وتوضيح إجراءات السداد ورفع الإيقاف.';
                             launchUrl(
                               Uri.parse(
-                                'https://api.whatsapp.com/send?text=${Uri.encodeComponent(text)}',
+                                'https://wa.me/$contactWa?text=${Uri.encodeComponent(text)}',
                               ),
                               mode: LaunchMode.externalApplication,
                             );
                           },
-                          icon: const Icon(Icons.chat_outlined),
-                          label: const Text('تواصل مع الـ HR لتسوية المبلغ'),
+                          icon: const Icon(Icons.chat_bubble_rounded),
+                          label: const Text('مراسلة م. يحيى عبر واتساب للسداد'),
                           style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFF10B981),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            elevation: 1,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      // زر اتصال مباشر بم. يحيى
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            launchUrl(
+                              Uri.parse('tel:$contactPhone'),
+                              mode: LaunchMode.externalApplication,
+                            );
+                          },
+                          icon: const Icon(Icons.phone_in_talk_rounded),
+                          label: Text('الاتصال بـ $contactName'),
+                          style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14),
@@ -1239,17 +1286,31 @@ class _SuspendedAccountPage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 10),
+                      // زر إعادة التحقق بعد السداد
                       SizedBox(
                         width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: onSignOut,
-                          icon: const Icon(Icons.logout_rounded),
-                          label: const Text('تسجيل الخروج'),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                        child: FilledButton.tonalIcon(
+                          onPressed: onRetry,
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: const Text('إعادة التحقق من حالة الحساب (بعد السداد)'),
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 13),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14),
                             ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      // تسجيل الخروج
+                      SizedBox(
+                        width: double.infinity,
+                        child: TextButton.icon(
+                          onPressed: onSignOut,
+                          icon: const Icon(Icons.logout_rounded),
+                          label: const Text('تسجيل الخروج من الحساب'),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                         ),
                       ),

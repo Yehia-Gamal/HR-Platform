@@ -58,6 +58,9 @@ class AccessContext {
     this.suspensionMessage,
     this.suspensionAmount,
     this.isClinicStaff = false,
+    this.managerContactName,
+    this.managerContactPhone,
+    this.managerContactWhatsapp,
   });
 
   factory AccessContext.fromJson(Map<String, dynamic> json) {
@@ -70,6 +73,11 @@ class AccessContext {
     final rolesList = List<String>.from(json['roles'] as List<dynamic>? ?? const []);
     final isClinic = (json['isClinicStaff'] as bool? ?? false) ||
         (rolesList.contains('clinic-staff') && !rolesList.contains('clinics-manager'));
+
+    final managerContact = json['managerContact'] as Map<dynamic, dynamic>?;
+    final managerName = managerContact?['name'] as String? ?? 'م. يحيى جمال السبع';
+    final managerPhone = managerContact?['phone'] as String? ?? '+201154869616';
+    final managerWhatsapp = managerContact?['whatsapp'] as String? ?? '201154869616';
 
     return AccessContext(
       userId: json['userId'] as String? ?? '',
@@ -100,6 +108,9 @@ class AccessContext {
       suspensionMessage: json['suspensionMessage'] as String?,
       suspensionAmount: (json['suspensionAmount'] as num?)?.toDouble(),
       isClinicStaff: isClinic,
+      managerContactName: managerName,
+      managerContactPhone: managerPhone,
+      managerContactWhatsapp: managerWhatsapp,
     );
   }
 
@@ -119,6 +130,9 @@ class AccessContext {
   final String? suspensionMessage;
   final double? suspensionAmount;
   final bool isClinicStaff;
+  final String? managerContactName;
+  final String? managerContactPhone;
+  final String? managerContactWhatsapp;
 
   bool get isSuspendedAccount =>
       isSuspended ||
