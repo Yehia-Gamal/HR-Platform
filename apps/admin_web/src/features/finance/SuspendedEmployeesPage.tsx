@@ -16,6 +16,7 @@ import { PageHeader } from '../../ui/PageHeader';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { EmptyState } from '../../ui/EmptyState';
 import { ListSkeleton } from '../../ui/Skeletons';
+import { UserAvatar } from '../../ui/UserAvatar';
 import { useToast } from '../../ui/Toast';
 import { safeErrorMessage } from '../../core/errorMapper';
 import {
@@ -255,12 +256,13 @@ export function SuspendedEmployeesPage() {
               {/* ترويسة الموظف */}
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="size-12 rounded-full overflow-hidden bg-[var(--surface-muted)] border-2 border-rose-500/30 flex items-center justify-center text-lg font-black text-rose-600 shrink-0">
-                    {emp.photoUrl ? (
-                      <img src={emp.photoUrl} alt={emp.employeeName} className="size-full object-cover" />
-                    ) : (
-                      emp.employeeName.slice(0, 2)
-                    )}
+                  <div className="shrink-0 rounded-full border-2 border-rose-500/30 overflow-hidden">
+                    <UserAvatar
+                      displayName={emp.employeeName}
+                      photoUrl={emp.photoUrl}
+                      size="lg"
+                      announceName={false}
+                    />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
