@@ -1384,10 +1384,11 @@ extension MobileSelfServiceCommands on MobileCommands {
     DateTime? checkOut,
     String? requestedStatus,
   }) async {
+    final localWorkDate = workDate.toLocal();
     String date(DateTime value) =>
         '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
     await _rpcQueued('request_correction', 'request_attendance_correction', {
-      'p_work_date': date(workDate),
+      'p_work_date': date(localWorkDate),
       'p_type': type,
       'p_reason': reason.trim(),
       'p_check_in': checkIn?.toUtc().toIso8601String(),

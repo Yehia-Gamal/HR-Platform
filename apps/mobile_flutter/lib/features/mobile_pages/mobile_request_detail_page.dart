@@ -891,12 +891,16 @@ class _DetailsCard extends StatelessWidget {
         add(Icons.schedule_rounded, 'الفترة المطلوبة', _text('shiftName'));
         add(Icons.event_available_rounded, 'تبدأ من', _day('effectiveFrom'));
       case 'attendance_correction':
-        add(Icons.today_rounded, 'اليوم', _day('workDate') ?? period);
-        add(Icons.login_rounded, 'الحضور المطلوب', time12(_p['checkInTime']));
+        add(Icons.today_rounded, 'اليوم', _day('workDate') ?? _day('correctionDate') ?? period);
+        add(
+          Icons.login_rounded,
+          'الحضور المطلوب',
+          time12(_p['proposedCheckInTime'] ?? _p['checkInTime'] ?? _p['requestedCheckIn']),
+        );
         add(
           Icons.logout_rounded,
           'الانصراف المطلوب',
-          time12(_p['checkOutTime']),
+          time12(_p['proposedCheckOutTime'] ?? _p['checkOutTime'] ?? _p['requestedCheckOut']),
         );
       default:
         add(Icons.date_range_rounded, 'الفترة', period);

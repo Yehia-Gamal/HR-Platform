@@ -490,8 +490,10 @@ DateTime? _payloadDate(Map<String, dynamic> payload, String key) {
 
 /// فترة الطلب: «الأحد 5 أكتوبر» أو «من الأحد 5 أكتوبر إلى الثلاثاء 7 أكتوبر».
 String? requestPeriodLabel(Map<String, dynamic> payload) {
-  final start =
-      _payloadDate(payload, 'startDate') ?? _payloadDate(payload, 'permitDate');
+  final start = _payloadDate(payload, 'startDate') ??
+      _payloadDate(payload, 'permitDate') ??
+      _payloadDate(payload, 'workDate') ??
+      _payloadDate(payload, 'correctionDate');
   final end = _payloadDate(payload, 'endDate');
   if (start == null) return end == null ? null : arDay(end);
   if (end == null || DateUtils.isSameDay(start, end)) return arDay(start);
@@ -549,6 +551,27 @@ String requestBriefLine(String type, Map<String, dynamic> payload) {
       if (shift != null && shift.isNotEmpty) parts.add(shift);
       final from = _payloadDate(payload, 'effectiveFrom');
       if (from != null) parts.add('من ${arDay(from)}');
+    case 'attendance_correction':
+      final corrType = payload['correctionType']?.toString();
+      final corrLabel = switch (corrType) {
+        'missing_check_in' => 'نسيان بصمة حضور',
+        'missing_check_out' => 'نسيان بصمة انصراف',
+        'wrong_time' => 'تعديل توقيت بصمة',
+        'wrong_status' => 'تعديل حالة الحضور',
+        _ => 'تصحيح بصمة',
+      };
+      parts.add(corrLabel);
+      final pDate = _payloadDate(payload, 'workDate') ?? _payloadDate(payload, 'correctionDate');
+      if (pDate != null) parts.add(arDay(pDate));
+      final proposed = payload['proposedCheckOutTime'] ??
+          payload['proposedCheckInTime'] ??
+          payload['correctedTime'] ??
+          payload['checkOutTime'] ??
+          payload['checkInTime'];
+      if (proposed != null) {
+        final t = time12(proposed.toString()) ?? proposed.toString();
+        parts.add(t);
+      }
     default:
       if (location != null && location.isNotEmpty) parts.add(location);
       final period = requestPeriodLabel(payload);

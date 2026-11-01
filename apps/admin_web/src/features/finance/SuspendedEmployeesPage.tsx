@@ -267,7 +267,11 @@ export function SuspendedEmployeesPage() {
                   <div>
                     <div className="flex items-center gap-2">
                       <h4 className="text-base font-black text-[var(--text-strong)]">{emp.employeeName}</h4>
-                      <span className="badge badge-danger text-xs font-bold px-2 py-0.5">موقوف عن العمل</span>
+                      {emp.status === 'suspended' || !emp.isActive ? (
+                        <span className="badge badge-danger text-xs font-bold px-2 py-0.5">موقوف عن العمل</span>
+                      ) : (
+                        <span className="badge badge-warning text-xs font-bold px-2 py-0.5">حساب نشط (غرامة مضاعفة 500 ج.م)</span>
+                      )}
                     </div>
                     <div className="flex flex-wrap items-center gap-3 text-xs text-[var(--text-muted)] mt-1">
                       {emp.departmentName && (

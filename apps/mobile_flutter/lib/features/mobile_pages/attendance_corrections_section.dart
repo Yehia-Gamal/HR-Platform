@@ -422,10 +422,11 @@ Future<void> showAttendanceCorrectionSheet(
     DateTime? checkIn;
     DateTime? checkOut;
     if (effectiveActualTime != null) {
+      final localDate = effectiveWorkDate.toLocal();
       final base = DateTime(
-        effectiveWorkDate.year,
-        effectiveWorkDate.month,
-        effectiveWorkDate.day,
+        localDate.year,
+        localDate.month,
+        localDate.day,
         effectiveActualTime.hour,
         effectiveActualTime.minute,
       );
