@@ -57,13 +57,13 @@ describe('executiveReportLogic', () => {
     // 2:25 م = 14:25 = 14 * 60 + 25 = 865 دقيقة من منتصف الليل
     const currentMinutes = 14 * 60 + 25;
 
-    // موظف بلا وردية مقررة
+    // موظف في راحة أسبوعية / عطلة
     const unscheduledEmp = createMockItem({
       employeeId: '11111111-1111-1111-1111-111111111111',
-      employeeName: 'طارق سيد إبراهيم',
+      employeeName: 'موظف راحة أسبوعية',
       departmentName: 'إدارة الحركة',
-      status: 'unexcused_absent',
-      shiftName: null,
+      status: 'weekend',
+      shiftName: 'راحة أسبوعية',
     });
     const c1 = classifyEmployee(unscheduledEmp, currentMinutes);
     expect(c1.category).toBe('unscheduled_rest');
@@ -381,5 +381,28 @@ describe('executiveReportLogic', () => {
     expect(metrics.leavesTotal).toBe(3);
     expect(metrics.leavesApprovedCount).toBe(1);
     expect(metrics.leavesPendingCount).toBe(2);
+  });
+
+  it('إظهار الموظفين الغائبين بدون وردية مخصصة كغياب غير مبرر على الدوام الأساسي (10 ص)', () => {
+    const currentMinutes = 12 * 60; // 12:00 ظهراً
+
+    // موظف لم يبصم وليس لديه وردية مخصصة في قاعدة البيانات (مثل طارق سيد إبراهيم أو ياسر فتحي)
+    const absentDriver = createMockItem({
+      employeeId: 'driver1',
+      employeeName: 'طارق سيد أبراهيم',
+      departmentName: 'إدارة الحركة',
+      status: 'unexcused_absent',
+      shiftName: null,
+      firstCheckIn: null,
+    });
+
+    const classified = classifyEmployee(absentDriver, currentMinutes);
+    expect(classified.category).toBe('unexcused_absent');
+    expect(classified.shiftWindow?.startHour).toBe(10);
+    expect(classified.shiftWindow?.endHour).toBe(18);
+
+    const metrics = computeExecutiveMetrics([classified]);
+    expect(metrics.unexcusedAbsent).toBe(1);
+    expect(metrics.totalScheduledEmployees).toBe(1);
   });
 });

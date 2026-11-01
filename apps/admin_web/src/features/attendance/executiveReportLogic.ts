@@ -16,6 +16,19 @@ export interface ShiftTimeWindow {
 }
 
 /**
+ * الوردية الأساسية الافتراضية لمنظومة الجمعية (10:00 ص – 6:00 م)
+ * تُطبق على جميع الكوادر المجدولة التي ليس لها وردية مخصصة استثنائية
+ */
+export const DEFAULT_ORGANIZATION_SHIFT: ShiftTimeWindow = {
+  startHour: 10,
+  startMinute: 0,
+  endHour: 18,
+  endMinute: 0,
+  isNightShift: false,
+  rawString: 'الدوام الأساسي (10 ص – 6 م)',
+};
+
+/**
  * استخراج أوقات بداية ونهاية الوردية من اسم الوردية أو التوقيتات المسجلة
  * يدعم: "الدوام الأساسي (10 ص – 6 م)"، "فترة العيادات المسائية (3 ع – 11 م)"، "الوردية الصباحية (9 ص – 5 م)"
  */
@@ -154,16 +167,16 @@ export function isClinicTeamMember(item: AttendanceRosterItem): boolean {
 }
 
 /**
- * هل الموظف غير مجدول اليوم / راحة أسبوعية؟
+ * هل الموظف غير مجدول اليوم / راحة أسبوعية أو عطلة رسمية؟
+ * في الأيام العادية (الأحد إلى الخميس) يعتبر الموظف مجدولاً على الدوام الأساسي
+ * ولا يُعتبر في راحة أسبوعية إلا إذا كانت حالته 'weekend' أو 'holiday' أو نصت ورديته صراحة على ذلك.
  */
 export function isOffOrUnscheduled(item: AttendanceRosterItem): boolean {
   if (item.status === 'exempt') return false;
-  const hasNoShift = !item.shiftName || item.shiftName === '—' || item.shiftName.trim() === '';
-  const hasNoCheckIn = !item.firstCheckIn;
-  const hasNoLeave = !item.hasApprovedLeave;
-  const hasNoMission = !item.hasMission;
-  const hasNoPending = !item.hasPendingRequest;
-  return hasNoShift && hasNoCheckIn && hasNoLeave && hasNoMission && hasNoPending;
+  if (item.status === 'weekend' || item.status === 'holiday' || item.status === 'unscheduled') return true;
+  const shift = (item.shiftName ?? '').trim();
+  if (shift.includes('راحة') || shift.includes('عطلة') || shift.includes('غير مجدول') || shift === 'إجازة أسبوعية') return true;
+  return false;
 }
 
 /**
@@ -197,7 +210,8 @@ export interface ClassifiedEmployee {
 }
 
 export function classifyEmployee(item: AttendanceRosterItem, currentMinutesFromMidnight: number): ClassifiedEmployee {
-  const shiftWindow = parseShiftWindow(item.shiftName, (item as { shiftStart?: string | null }).shiftStart);
+  const shiftWindow =
+    parseShiftWindow(item.shiftName, (item as { shiftStart?: string | null }).shiftStart) ?? DEFAULT_ORGANIZATION_SHIFT;
   const trueLate = calculateTrueLateMinutes(item.firstCheckIn, shiftWindow, item.lateMinutes ?? 0);
 
   const isMission = item.status === 'on_mission' || Boolean(item.hasMission) || (Boolean(item.hasPendingRequest) && item.pendingRequestType === 'mission');
@@ -233,8 +247,9 @@ export function classifyEmployee(item: AttendanceRosterItem, currentMinutesFromM
     category = 'shift_not_started';
   } else if (hasShiftStarted(shiftWindow, currentMinutesFromMidnight)) {
     category = 'unexcused_absent';
+  } else if (item.status === 'absent' || item.status === 'unexcused_absent') {
+    category = 'unexcused_absent';
   } else {
-    // حالة افتراضية للموظف بدون جدول مؤكد
     category = 'unscheduled_rest';
   }
 
@@ -472,7 +487,7 @@ export function sanitizeMissionPurpose(title: string | null | undefined, reason:
  * تحويل "3 ع – 11 م" إلى صيغة موحدة "3 م – 11 م"
  */
 export function formatShiftBadge(shiftName: string | null | undefined): string {
-  if (!shiftName || shiftName === '—') return 'دوام مرن';
+  if (!shiftName || shiftName === '—') return 'الدوام الأساسي (10 ص – 6 م)';
   let formatted = shiftName.replace(/(\d+)\s*ع(?=[\s–\-—)]|$)/g, '$1 م');
   // توضيح وسم "عيادات (١)" أو "عيادات (1)" غير المفهوم ليصبح صريحاً للمدير التنفيذي
   formatted = formatted.replace(/عيادات\s*\([١1]\)/g, 'العيادات الطبية (الفترة المسائية 3 م – 11 م)');
