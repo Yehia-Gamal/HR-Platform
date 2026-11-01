@@ -229,3 +229,4 @@ $function$;
 
 revoke execute on function public.get_my_access_context() from public, anon;
 grant execute on function public.get_my_access_context() to authenticated;
+

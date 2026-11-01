@@ -10,6 +10,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.d
 import 'package:ahla_shabab_management_os/features/mobile_pages/request_display.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/request_list_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/team_requests_page.dart';
+import 'package:ahla_shabab_management_os/shared/access_context.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -50,6 +51,19 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
                   (r.awaitingMe == true || r.canDecide == true),
             )
             .length;
+    final canApproveRequests = !isClinicStaff && (
+        access?.hasAnyPermission(const [
+          'requests.request.approve',
+          'requests.request.override',
+          'attendance.correction.review',
+          'attendance.manage',
+        ]) == true ||
+        access?.workspaces.any((w) =>
+            w == WorkspaceId.manager ||
+            w == WorkspaceId.fieldOperations ||
+            w == WorkspaceId.mainAdmin ||
+            w == WorkspaceId.executive ||
+            w == WorkspaceId.hr) == true);
 
     return Scaffold(
       appBar: HostAppBarScope.isActive(context)
@@ -86,6 +100,37 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
                   ),
                   subtitle: const Text(
                     'افتح «اعتماد طلبات الفريق» للبت فيها مباشرة.',
+                  ),
+                  trailing: const Icon(Icons.chevron_left_rounded),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const TeamRequestsPage(),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ] else if (canApproveRequests) ...[
+              Card(
+                elevation: 0,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: .4),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: BorderSide(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                ),
+                child: ListTile(
+                  leading: const Icon(
+                    Icons.approval_outlined,
+                  ),
+                  title: const Text(
+                    'صندوق اعتماد طلبات الفريق',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  subtitle: const Text(
+                    'لا توجد طلبات معلقة الآن. انقر لاستعراض السجل أو الطلبات السابقة.',
                   ),
                   trailing: const Icon(Icons.chevron_left_rounded),
                   onTap: () => Navigator.push(

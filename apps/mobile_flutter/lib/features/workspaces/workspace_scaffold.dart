@@ -235,16 +235,26 @@ class WorkspaceScaffold extends ConsumerWidget {
     final isExecutive = workspace == WorkspaceId.executive;
     final isManagerOrOps = workspace == WorkspaceId.manager ||
         workspace == WorkspaceId.fieldOperations;
+    final canApproveRequests = isManagerOrOps ||
+        isExecutive ||
+        workspace == WorkspaceId.mainAdmin ||
+        contextData.hasAnyPermission(const [
+          'requests.request.approve',
+          'requests.request.override',
+          'attendance.correction.review',
+          'attendance.manage',
+        ]);
     final items = <_MoreItem>[
-      // أدوار الإدارة والتشغيل: اعتماد الطلبات وإدارة الفريق
-      if (isManagerOrOps) ...[
-        // اعتماد طلبات الفريق: الإجازات والمأموريات والأذونات وفترات العمل وتصحيحات البصمة مع اعتماد/رفض سريع
+      // صندوق الاعتماد: متاح لأي مستخدم يملك صلاحية الاعتماد أو الإشراف
+      if (canApproveRequests)
         _MoreItem(
           icon: Icons.approval_outlined,
           label: 'اعتماد طلبات الفريق',
           page: const TeamRequestsPage(),
           badgeCount: pendingApprovals > 0 ? pendingApprovals : null,
         ),
+      // أدوار الإدارة والتشغيل: إدارة الفريق
+      if (isManagerOrOps) ...[
         // V22 — فريقي: صفحة موحّدة بتبويبات (نظرة عامة + ملفات الفريق + جداول الحضور).
         _MoreItem(
           icon: Icons.groups_2_outlined,
