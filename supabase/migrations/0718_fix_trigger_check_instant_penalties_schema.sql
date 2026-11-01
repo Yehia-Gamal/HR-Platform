@@ -38,3 +38,4 @@ $$;
 
 revoke all on function public.trigger_check_instant_penalties_now() from public, anon;
 grant execute on function public.trigger_check_instant_penalties_now() to authenticated, service_role;
+

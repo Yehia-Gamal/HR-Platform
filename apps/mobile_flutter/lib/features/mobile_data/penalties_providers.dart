@@ -169,12 +169,16 @@ bool canManagePenalties(WidgetRef ref) {
   if (access == null) return false;
   const roles = {
     'admin',
+    'super-admin',
+    'super_admin',
     'system-admin',
     'executive-secretary',
     'executive',
     'executive-director',
     'hr-manager',
     'hr-specialist',
+    'operations-manager-1',
+    'operations-manager-2',
   };
   return access.roles.any(roles.contains);
 }

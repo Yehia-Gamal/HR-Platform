@@ -4049,6 +4049,7 @@ class MobileInstantPenalty {
     this.employeeName,
     this.departmentName,
     this.cancelledReason,
+    this.photoUrl,
   });
 
   static double _toDouble(dynamic v) {
@@ -4103,6 +4104,7 @@ class MobileInstantPenalty {
         employeeName: _toStr(j['employee_name'] ?? j['employeeName']),
         departmentName: _toStr(j['department_name'] ?? j['departmentName']),
         cancelledReason: _toStr(j['cancelled_reason'] ?? j['cancelledReason']),
+        photoUrl: _toStr(j['photo_url'] ?? j['photoUrl']),
       );
     } catch (_) {
       return MobileInstantPenalty(
@@ -4145,6 +4147,7 @@ class MobileInstantPenalty {
   final String? employeeId;
   final String? employeeName;
   final String? departmentName;
+  final String? photoUrl;
 
   /// سبب الإلغاء/الإعفاء — منفصل عن الملاحظات (0642).
   final String? cancelledReason;

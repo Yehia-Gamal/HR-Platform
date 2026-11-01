@@ -1776,7 +1776,7 @@ class _EmployeeGroupCard extends StatelessWidget {
               padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
-                  AppAvatar(name: name, radius: 20),
+                  AppAvatar(name: name, photoUrl: first.photoUrl, radius: 20),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -1804,6 +1804,16 @@ class _EmployeeGroupCard extends StatelessWidget {
                           spacing: 6,
                           runSpacing: 4,
                           children: [
+                            if (penalties.any((p) => p.status == 'suspended' || p.escalationLevel == 'suspended'))
+                              const _Pill(
+                                text: 'موقوف عن العمل',
+                                color: AppColors.statusDanger,
+                              )
+                            else if (penalties.any((p) => p.currentAmount >= 500 || p.escalationLevel == 'doubled'))
+                              const _Pill(
+                                text: 'مضاعفة 500 ج.م',
+                                color: AppColors.statusWarning,
+                              ),
                             if (unpaid.isNotEmpty)
                               _Pill(
                                 text: 'مستحق ${_money(due)} (${unpaid.length})',
@@ -2021,7 +2031,7 @@ class _SuspendedEmployeeCard extends ConsumerWidget {
           children: [
             Row(
               children: [
-                AppAvatar(name: emp.employeeName, radius: 22),
+                AppAvatar(name: emp.employeeName, photoUrl: emp.photoUrl, radius: 22),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(

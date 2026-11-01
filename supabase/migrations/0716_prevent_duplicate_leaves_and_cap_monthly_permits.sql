@@ -560,3 +560,4 @@ revoke all on function public.decide_request(uuid, text, text) from public, anon
 grant execute on function public.decide_request(uuid, text, text) to authenticated, service_role;
 
 commit;
+

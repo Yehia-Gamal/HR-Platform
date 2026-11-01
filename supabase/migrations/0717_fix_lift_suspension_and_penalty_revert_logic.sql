@@ -541,3 +541,4 @@ select public.lift_employee_suspension_admin(
 );
 
 commit;
+
