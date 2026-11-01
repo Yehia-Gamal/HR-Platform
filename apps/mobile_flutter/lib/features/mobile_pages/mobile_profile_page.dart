@@ -122,6 +122,7 @@ class MobileProfilePage extends ConsumerWidget {
                   trailing: const Icon(Icons.chevron_left_rounded),
                   onTap: () => showModalBottomSheet(
                     context: context,
+                    useSafeArea: true,
                     isScrollControlled: true,
                     builder: (context) => const _ChangePasswordDialog(),
                   ),

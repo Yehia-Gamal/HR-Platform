@@ -492,6 +492,7 @@ class _FeedDetailContent extends ConsumerWidget {
   void _showEngagement(BuildContext context, WidgetRef ref) {
     showModalBottomSheet<void>(
       context: context,
+      useSafeArea: true,
       showDragHandle: true,
       isScrollControlled: true,
       builder: (_) => _AnnouncementEngagementSheet(announcementId: item.id),

@@ -261,6 +261,7 @@ Future<void> _showNewDisputeDialog(
 
   await showModalBottomSheet<void>(
     context: context,
+      useSafeArea: true,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),

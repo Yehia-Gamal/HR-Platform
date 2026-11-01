@@ -158,6 +158,7 @@ class MobileOfficialFeedPage extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     showModalBottomSheet<void>(
       context: context,
+      useSafeArea: true,
       showDragHandle: true,
       builder: (sheetContext) => SafeArea(
         child: Padding(

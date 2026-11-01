@@ -150,6 +150,7 @@ class MobileDailyReportsPage extends ConsumerWidget {
 
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
+      useSafeArea: true,
       isScrollControlled: true,
       showDragHandle: true,
       builder: (sheetContext) => Padding(
@@ -245,6 +246,7 @@ class MobileDailyReportsPage extends ConsumerWidget {
     final comment = TextEditingController(text: report.managerComment);
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
+      useSafeArea: true,
       isScrollControlled: true,
       showDragHandle: true,
       builder: (sheetContext) => Padding(

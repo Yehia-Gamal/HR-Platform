@@ -614,6 +614,7 @@ class _MobileNotificationsPageState
         targetEmpId != currentEmpId) {
       await showModalBottomSheet<void>(
         context: context,
+      useSafeArea: true,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
         builder: (_) => NotificationDetailSheet(item: item),
@@ -682,6 +683,7 @@ class _MobileNotificationsPageState
     // فتح ورقة التفاصيل الذكية التفاعلية مباشرة فوراً دون أي انتظار
     await showModalBottomSheet<void>(
       context: context,
+      useSafeArea: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => NotificationDetailSheet(item: item),

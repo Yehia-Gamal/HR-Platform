@@ -405,6 +405,7 @@ class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
     var submitting = false;
     await showModalBottomSheet<void>(
       context: context,
+      useSafeArea: true,
       isScrollControlled: true,
       builder: (sheetContext) => StatefulBuilder(
         builder: (sheetContext, setSheetState) {

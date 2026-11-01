@@ -329,6 +329,7 @@ class _DailyReportsFeedPageState extends ConsumerState<DailyReportsFeedPage> {
   void _showEngagement(String reportId) {
     showModalBottomSheet<void>(
       context: context,
+      useSafeArea: true,
       showDragHandle: true,
       isScrollControlled: true,
       builder: (sheetContext) => _EngagementSheet(reportId: reportId),

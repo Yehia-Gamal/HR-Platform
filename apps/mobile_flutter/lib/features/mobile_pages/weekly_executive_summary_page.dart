@@ -1143,6 +1143,7 @@ class WeeklyExecutiveSummaryPage extends ConsumerWidget {
 
     await showModalBottomSheet<void>(
       context: context,
+      useSafeArea: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (modalCtx) {

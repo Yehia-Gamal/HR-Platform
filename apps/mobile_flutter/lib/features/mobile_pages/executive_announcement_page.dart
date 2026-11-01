@@ -476,6 +476,7 @@ class _ExecutiveAnnouncementPageState
   void _showCategoryPicker(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
+      useSafeArea: true,
       showDragHandle: true,
       builder: (ctx) => SafeArea(
         child: Column(

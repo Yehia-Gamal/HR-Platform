@@ -1000,6 +1000,7 @@ Future<void> _showSubmitExcuseSheet(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
+    useSafeArea: true,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setState) => Padding(
         padding: EdgeInsets.only(
@@ -1356,6 +1357,7 @@ Future<void> _showWithdrawSheet(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
+    useSafeArea: true,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setState) {
         final amount = double.tryParse(amountCtrl.text.trim()) ?? 0;

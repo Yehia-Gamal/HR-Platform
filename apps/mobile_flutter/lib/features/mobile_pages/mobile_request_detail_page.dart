@@ -244,6 +244,7 @@ Future<void> _openWithdraw(
 ) async {
   final done = await showModalBottomSheet<bool>(
     context: context,
+      useSafeArea: true,
     isScrollControlled: true,
     showDragHandle: true,
     builder: (_) => RequestActionSheet(
@@ -1562,6 +1563,7 @@ class _MissionExecutionCard extends ConsumerWidget {
           context: context,
           isScrollControlled: true,
           showDragHandle: true,
+          useSafeArea: true,
           builder: (context) => _EndMissionSheet(noun: _noun),
         );
     if (result == null || !context.mounted) return;
@@ -1627,6 +1629,7 @@ class _MissionExecutionCard extends ConsumerWidget {
           context: context,
           isScrollControlled: true,
           showDragHandle: true,
+          useSafeArea: true,
           builder: (context) => _EndMissionSheet(
             noun: _noun,
             reportOnly: true,

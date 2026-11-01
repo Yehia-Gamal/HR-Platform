@@ -606,6 +606,7 @@ class _AssociationProjectDetailPageState extends ConsumerState<AssociationProjec
 
     final ok = await showModalBottomSheet<bool>(
       context: context,
+      useSafeArea: true,
       isScrollControlled: true,
       showDragHandle: true,
       builder: (ctx) => StatefulBuilder(
@@ -704,6 +705,7 @@ class _AssociationProjectDetailPageState extends ConsumerState<AssociationProjec
     var status = d.project.status == 'planned' ? 'active' : d.project.status;
     final ok = await showModalBottomSheet<bool>(
       context: context,
+      useSafeArea: true,
       isScrollControlled: true,
       showDragHandle: true,
       builder: (ctx) => StatefulBuilder(

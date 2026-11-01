@@ -27,6 +27,7 @@ Future<List<String>?> _showSelectionSheet(
   return showModalBottomSheet<List<String>>(
     context: context,
     isScrollControlled: true,
+    useSafeArea: true,
     showDragHandle: true,
     builder: (ctx) {
       var query = '';

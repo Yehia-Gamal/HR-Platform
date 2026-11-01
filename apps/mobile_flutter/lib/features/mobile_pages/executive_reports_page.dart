@@ -383,6 +383,7 @@ class _ExecutiveReportsPageState extends ConsumerState<ExecutiveReportsPage> {
 
   void _showReport(ExecutiveReportRun report) => showModalBottomSheet<void>(
     context: context,
+      useSafeArea: true,
     isScrollControlled: true,
     showDragHandle: true,
     shape: const RoundedRectangleBorder(

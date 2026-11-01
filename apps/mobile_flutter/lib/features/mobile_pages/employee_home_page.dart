@@ -755,6 +755,7 @@ class _ConnectivitySyncBanner extends ConsumerWidget {
   void _showSyncDetailsBottomSheet(BuildContext context, WidgetRef ref, bool isOffline) {
     showModalBottomSheet<void>(
       context: context,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (ctx) => _SyncDetailsSheet(isOffline: isOffline),

@@ -570,6 +570,7 @@ class _LeavePlannerSheetState extends ConsumerState<LeavePlannerSheet> {
                   Navigator.pop(context);
                   showModalBottomSheet(
                     context: context,
+      useSafeArea: true,
                     isScrollControlled: true,
                     builder: (_) => NewRequestSheet(
                       type: 'leave',

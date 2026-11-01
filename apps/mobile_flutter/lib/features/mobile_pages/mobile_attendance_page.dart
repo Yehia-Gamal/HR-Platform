@@ -4103,6 +4103,7 @@ Future<void> showWorkShiftSelectionSheet(BuildContext context, WidgetRef ref) as
 
   await showModalBottomSheet<void>(
     context: context,
+      useSafeArea: true,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),

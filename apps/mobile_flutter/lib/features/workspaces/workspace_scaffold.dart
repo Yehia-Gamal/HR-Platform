@@ -309,6 +309,7 @@ class WorkspaceScaffold extends ConsumerWidget {
 
     showModalBottomSheet<void>(
       context: context,
+      useSafeArea: true,
       showDragHandle: true,
       isScrollControlled: true,
       builder: (sheetContext) => SafeArea(
@@ -472,6 +473,7 @@ class WorkspaceScaffold extends ConsumerWidget {
 
   void _showProfile(BuildContext context) => showModalBottomSheet<void>(
     context: context,
+      useSafeArea: true,
     showDragHandle: true,
     isScrollControlled: true,
     builder: (context) => SafeArea(

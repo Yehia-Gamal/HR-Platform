@@ -110,6 +110,7 @@ class _OfflineSyncIndicatorState extends ConsumerState<OfflineSyncIndicator> {
   void _showSyncSheet(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
+      useSafeArea: true,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
