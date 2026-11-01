@@ -39,6 +39,7 @@ import { PageHeader } from '../../ui/PageHeader';
 import { ListSkeleton } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { isPhoneLikeCode } from '../../ui/phoneDisplay';
+import { UserAvatar } from '../../ui/UserAvatar';
 import { useToast } from '../../ui/Toast';
 import { useAuth } from '../auth/AuthProvider';
 import { hasPermission } from '../workspaces/access';
@@ -154,6 +155,14 @@ export function InstantPenaltiesPage() {
   const revertPenalty = useRevertDoubledPenalty();
   const triggerCheck = useTriggerCheckPenaltiesNow();
   const { data: employees } = useEmployees();
+
+  const employeePhotoMap = useMemo(() => {
+    const map = new Map<string, string | null>();
+    for (const emp of employees ?? []) {
+      map.set(emp.id, emp.photoUrl ?? null);
+    }
+    return map;
+  }, [employees]);
 
   const [checkFeedback, setCheckFeedback] = useState<string | null>(null);
   const checkFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -459,19 +468,15 @@ export function InstantPenaltiesPage() {
       header: 'الموظف والإدارة',
       sortable: true,
       render: (p) => {
-        const initials = p.employeeName
-          ? p.employeeName
-              .trim()
-              .split(/\s+/)
-              .slice(0, 2)
-              .map((s) => s[0])
-              .join('')
-          : 'م';
+        const photo = (p as { photoUrl?: string | null }).photoUrl ?? employeePhotoMap.get(p.employeeId);
         return (
           <div className="flex items-center gap-3 min-w-[180px]">
-            <div className="size-9 rounded-full bg-gradient-to-tr from-blue-600 via-indigo-600 to-primary text-white flex items-center justify-center font-black text-xs shrink-0 select-none shadow-xs border border-white/20">
-              {initials}
-            </div>
+            <UserAvatar
+              displayName={p.employeeName ?? ''}
+              photoUrl={photo}
+              size="md"
+              announceName={false}
+            />
             <div className="flex flex-col min-w-0">
               <span className="font-bold text-sm text-[var(--text-primary)] leading-snug truncate">{p.employeeName ?? '—'}</span>
               <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)] mt-0.5">
@@ -2667,14 +2672,6 @@ export function InstantPenaltiesPage() {
                 const msgText = generateEmployeePenaltyWhatsAppText(p, empName);
                 const isSent = sentWhatsAppIds.has(p.id);
 
-                const initials =
-                  empName
-                    .trim()
-                    .split(/\s+/)
-                    .slice(0, 2)
-                    .map((s) => s[0])
-                    .join('') || 'م';
-
                 return (
                   <div
                     key={p.id}
@@ -2687,9 +2684,12 @@ export function InstantPenaltiesPage() {
                     {/* الرأس: اسم الموظف والتفاصيل */}
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="size-8 rounded-full bg-primary/10 border border-primary/20 text-primary flex items-center justify-center font-bold text-xs shrink-0 select-none">
-                          {initials}
-                        </div>
+                        <UserAvatar
+                          displayName={empName}
+                          photoUrl={emp?.photoUrl ?? employeePhotoMap.get(p.employeeId)}
+                          size="sm"
+                          announceName={false}
+                        />
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-sm text-[var(--text-primary)] truncate">{empName}</span>
