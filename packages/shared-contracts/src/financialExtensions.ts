@@ -392,10 +392,13 @@ export type ConfirmPenaltyToFundResult = z.infer<typeof confirmPenaltyToFundResu
 /** نتيجة فحص وتطبيق الخصومات التلقائية */
 export const triggerCheckResultSchema = z.object({
   success: z.boolean(),
-  processedCount: z.number(),
+  processedCount: z.number().optional(),
+  totalProcessed: z.number().optional(),
+  generatedCount: z.number().optional(),
+  escalatedCount: z.number().optional(),
   serverTimeCairo: z.string(),
   message: z.string(),
-});
+}).passthrough();
 export type TriggerCheckResult = z.infer<typeof triggerCheckResultSchema>;
 
 // ─── نظام الطعن على الغرامات ─────────────────────────────────────────────

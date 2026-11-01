@@ -1018,7 +1018,7 @@ export function InstantPenaltiesPage() {
               onClick={async () => {
                 try {
                   const res = await triggerCheck.mutateAsync();
-                  setCheckFeedback(res.message);
+                  setCheckFeedback(res.message ?? 'تم فحص الحضور وتطبيق الغرامات بنجاح');
                   if (checkFeedbackTimer.current) clearTimeout(checkFeedbackTimer.current);
                   checkFeedbackTimer.current = setTimeout(() => setCheckFeedback(null), 8000);
                 } catch (err) {

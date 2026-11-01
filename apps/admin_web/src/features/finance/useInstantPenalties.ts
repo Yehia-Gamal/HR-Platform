@@ -214,11 +214,13 @@ export function useTriggerCheckPenaltiesNow() {
     mutationFn: async (): Promise<TriggerCheckResult> => {
       return triggerCheckResultSchema.parse(await rpc('trigger_check_instant_penalties_now'));
     },
+    meta: { silentError: true },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: [INSTANT_PENALTIES_KEY] });
       void queryClient.invalidateQueries({ queryKey: [PENDING_EMPLOYEES_KEY] });
       void queryClient.invalidateQueries({ queryKey: ['fellowship-fund-summary'] });
       void queryClient.invalidateQueries({ queryKey: ['fellowship-fund-transactions'] });
+      void queryClient.invalidateQueries({ queryKey: ['suspended-employees-admin'] });
     },
   });
 }
