@@ -6,7 +6,6 @@ import {
   RotateCcw,
   Coins,
   MessageCircle,
-  ShieldAlert,
   Phone,
   Building,
   UserCheck,
@@ -14,7 +13,6 @@ import {
   Filter,
   Copy,
   Check,
-  Clock,
   Sparkles,
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -164,9 +162,8 @@ export function SuspendedEmployeesPage() {
 
       // إزالة فورية من الكاش والحالة المحلية
       setDismissedEmployeeIds((prev) => new Set(prev).add(empId));
-      queryClient.setQueriesData<SuspendedEmployeeAdmin[]>(
-        { queryKey: ['suspended-employees-admin'] },
-        (old) => (old ? old.filter((item) => item.employeeId !== empId) : [])
+      queryClient.setQueriesData<SuspendedEmployeeAdmin[]>({ queryKey: ['suspended-employees-admin'] }, (old) =>
+        old ? old.filter((item) => item.employeeId !== empId) : [],
       );
 
       toast({
@@ -204,31 +201,26 @@ export function SuspendedEmployeesPage() {
       });
 
       // تحديث تفاؤلي فوري في الكاش
-      queryClient.setQueriesData<SuspendedEmployeeAdmin[]>(
-        { queryKey: ['suspended-employees-admin'] },
-        (old) => {
-          if (!old) return [];
-          return old
-            .map((emp) => {
-              const hasPen = emp.penalties.some((p) => p.id === penaltyId);
-              if (!hasPen) return emp;
-              const updatedPens = emp.penalties.map((p) =>
-                p.id === penaltyId
-                  ? { ...p, currentAmount: p.originalAmount, status: 'pending_payment', escalationLevel: 'initial' }
-                  : p
-              );
-              const newTotalCurrent = updatedPens.reduce((s, p) => s + p.currentAmount, 0);
-              const has500 = updatedPens.some((p) => p.currentAmount >= 500);
-              return {
-                ...emp,
-                penalties: updatedPens,
-                totalCurrentDue: newTotalCurrent,
-                has500Penalty: has500,
-              };
-            })
-            .filter((emp) => emp.status === 'suspended' || !emp.isActive || emp.has500Penalty);
-        }
-      );
+      queryClient.setQueriesData<SuspendedEmployeeAdmin[]>({ queryKey: ['suspended-employees-admin'] }, (old) => {
+        if (!old) return [];
+        return old
+          .map((emp) => {
+            const hasPen = emp.penalties.some((p) => p.id === penaltyId);
+            if (!hasPen) return emp;
+            const updatedPens = emp.penalties.map((p) =>
+              p.id === penaltyId ? { ...p, currentAmount: p.originalAmount, status: 'pending_payment', escalationLevel: 'initial' } : p,
+            );
+            const newTotalCurrent = updatedPens.reduce((s, p) => s + p.currentAmount, 0);
+            const has500 = updatedPens.some((p) => p.currentAmount >= 500);
+            return {
+              ...emp,
+              penalties: updatedPens,
+              totalCurrentDue: newTotalCurrent,
+              has500Penalty: has500,
+            };
+          })
+          .filter((emp) => emp.status === 'suspended' || !emp.isActive || emp.has500Penalty);
+      });
 
       toast({
         message: `تم إرجاع غرامة الزميل ${employeeName} إلى أصلها (${formatCurrency(originalAmount)}) بنجاح`,
@@ -268,29 +260,26 @@ export function SuspendedEmployeesPage() {
       }
 
       // تحديث تفاؤلي للكاش
-      queryClient.setQueriesData<SuspendedEmployeeAdmin[]>(
-        { queryKey: ['suspended-employees-admin'] },
-        (old) => {
-          if (!old) return [];
-          return old
-            .map((emp) => {
-              if (emp.employeeId !== target.employeeId) return emp;
-              const updatedPens = emp.penalties.map((p) => ({
-                ...p,
-                currentAmount: p.originalAmount,
-                status: 'pending_payment',
-                escalationLevel: 'initial',
-              }));
-              return {
-                ...emp,
-                penalties: updatedPens,
-                totalCurrentDue: emp.totalOriginalDue,
-                has500Penalty: false,
-              };
-            })
-            .filter((emp) => emp.status === 'suspended' || !emp.isActive);
-        }
-      );
+      queryClient.setQueriesData<SuspendedEmployeeAdmin[]>({ queryKey: ['suspended-employees-admin'] }, (old) => {
+        if (!old) return [];
+        return old
+          .map((emp) => {
+            if (emp.employeeId !== target.employeeId) return emp;
+            const updatedPens = emp.penalties.map((p) => ({
+              ...p,
+              currentAmount: p.originalAmount,
+              status: 'pending_payment',
+              escalationLevel: 'initial',
+            }));
+            return {
+              ...emp,
+              penalties: updatedPens,
+              totalCurrentDue: emp.totalOriginalDue,
+              has500Penalty: false,
+            };
+          })
+          .filter((emp) => emp.status === 'suspended' || !emp.isActive);
+      });
 
       toast({
         message: `تم إرجاع كافة غرامات الزميل ${target.employeeName} إلى قيمتها الأصلية (${formatCurrency(target.totalOriginalDue)}) بنجاح`,
@@ -325,30 +314,27 @@ export function SuspendedEmployeesPage() {
       });
 
       // إزالة تفاؤلية للغرامة المسددة
-      queryClient.setQueriesData<SuspendedEmployeeAdmin[]>(
-        { queryKey: ['suspended-employees-admin'] },
-        (old) => {
-          if (!old) return [];
-          return old
-            .map((emp) => {
-              const hasPen = emp.penalties.some((p) => p.id === penaltyId);
-              if (!hasPen) return emp;
-              const remainingPens = emp.penalties.filter((p) => p.id !== penaltyId);
-              const newTotalCurrent = remainingPens.reduce((s, p) => s + p.currentAmount, 0);
-              const newTotalOrig = remainingPens.reduce((s, p) => s + p.originalAmount, 0);
-              const has500 = remainingPens.some((p) => p.currentAmount >= 500);
-              return {
-                ...emp,
-                penalties: remainingPens,
-                totalCurrentDue: newTotalCurrent,
-                totalOriginalDue: newTotalOrig,
-                unpaidCount: remainingPens.length,
-                has500Penalty: has500,
-              };
-            })
-            .filter((emp) => (emp.status === 'suspended' || !emp.isActive || emp.has500Penalty) && emp.penalties.length > 0);
-        }
-      );
+      queryClient.setQueriesData<SuspendedEmployeeAdmin[]>({ queryKey: ['suspended-employees-admin'] }, (old) => {
+        if (!old) return [];
+        return old
+          .map((emp) => {
+            const hasPen = emp.penalties.some((p) => p.id === penaltyId);
+            if (!hasPen) return emp;
+            const remainingPens = emp.penalties.filter((p) => p.id !== penaltyId);
+            const newTotalCurrent = remainingPens.reduce((s, p) => s + p.currentAmount, 0);
+            const newTotalOrig = remainingPens.reduce((s, p) => s + p.originalAmount, 0);
+            const has500 = remainingPens.some((p) => p.currentAmount >= 500);
+            return {
+              ...emp,
+              penalties: remainingPens,
+              totalCurrentDue: newTotalCurrent,
+              totalOriginalDue: newTotalOrig,
+              unpaidCount: remainingPens.length,
+              has500Penalty: has500,
+            };
+          })
+          .filter((emp) => (emp.status === 'suspended' || !emp.isActive || emp.has500Penalty) && emp.penalties.length > 0);
+      });
 
       toast({
         message: 'تم تسجيل السداد وإيداع المبلغ في صندوق الزمالة والتكافل ورفع الإيقاف بنجاح',
@@ -418,14 +404,10 @@ export function SuspendedEmployeesPage() {
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-black text-red-600 dark:text-red-400">
-              {actuallySuspendedCount}
-            </span>
+            <span className="text-3xl font-black text-red-600 dark:text-red-400">{actuallySuspendedCount}</span>
             <span className="text-xs text-[var(--text-muted)]">موظف معلق حسابه</span>
           </div>
-          <p className="mt-2 text-[11px] text-[var(--text-muted)]">
-            حساباتهم معلقة بانتظار الإجراء
-          </p>
+          <p className="mt-2 text-[11px] text-[var(--text-muted)]">حساباتهم معلقة بانتظار الإجراء</p>
         </div>
 
         {/* 2) حسابات نشطة بغرامات 500 ج.م */}
@@ -437,14 +419,10 @@ export function SuspendedEmployeesPage() {
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-black text-amber-600 dark:text-amber-400">
-              {doubledOnlyCount}
-            </span>
+            <span className="text-3xl font-black text-amber-600 dark:text-amber-400">{doubledOnlyCount}</span>
             <span className="text-xs text-[var(--text-muted)]">موظف نشط</span>
           </div>
-          <p className="mt-2 text-[11px] text-[var(--text-muted)]">
-            لديهم غرامة 500 ج.م بانتظار السداد
-          </p>
+          <p className="mt-2 text-[11px] text-[var(--text-muted)]">لديهم غرامة 500 ج.م بانتظار السداد</p>
         </div>
 
         {/* 3) إجمالي المطلوب بالمضاعفة */}
@@ -456,13 +434,9 @@ export function SuspendedEmployeesPage() {
             </div>
           </div>
           <div className="mt-3">
-            <span className="text-2xl font-black text-rose-600 dark:text-rose-400">
-              {formatCurrency(totalCurrent)}
-            </span>
+            <span className="text-2xl font-black text-rose-600 dark:text-rose-400">{formatCurrency(totalCurrent)}</span>
           </div>
-          <p className="mt-2 text-[11px] text-[var(--text-muted)]">
-            إجمالي المبالغ الحالية مع المضاعفة
-          </p>
+          <p className="mt-2 text-[11px] text-[var(--text-muted)]">إجمالي المبالغ الحالية مع المضاعفة</p>
         </div>
 
         {/* 4) أصل الغرامات بدون مضاعفة */}
@@ -474,16 +448,12 @@ export function SuspendedEmployeesPage() {
             </div>
           </div>
           <div className="mt-3">
-            <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
-              {formatCurrency(totalOriginal)}
-            </span>
+            <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{formatCurrency(totalOriginal)}</span>
           </div>
           <div className="mt-2 flex items-center justify-between text-[11px] text-[var(--text-muted)]">
             <span>المبلغ المستحق حال إرجاعها للأصل</span>
             {totalCurrent > totalOriginal && (
-              <span className="font-bold text-violet-600 dark:text-violet-400">
-                (وفر إداري: {formatCurrency(totalCurrent - totalOriginal)})
-              </span>
+              <span className="font-bold text-violet-600 dark:text-violet-400">(وفر إداري: {formatCurrency(totalCurrent - totalOriginal)})</span>
             )}
           </div>
         </div>
@@ -521,9 +491,7 @@ export function SuspendedEmployeesPage() {
             type="button"
             onClick={() => setStatusFilter('suspended_only')}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1 ${
-              statusFilter === 'suspended_only'
-                ? 'bg-red-600 text-white shadow-xs'
-                : 'bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/20'
+              statusFilter === 'suspended_only' ? 'bg-red-600 text-white shadow-xs' : 'bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/20'
             }`}
           >
             <Ban className="size-3" />
@@ -533,9 +501,7 @@ export function SuspendedEmployeesPage() {
             type="button"
             onClick={() => setStatusFilter('doubled_only')}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1 ${
-              statusFilter === 'doubled_only'
-                ? 'bg-amber-600 text-white shadow-xs'
-                : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20'
+              statusFilter === 'doubled_only' ? 'bg-amber-600 text-white shadow-xs' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20'
             }`}
           >
             <AlertTriangle className="size-3" />
@@ -551,11 +517,7 @@ export function SuspendedEmployeesPage() {
       {error && (
         <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-center">
           <p className="text-sm font-bold text-red-600">تعذر تحميل بيانات الموظفين الموقوفين</p>
-          <button
-            type="button"
-            onClick={() => refetch()}
-            className="btn-secondary mt-3 text-xs"
-          >
+          <button type="button" onClick={() => refetch()} className="btn-secondary mt-3 text-xs">
             إعادة المحاولة
           </button>
         </div>
@@ -571,9 +533,7 @@ export function SuspendedEmployeesPage() {
             {searchQuery ? 'لا توجد نتائج مطابقة لبحثك' : 'لا يوجد موظفون موقوفون عن العمل حالياً'}
           </p>
           <p className="text-xs text-[var(--text-muted)] mt-1">
-            {searchQuery
-              ? 'جرّب تعديل كلمات البحث أو تصفير الفلاتر'
-              : 'كافة الحسابات نشطة ولا توجد غرامات متجاوزة لمهلة السداد'}
+            {searchQuery ? 'جرّب تعديل كلمات البحث أو تصفير الفلاتر' : 'كافة الحسابات نشطة ولا توجد غرامات متجاوزة لمهلة السداد'}
           </p>
         </div>
       )}
@@ -591,17 +551,10 @@ export function SuspendedEmployeesPage() {
                 {/* رأس بطاقة الموظف */}
                 <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between border-b border-[var(--border)] bg-[var(--surface)]/40">
                   <div className="flex items-center gap-3.5">
-                    <UserAvatar
-                      displayName={emp.employeeName}
-                      photoUrl={emp.photoUrl}
-                      size="lg"
-                      announceName={false}
-                    />
+                    <UserAvatar displayName={emp.employeeName} photoUrl={emp.photoUrl} size="lg" announceName={false} />
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-bold text-base text-[var(--text-strong)]">
-                          {emp.employeeName}
-                        </h3>
+                        <h3 className="font-bold text-base text-[var(--text-strong)]">{emp.employeeName}</h3>
                         {isActuallySuspended ? (
                           <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/15 text-red-700 dark:text-red-400 border border-red-500/30 px-3 py-1 text-xs font-black shadow-xs">
                             <Ban className="size-3.5" />
@@ -637,11 +590,7 @@ export function SuspendedEmployeesPage() {
                           >
                             <Phone className="size-3" />
                             <span dir="ltr">{emp.phone}</span>
-                            {copiedPhone === emp.phone ? (
-                              <Check className="size-3 text-emerald-500" />
-                            ) : (
-                              <Copy className="size-3 text-[var(--text-muted)]" />
-                            )}
+                            {copiedPhone === emp.phone ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3 text-[var(--text-muted)]" />}
                           </button>
                         )}
                       </div>
@@ -652,15 +601,11 @@ export function SuspendedEmployeesPage() {
                   <div className="flex items-center gap-3 self-end sm:self-center">
                     <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2 text-center">
                       <span className="block text-[10px] font-bold text-red-600 dark:text-red-400">المطلوب بالمضاعفة</span>
-                      <span className="text-sm sm:text-base font-black text-red-600 dark:text-red-400">
-                        {formatCurrency(emp.totalCurrentDue)}
-                      </span>
+                      <span className="text-sm sm:text-base font-black text-red-600 dark:text-red-400">{formatCurrency(emp.totalCurrentDue)}</span>
                     </div>
                     <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-center">
                       <span className="block text-[10px] font-bold text-emerald-600 dark:text-emerald-400">الأصل دون مضاعفة</span>
-                      <span className="text-sm sm:text-base font-black text-emerald-600 dark:text-emerald-400">
-                        {formatCurrency(emp.totalOriginalDue)}
-                      </span>
+                      <span className="text-sm sm:text-base font-black text-emerald-600 dark:text-emerald-400">{formatCurrency(emp.totalOriginalDue)}</span>
                     </div>
                   </div>
                 </div>
@@ -681,35 +626,29 @@ export function SuspendedEmployeesPage() {
                     <tbody className="divide-y divide-[var(--border)]">
                       {emp.penalties.map((pen) => (
                         <tr key={pen.id} className="hover:bg-[var(--surface-raised)]/60 transition-colors">
-                          <td className="p-3 font-bold text-[var(--text-strong)]">
-                            {formatArabicDate(pen.workDate)}
-                          </td>
-                          <td className="p-3 text-[var(--text-muted)]">
-                            {formatLateMinutes(pen.lateMinutes)}
-                          </td>
+                          <td className="p-3 font-bold text-[var(--text-strong)]">{formatArabicDate(pen.workDate)}</td>
+                          <td className="p-3 text-[var(--text-muted)]">{formatLateMinutes(pen.lateMinutes)}</td>
                           <td className="p-3 font-bold text-emerald-600">
-                            <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20">
-                              {formatCurrency(pen.originalAmount)}
-                            </span>
+                            <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20">{formatCurrency(pen.originalAmount)}</span>
                           </td>
                           <td className="p-3 font-black text-rose-600">
-                            <span className="px-2 py-0.5 rounded-md bg-rose-500/10 border border-rose-500/20">
-                              {formatCurrency(pen.currentAmount)}
-                            </span>
+                            <span className="px-2 py-0.5 rounded-md bg-rose-500/10 border border-rose-500/20">{formatCurrency(pen.currentAmount)}</span>
                           </td>
                           <td className="p-3">
-                            <span className={`badge text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                              pen.status === 'suspended'
-                                ? 'badge-danger'
-                                : pen.status === 'doubled' || pen.currentAmount >= 500
-                                ? 'badge-warning'
-                                : 'badge-neutral'
-                            }`}>
+                            <span
+                              className={`badge text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                                pen.status === 'suspended'
+                                  ? 'badge-danger'
+                                  : pen.status === 'doubled' || pen.currentAmount >= 500
+                                    ? 'badge-warning'
+                                    : 'badge-neutral'
+                              }`}
+                            >
                               {pen.status === 'suspended'
                                 ? 'إيقاف ومضاعفة 500 ج.م'
                                 : pen.status === 'doubled' || pen.currentAmount >= 500
-                                ? 'مضاعفة 500 ج.م'
-                                : 'بانتظار السداد'}
+                                  ? 'مضاعفة 500 ج.م'
+                                  : 'بانتظار السداد'}
                             </span>
                           </td>
                           <td className="p-3 text-center">
@@ -827,12 +766,7 @@ export function SuspendedEmployeesPage() {
         >
           <form onSubmit={handleLiftSubmit} className="space-y-4">
             <div className="flex items-center gap-3 p-3 rounded-2xl bg-[var(--surface-raised)] border border-[var(--border)]">
-              <UserAvatar
-                displayName={selectedEmp.employeeName}
-                photoUrl={selectedEmp.photoUrl}
-                size="md"
-                announceName={false}
-              />
+              <UserAvatar displayName={selectedEmp.employeeName} photoUrl={selectedEmp.photoUrl} size="md" announceName={false} />
               <div className="min-w-0">
                 <p className="font-bold text-sm text-[var(--text-strong)]">{selectedEmp.employeeName}</p>
                 <p className="text-xs text-[var(--text-muted)]">{selectedEmp.jobTitle ?? selectedEmp.departmentName ?? 'موظف'}</p>
@@ -852,9 +786,7 @@ export function SuspendedEmployeesPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[var(--text-muted)] mb-1.5">
-                سبب رفع الإيقاف أو الملاحظة الإدارية (اختياري):
-              </label>
+              <label className="block text-xs font-bold text-[var(--text-muted)] mb-1.5">سبب رفع الإيقاف أو الملاحظة الإدارية (اختياري):</label>
               <input
                 type="text"
                 value={liftReason}
@@ -927,15 +859,11 @@ export function SuspendedEmployeesPage() {
               <div className="grid grid-cols-2 gap-3 pt-2 border-t border-indigo-500/20">
                 <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-2.5 text-center">
                   <span className="block text-[10px] font-bold text-red-600 dark:text-red-400">القيمة الحالية (المضاعفة)</span>
-                  <span className="text-base font-black text-red-600 line-through">
-                    {formatCurrency(revertPenaltyDetails.currentAmount)}
-                  </span>
+                  <span className="text-base font-black text-red-600 line-through">{formatCurrency(revertPenaltyDetails.currentAmount)}</span>
                 </div>
                 <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-2.5 text-center">
                   <span className="block text-[10px] font-bold text-emerald-600 dark:text-emerald-400">القيمة الأصلية المستحقة</span>
-                  <span className="text-base font-black text-emerald-600">
-                    {formatCurrency(revertPenaltyDetails.originalAmount)}
-                  </span>
+                  <span className="text-base font-black text-emerald-600">{formatCurrency(revertPenaltyDetails.originalAmount)}</span>
                 </div>
               </div>
 
@@ -950,9 +878,7 @@ export function SuspendedEmployeesPage() {
             </p>
 
             <div>
-              <label className="block text-xs font-bold text-[var(--text-muted)] mb-1.5">
-                سبب الإرجاع الإداري (اختياري):
-              </label>
+              <label className="block text-xs font-bold text-[var(--text-muted)] mb-1.5">سبب الإرجاع الإداري (اختياري):</label>
               <input
                 type="text"
                 value={revertReason}
@@ -1026,13 +952,12 @@ export function SuspendedEmployeesPage() {
             </div>
 
             <p className="text-xs text-[var(--text-muted)] leading-relaxed">
-              سيتم إلغاء كافة مضاعفات الـ 500 ج.م المسجلة على الزميل <strong>{revertAllTarget.employeeName}</strong> وإرجاعها لقيمتها الأصلية (20/50/150 ج.م) بانتظار السداد العادي.
+              سيتم إلغاء كافة مضاعفات الـ 500 ج.م المسجلة على الزميل <strong>{revertAllTarget.employeeName}</strong> وإرجاعها لقيمتها الأصلية (20/50/150 ج.م)
+              بانتظار السداد العادي.
             </p>
 
             <div>
-              <label className="block text-xs font-bold text-[var(--text-muted)] mb-1.5">
-                سبب الإرجاع الجماعي (اختياري):
-              </label>
+              <label className="block text-xs font-bold text-[var(--text-muted)] mb-1.5">سبب الإرجاع الجماعي (اختياري):</label>
               <input
                 type="text"
                 value={revertReason}
@@ -1068,23 +993,16 @@ export function SuspendedEmployeesPage() {
 
       {/* ─── حوار سداد الغرامة ورفع الإيقاف ─────────────────────────────── */}
       {paymentDialogOpen && paymentPenaltyId && selectedEmp && (
-        <DialogOverlay
-          title="تأكيد سداد الغرامة وتوريدها لصندوق الزمالة"
-          onClose={() => setPaymentDialogOpen(false)}
-          maxWidth="max-w-md"
-        >
+        <DialogOverlay title="تأكيد سداد الغرامة وتوريدها لصندوق الزمالة" onClose={() => setPaymentDialogOpen(false)} maxWidth="max-w-md">
           <form onSubmit={handlePaymentSubmit} className="space-y-4">
             <p className="text-sm text-[var(--text-muted)] leading-relaxed">
-              تأكيد استلام مبلغ <strong>{formatCurrency(paymentPenaltyAmount)}</strong> نقداً من الزميل <strong>{selectedEmp.employeeName}</strong> وتوريده بالكامل لصندوق الزمالة والتكافل.
+              تأكيد استلام مبلغ <strong>{formatCurrency(paymentPenaltyAmount)}</strong> نقداً من الزميل <strong>{selectedEmp.employeeName}</strong> وتوريده
+              بالكامل لصندوق الزمالة والتكافل.
               <br />
-              <span className="text-emerald-600 font-bold mt-1 inline-block">
-                ✨ سيتم رفع الإيقاف فوراً وإعادة فتح حساب الموظف على المنظومة.
-              </span>
+              <span className="text-emerald-600 font-bold mt-1 inline-block">✨ سيتم رفع الإيقاف فوراً وإعادة فتح حساب الموظف على المنظومة.</span>
             </p>
             <div>
-              <label className="block text-xs font-bold text-[var(--text-muted)] mb-1">
-                ملاحظات التحصيل (اختياري):
-              </label>
+              <label className="block text-xs font-bold text-[var(--text-muted)] mb-1">ملاحظات التحصيل (اختياري):</label>
               <input
                 type="text"
                 value={paymentNotes}
@@ -1094,11 +1012,7 @@ export function SuspendedEmployeesPage() {
               />
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setPaymentDialogOpen(false)}
-                className="btn-secondary text-xs cursor-pointer"
-              >
+              <button type="button" onClick={() => setPaymentDialogOpen(false)} className="btn-secondary text-xs cursor-pointer">
                 إلغاء
               </button>
               <button

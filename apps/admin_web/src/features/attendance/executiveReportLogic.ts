@@ -210,8 +210,7 @@ export interface ClassifiedEmployee {
 }
 
 export function classifyEmployee(item: AttendanceRosterItem, currentMinutesFromMidnight: number): ClassifiedEmployee {
-  const shiftWindow =
-    parseShiftWindow(item.shiftName, (item as { shiftStart?: string | null }).shiftStart) ?? DEFAULT_ORGANIZATION_SHIFT;
+  const shiftWindow = parseShiftWindow(item.shiftName, (item as { shiftStart?: string | null }).shiftStart) ?? DEFAULT_ORGANIZATION_SHIFT;
   const trueLate = calculateTrueLateMinutes(item.firstCheckIn, shiftWindow, item.lateMinutes ?? 0);
 
   const isMission = item.status === 'on_mission' || Boolean(item.hasMission) || (Boolean(item.hasPendingRequest) && item.pendingRequestType === 'mission');

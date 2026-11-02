@@ -471,12 +471,7 @@ export function InstantPenaltiesPage() {
         const photo = (p as { photoUrl?: string | null }).photoUrl ?? employeePhotoMap.get(p.employeeId);
         return (
           <div className="flex items-center gap-3 min-w-[180px]">
-            <UserAvatar
-              displayName={p.employeeName ?? ''}
-              photoUrl={photo}
-              size="md"
-              announceName={false}
-            />
+            <UserAvatar displayName={p.employeeName ?? ''} photoUrl={photo} size="md" announceName={false} />
             <div className="flex flex-col min-w-0">
               <span className="font-bold text-sm text-[var(--text-primary)] leading-snug truncate">{p.employeeName ?? '—'}</span>
               <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)] mt-0.5">
@@ -2684,12 +2679,7 @@ export function InstantPenaltiesPage() {
                     {/* الرأس: اسم الموظف والتفاصيل */}
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <UserAvatar
-                          displayName={empName}
-                          photoUrl={emp?.photoUrl ?? employeePhotoMap.get(p.employeeId)}
-                          size="sm"
-                          announceName={false}
-                        />
+                        <UserAvatar displayName={empName} photoUrl={emp?.photoUrl ?? employeePhotoMap.get(p.employeeId)} size="sm" announceName={false} />
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-sm text-[var(--text-primary)] truncate">{empName}</span>

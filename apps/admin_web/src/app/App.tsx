@@ -119,7 +119,7 @@ function AuthenticatedApp() {
     const owed = auth.access.suspensionAmount ? `${auth.access.suspensionAmount} ج.م` : 'الغرامات المستحقة';
     const name = auth.access.displayName || 'الموظف';
     const waText = encodeURIComponent(
-      `السلام عليكم م. يحيى، أنا الموظف ${name}. تم إيقاف حسابي بالمنظومة لوجود غرامات مستحقة بقيمة ${owed}. برجاء مراجعة الحساب وتوضيح إجراءات السداد ورفع الإيقاف.`
+      `السلام عليكم م. يحيى، أنا الموظف ${name}. تم إيقاف حسابي بالمنظومة لوجود غرامات مستحقة بقيمة ${owed}. برجاء مراجعة الحساب وتوضيح إجراءات السداد ورفع الإيقاف.`,
     );
 
     return (

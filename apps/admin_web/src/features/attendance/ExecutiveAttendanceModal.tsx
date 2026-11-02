@@ -710,9 +710,7 @@ ${
                       <span>🏥</span>
                       <span>كشف منضبط خاص بفترة الصباح والظهيرة (12:00 ظهراً) · تم استبعاد طاقم العيادات الطبية (فترة عملهم تبدأ 3:00 عصراً)</span>
                     </span>
-                    <span className="bg-sky-500/20 text-sky-200 px-2 py-0.5 rounded-full text-[10px] font-mono shrink-0">
-                      وردية 3 م مستبعدة تلقائياً
-                    </span>
+                    <span className="bg-sky-500/20 text-sky-200 px-2 py-0.5 rounded-full text-[10px] font-mono shrink-0">وردية 3 م مستبعدة تلقائياً</span>
                   </div>
                 )}
 

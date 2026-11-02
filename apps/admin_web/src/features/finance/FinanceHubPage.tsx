@@ -64,9 +64,7 @@ export function FinanceHubPage() {
               {isSuspendedTab && suspendedCount > 0 && (
                 <span
                   className={`inline-flex items-center justify-center px-1.5 py-0.2 text-[10px] font-black rounded-full min-w-5 h-4.5 ${
-                    isActive
-                      ? 'bg-rose-500 text-white'
-                      : 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+                    isActive ? 'bg-rose-500 text-white' : 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'
                   }`}
                 >
                   {suspendedCount}

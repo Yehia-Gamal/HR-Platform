@@ -7,13 +7,27 @@ import { Ban, Check, CornerUpLeft, Repeat2, Send, TimerOff, TrendingUp, X, type 
 /** اسم المرحلة الموحّد: تعريفات المسار القديمة تسمّي المرحلة نفسها بأسماء مختلفة. */
 export function requestStageName(name: string | null | undefined, roleSlug?: string | null, order?: number | null): string {
   let n = (name ?? '').trim();
-  if (roleSlug === 'hr-manager' || roleSlug === 'hr' || roleSlug === 'hr-specialist' || roleSlug === 'hr-officer' || n === 'الموارد البشرية' || n === 'إدارة الموارد البشرية' || n.includes('الموارد البشرية')) {
+  if (
+    roleSlug === 'hr-manager' ||
+    roleSlug === 'hr' ||
+    roleSlug === 'hr-specialist' ||
+    roleSlug === 'hr-officer' ||
+    n === 'الموارد البشرية' ||
+    n === 'إدارة الموارد البشرية' ||
+    n.includes('الموارد البشرية')
+  ) {
     return 'الموارد البشرية';
   }
   if (roleSlug === 'executive' || roleSlug === 'executive-director' || roleSlug === 'general-manager' || n.includes('المدير التنفيذي')) {
     return 'المدير التنفيذي';
   }
-  if (roleSlug === 'operations-manager-1' || roleSlug === 'operations' || n.includes('مشرف العمليات') || n.includes('مدير التشغيل') || n.includes('الأوبريشن')) {
+  if (
+    roleSlug === 'operations-manager-1' ||
+    roleSlug === 'operations' ||
+    n.includes('مشرف العمليات') ||
+    n.includes('مدير التشغيل') ||
+    n.includes('الأوبريشن')
+  ) {
     return 'مدير التشغيل 1';
   }
   if (n.includes('المدير المباشر') || roleSlug === 'direct_manager') return 'المدير المباشر';
@@ -115,9 +129,7 @@ function journeyEvents(history: RequestHistoryEntry[], employeeName: string): Jo
   for (const ev of events) {
     const isDup = deduplicated.some(
       (existing) =>
-        existing.title === ev.title &&
-        existing.comment === ev.comment &&
-        Math.abs(new Date(existing.at).getTime() - new Date(ev.at).getTime()) <= 120_000
+        existing.title === ev.title && existing.comment === ev.comment && Math.abs(new Date(existing.at).getTime() - new Date(ev.at).getTime()) <= 120_000,
     );
     if (!isDup) {
       deduplicated.push(ev);
