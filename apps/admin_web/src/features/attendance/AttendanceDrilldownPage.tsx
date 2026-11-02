@@ -757,7 +757,7 @@ function Row({
   const classified = classifyEmployee(item, currentMinutesFromMidnight);
   const missionInfo = sanitizeMissionPurpose(item.leaveTitle ?? item.pendingRequestTitle, item.leaveReason);
   const sanitizedLeaveReason = sanitizeLeaveReason(item.leaveReason, item.leaveName);
-  const hasExcuse = Boolean(item.hasApprovedLeave) || Boolean(item.hasMission);
+  const hasExcuse = Boolean(item.hasApprovedLeave) || Boolean(item.hasMission) || Boolean(item.hasApprovedPermit);
   const isWorkingNow = isToday && Boolean(item.firstCheckIn) && !item.lastCheckOut && !isMarked;
 
   return (
@@ -1033,6 +1033,37 @@ function Row({
                 {missionInfo.purpose ? (
                   <span className="text-[10.5px] text-[var(--text-muted)] line-clamp-2" title={`الغرض: ${missionInfo.purpose}`}>
                     💬 الغرض: {missionInfo.purpose}
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
+            {item.hasApprovedPermit ? (
+              <div className="flex flex-col gap-0.5 items-start">
+                <span
+                  className="status-pill status-pill--ok text-[11px] font-bold whitespace-nowrap shrink-0 bg-violet-500/15 text-violet-300 border border-violet-500/30"
+                  title={item.permitTitle ? `إذن معتمد: ${item.permitTitle}` : 'إذن معتمد'}
+                >
+                  <Clock3 className="size-3 text-violet-400" aria-hidden="true" />
+                  <span>
+                    {item.permitType === 'late_permit'
+                      ? 'إذن تأخير'
+                      : item.permitType === 'early_permit' || item.permitType === 'early_leave_permit'
+                        ? 'إذن انصراف'
+                        : 'إذن عمل'}
+                  </span>
+                  {item.permitMinutes ? <span className="opacity-75 font-normal font-mono">({item.permitMinutes} دقيقة)</span> : null}
+                  {item.leaveRequestNumber ? <span className="opacity-75 font-normal font-mono">(#{item.leaveRequestNumber})</span> : null}
+                </span>
+
+                {item.permitTitle && item.permitTitle !== item.permitReason ? (
+                  <span className="text-[11px] font-semibold text-[var(--text)] line-clamp-1" title={`عنوان الإذن: ${item.permitTitle}`}>
+                    📌 {item.permitTitle}
+                  </span>
+                ) : null}
+
+                {item.permitReason ? (
+                  <span className="text-[10.5px] text-[var(--text-muted)] line-clamp-2" title={`سبب الإذن: ${item.permitReason}`}>
+                    💬 السبب: {item.permitReason}
                   </span>
                 ) : null}
               </div>

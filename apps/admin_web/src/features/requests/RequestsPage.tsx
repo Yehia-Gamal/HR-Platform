@@ -6,6 +6,8 @@ import {
   type AttendanceOperationsCatalog,
 } from '@ahla/shared-contracts';
 import {
+  AlertTriangle,
+  Ban,
   CalendarDays,
   Check,
   CheckCircle2,
@@ -39,6 +41,7 @@ import { useToast } from '../../ui/Toast';
 import { UserAvatar } from '../../ui/UserAvatar';
 import {
   useBulkApprove,
+  useCancelRequest,
   useDelegateRequestToAbuAmmar,
   useMyLeaveBalances,
   useRequestDecision,
@@ -161,6 +164,26 @@ export function RequestsPage() {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkComment, setBulkComment] = useState('');
   const delegateMutation = useDelegateRequestToAbuAmmar();
+  const cancelMutation = useCancelRequest();
+  const isAdminOrHr =
+    auth.access != null &&
+    (auth.access.roles.some((r) =>
+      [
+        'admin',
+        'super-admin',
+        'executive',
+        'executive-director',
+        'general-manager',
+        'hr-manager',
+        'hr-specialist',
+        'hr-officer',
+        'operations-manager-1',
+        'operations-manager',
+      ].includes(r),
+    ) ||
+      auth.access.workspaces.includes('main_admin') ||
+      hasPermission(auth.access, 'requests.approve') ||
+      hasPermission(auth.access, 'leave.request.manage'));
   const canDelegateToAbuAmmar =
     auth.access != null &&
     auth.access.roles.some((r) => ['admin', 'super-admin', 'executive', 'executive-director', 'general-manager', 'hr-manager', 'hr-specialist'].includes(r));
@@ -924,6 +947,34 @@ export function RequestsPage() {
                     </button>
                   </div>
                 )}
+                {(isAdminOrHr || selected.isMine) && (
+                  <div className="mt-2 text-center">
+                    <button
+                      type="button"
+                      className="text-xs font-bold text-red-500 hover:text-red-700 hover:underline inline-flex items-center gap-1.5 opacity-80 hover:opacity-100 transition"
+                      disabled={cancelMutation.isPending || decision.isPending}
+                      onClick={() => {
+                        const reason = window.prompt(selected.isMine ? 'سبب سحب الطلب:' : 'سبب إلغاء الطلب إدارياً:');
+                        if (reason === null) return;
+                        cancelMutation.mutate(
+                          { requestId: selected.id, reason: reason.trim() || undefined },
+                          {
+                            onSuccess: () => {
+                              toast({ message: 'تم إلغاء الطلب بنجاح', tone: 'success' });
+                              setSelected(null);
+                            },
+                            onError: (err) => {
+                              toast({ message: safeErrorMessage(err) || 'تعذر إلغاء الطلب', tone: 'error' });
+                            },
+                          },
+                        );
+                      }}
+                    >
+                      <Ban className="size-3.5" />
+                      <span>{selected.isMine ? 'سحب طلبي المعلق' : 'إلغاء الطلب المعلق إدارياً'}</span>
+                    </button>
+                  </div>
+                )}
               </>
             ) : (
               <div className="mt-5 space-y-3">
@@ -958,8 +1009,52 @@ export function RequestsPage() {
               </div>
             )
           ) : (
-            <div className="mt-5 text-center p-3 rounded-xl bg-[var(--surface-muted)] text-sm font-bold">
-              حالة الطلب: {REQUEST_STATUS_LABELS[selected.status] ?? selected.status}
+            <div className="mt-5 space-y-4">
+              <div className="text-center p-3 rounded-xl bg-[var(--surface-muted)] text-sm font-bold flex items-center justify-between">
+                <span>حالة الطلب:</span>
+                <StatusBadge value={selected.status} />
+              </div>
+
+              {/* سحب / إلغاء الطلب المعتمد بواسطة الإدارة أو الموارد البشرية (0721) */}
+              {isAdminOrHr && selected.status === 'approved' ? (
+                <div className="rounded-2xl border border-red-500/30 bg-red-500/5 p-4 space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-bold text-red-600 dark:text-red-400">
+                    <AlertTriangle className="size-4 shrink-0" />
+                    <span>سحب / إلغاء الاعتماد (إجراء خاص بالإدارة العليا والموارد البشرية)</span>
+                  </div>
+                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                    إلغاء هذا الطلب المعتمد سيقوم تلقائياً باسترداد رصيد الإجازة للموظف (إن وجد)، وإعادة ضبط سجل الحضور والانصراف، وإشعار الموظف فوراً.
+                  </p>
+                  <button
+                    type="button"
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-red-500/40 bg-red-500/10 hover:bg-red-500 hover:text-white px-4 py-2.5 text-xs font-black text-red-600 dark:text-red-400 transition disabled:opacity-50"
+                    disabled={cancelMutation.isPending}
+                    onClick={() => {
+                      const reason = window.prompt('يرجى كتابة سبب سحب / إلغاء هذا الطلب المعتمد:');
+                      if (reason === null) return;
+                      if (reason.trim().length < 3) {
+                        toast({ message: 'سبب الإلغاء مطلوب (3 أحرف على الأقل)', tone: 'error' });
+                        return;
+                      }
+                      cancelMutation.mutate(
+                        { requestId: selected.id, reason: reason.trim() },
+                        {
+                          onSuccess: () => {
+                            toast({ message: 'تم سحب وإلغاء الطلب المعتمد بنجاح', tone: 'success' });
+                            setSelected(null);
+                          },
+                          onError: (err) => {
+                            toast({ message: safeErrorMessage(err) || 'تعذر إلغاء الطلب', tone: 'error' });
+                          },
+                        },
+                      );
+                    }}
+                  >
+                    <Ban className="size-4" />
+                    <span>{cancelMutation.isPending ? 'جارٍ الإلغاء…' : 'سحب وإلغاء هذا الطلب المعتمد'}</span>
+                  </button>
+                </div>
+              ) : null}
             </div>
           )}
         </DialogOverlay>

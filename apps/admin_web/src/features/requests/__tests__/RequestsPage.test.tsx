@@ -40,6 +40,7 @@ vi.mock('../useRequests', () => ({
   useMyLeaveBalances: () => ({ data: [], isLoading: false, isError: false, error: null }),
   useWorkAssignments: () => ({ data: [], isLoading: false, isError: false, error: null }),
   useDelegateRequestToAbuAmmar: () => ({ mutate: vi.fn(), isPending: false, isError: false, error: null }),
+  useCancelRequest: () => ({ mutate: vi.fn(), isPending: false, isError: false, error: null }),
 }));
 
 vi.mock('../../advanced/useAdvancedOperations', () => ({

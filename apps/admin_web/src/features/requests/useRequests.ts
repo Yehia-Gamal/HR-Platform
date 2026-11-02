@@ -78,6 +78,31 @@ export function useDelegateRequestToAbuAmmar() {
   });
 }
 
+/** إلغاء أو سحب الطلب (معلق أو معتمد) بواسطة الإدارة أو الموارد البشرية أو صاحب الطلب (0721) */
+export function useCancelRequest() {
+  const auth = useAuth();
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ requestId, reason }: { requestId: string; reason?: string }) => {
+      if (auth.isMock) return { id: requestId, cancelled: true };
+      return rpc('cancel_request', {
+        p_request_id: requestId,
+        p_reason: reason || 'تم سحب/إلغاء الطلب إدارياً',
+      });
+    },
+    meta: { successMessage: 'تم سحب / إلغاء الطلب بنجاح' },
+    onSuccess: () =>
+      Promise.all([
+        client.invalidateQueries({ queryKey: ['requests'] }),
+        client.invalidateQueries({ queryKey: ['request-detail'] }),
+        client.invalidateQueries({ queryKey: ['action-center'] }),
+        client.invalidateQueries({ queryKey: ['attendance'] }),
+        client.invalidateQueries({ queryKey: ['attendance-roster'] }),
+        client.invalidateQueries({ queryKey: ['leave-balances'] }),
+      ]),
+  });
+}
+
 /** تفاصيل طلب واحد: مسار الطلب وسياق القرار للمعتمِد (get_mobile_request_detail — 0646/0651). */
 export function useRequestDetail(requestId: string | null) {
   const auth = useAuth();

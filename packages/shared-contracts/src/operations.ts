@@ -101,6 +101,7 @@ export type RequestInsights = z.infer<typeof requestInsightsSchema>;
 export const requestDetailSchema = z.object({
   id: z.string(),
   canDecide: z.boolean().optional(),
+  canCancel: z.boolean().optional(),
   awaitingMe: z.boolean().optional(),
   canResubmit: z.boolean().optional(),
   history: z.array(requestHistoryEntrySchema).optional().default([]),

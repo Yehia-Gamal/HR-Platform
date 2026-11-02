@@ -85,11 +85,25 @@ class _RequestScreen extends ConsumerWidget {
       'hr-specialist',
       'operations-manager-1',
     };
+    const adminOrHrRoles = {
+      'admin',
+      'super-admin',
+      'executive',
+      'executive-director',
+      'general-manager',
+      'hr-manager',
+      'hr-specialist',
+      'hr-officer',
+      'operations-manager-1',
+      'operations-manager',
+    };
+    final isAdminOrHr = (access?.roles.any(adminOrHrRoles.contains) ?? false) ||
+        (access?.hasPermission('requests.approve') ?? false) ||
+        (access?.hasPermission('leave.request.manage') ?? false);
     final canDelegate = !isClinicStaff &&
         !isMine &&
         request.status == 'pending' &&
         (access?.roles.any(delegateRoles.contains) ?? false);
-
     // فتح تلقائي لورقة القرار عند القدوم من زر إشعار — مرة واحدة،
     // وبشرط أن يكون المستخدم مخوّلاً والطلب ما زال معلقاً.
     final auto = switch (initialAction) {
@@ -168,11 +182,12 @@ class _RequestScreen extends ConsumerWidget {
             ],
             const SizedBox(height: 12),
             _JourneyCard(request: request),
-            if (isMine &&
-                ((request.canCancel && request.status == 'pending') ||
-                    (isFieldAssignmentType(request.type) &&
-                        (request.status == 'pending' || request.status == 'approved') &&
-                        request.missionExecution?.status != 'completed'))) ...[
+            if ((isMine &&
+                    ((request.canCancel && request.status == 'pending') ||
+                        (isFieldAssignmentType(request.type) &&
+                            (request.status == 'pending' || request.status == 'approved') &&
+                            request.missionExecution?.status != 'completed'))) ||
+                (isAdminOrHr && (request.status == 'pending' || request.status == 'approved'))) ...[
               const SizedBox(height: 14),
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
@@ -183,15 +198,22 @@ class _RequestScreen extends ConsumerWidget {
                   minimumSize: const Size.fromHeight(48),
                 ),
                 onPressed: () => _openWithdraw(context, ref, request),
-                icon: Icon(isFieldAssignmentType(request.type)
-                    ? Icons.cancel_outlined
-                    : Icons.undo_rounded),
-                label: Text(isFieldAssignmentType(request.type)
-                    ? 'إلغاء المأمورية'
-                    : 'سحب الطلب قبل صدور القرار'),
+                icon: Icon(request.status == 'approved'
+                    ? Icons.block_rounded
+                    : isFieldAssignmentType(request.type)
+                        ? Icons.cancel_outlined
+                        : Icons.undo_rounded),
+                label: Text(request.status == 'approved'
+                    ? (isAdminOrHr && !isMine
+                        ? 'سحب / إلغاء الاعتماد (إدارياً)'
+                        : 'إلغاء المأمورية')
+                    : isFieldAssignmentType(request.type)
+                        ? 'إلغاء المأمورية'
+                        : (isAdminOrHr && !isMine
+                            ? 'إلغاء الطلب إدارياً'
+                            : 'سحب الطلب قبل صدور القرار')),
               ),
             ],
-            // 0452: صاحب الطلب يعدّل الطلب المرفوض/المُعاد ويعيد رفعه
             if (isMine &&
                 request.canResubmit &&
                 (request.status == 'rejected' ||
@@ -242,27 +264,37 @@ Future<void> _openWithdraw(
   WidgetRef ref,
   MobileRequestDetail request,
 ) async {
+  final isApproved = request.status == 'approved';
   final done = await showModalBottomSheet<bool>(
     context: context,
-      useSafeArea: true,
+    useSafeArea: true,
     isScrollControlled: true,
     showDragHandle: true,
     builder: (_) => RequestActionSheet(
-      config: const RequestSheetConfig(
-        title: 'سحب الطلب',
-        icon: Icons.undo_rounded,
+      config: RequestSheetConfig(
+        title: isApproved ? 'سحب / إلغاء الاعتماد' : 'سحب الطلب',
+        icon: isApproved ? Icons.block_rounded : Icons.undo_rounded,
         color: AppColors.statusDanger,
-        explanation:
-            'يتوقف مسار الاعتماد ولا يصل الطلب للمعتمدين. يمكنك تقديم طلب جديد لاحقًا.',
-        inputLabel: 'سبب السحب (إلزامي)',
+        explanation: isApproved
+            ? 'سيتم إلغاء اعتماد هذا الطلب إدارياً، واسترداد رصيد الإجازة للموظف (إن وجد)، وإعادة ضبط سجل الحضور، وإشعار الموظف فوراً.'
+            : 'يتوقف مسار الاعتماد ولا يصل الطلب للمعتمدين. يمكنك تقديم طلب جديد لاحقًا.',
+        inputLabel: isApproved ? 'سبب سحب الاعتماد (إلزامي)' : 'سبب السحب (إلزامي)',
         required: true,
-        suggestions: [
-          'لم أعد بحاجة إلى الطلب',
-          'قُدِّم بالخطأ',
-          'سأقدّم طلبًا آخر ببيانات صحيحة',
-        ],
-        confirmLabel: 'تأكيد السحب',
-        successMessage: 'تم سحب الطلب وإيقاف مسار الاعتماد.',
+        suggestions: isApproved
+            ? const [
+                'إلغاء بناءً على قرار الإدارة',
+                'تغيير في خطة العمل وجدول التكليفات',
+                'تم بالخطأ ويُستبدل بطلب آخر',
+              ]
+            : const [
+                'لم أعد بحاجة إلى الطلب',
+                'قُدِّم بالخطأ',
+                'سأقدّم طلبًا آخر ببيانات صحيحة',
+              ],
+        confirmLabel: isApproved ? 'تأكيد سحب الاعتماد' : 'تأكيد السحب',
+        successMessage: isApproved
+            ? 'تم سحب وإلغاء الطلب المعتمد بنجاح.'
+            : 'تم سحب الطلب وإيقاف مسار الاعتماد.',
       ),
       subject: '${requestTypeLabel(request.type)} · طلب رقم ${request.number}',
       onSubmit: (note) =>
@@ -271,7 +303,13 @@ Future<void> _openWithdraw(
   );
   if (done != true || !context.mounted) return;
   ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text('تم سحب الطلب وإيقاف مسار الاعتماد.')),
+    SnackBar(
+      content: Text(
+        isApproved
+            ? 'تم سحب وإلغاء الطلب المعتمد بنجاح.'
+            : 'تم سحب الطلب وإيقاف مسار الاعتماد.',
+      ),
+    ),
   );
 }
 
