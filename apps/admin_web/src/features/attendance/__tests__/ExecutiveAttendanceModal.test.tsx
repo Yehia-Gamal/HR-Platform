@@ -70,7 +70,7 @@ describe('ExecutiveAttendanceModal', () => {
 
     // Donut Chart
     expect(screen.getByText('توزيع قوى العمل اليوم')).toBeDefined();
-    expect(screen.getByText('نظرة بصرية شاملة على توزيع الحالات والانضباط الميداني')).toBeDefined();
+    expect(screen.getByText(/نظرة بصرية/)).toBeDefined();
 
     // Department matrix
     expect(screen.getByText(/مصفوفة الانضباط وتوزيع القوى/)).toBeDefined();

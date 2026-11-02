@@ -50,6 +50,20 @@ vi.mock('../useInstantPenalties', () => ({
     mutateAsync: vi.fn(),
     reset: vi.fn(),
   }),
+  useRevertDoubledPenalty: () => ({
+    isPending: false,
+    isError: false,
+    error: null,
+    mutateAsync: vi.fn(),
+    reset: vi.fn(),
+  }),
+  useRevertAllDoubledPenaltiesAdmin: () => ({
+    isPending: false,
+    isError: false,
+    error: null,
+    mutateAsync: vi.fn(),
+    reset: vi.fn(),
+  }),
   useTriggerCheckPenaltiesNow: () => ({
     isPending: false,
     isError: false,
