@@ -14,6 +14,10 @@ const todayStatusLabels = <String, String>{
   'convoy': 'في قافلة',
   'fundraising': 'في فاندي ترفيهي',
   'on_leave': 'في إجازة',
+  'on_permit': 'في إذن معتمد',
+  'permit': 'في إذن',
+  'late_permit': 'إذن تأخير',
+  'pending_permit': 'إذن (قيد المراجعة)',
   'holiday': 'عطلة رسمية',
   'weekend': 'إجازة أسبوعية',
   'exempt': 'معفى من البصمة',
@@ -36,6 +40,7 @@ Color todayStatusColor(String? status) => switch (status) {
   'convoy' => const Color(0xFF7C3AED),
   'fundraising' => const Color(0xFF0D9488),
   'on_leave' => const Color(0xFF0284C7),
+  'on_permit' || 'permit' || 'late_permit' || 'pending_permit' => const Color(0xFF8B5CF6),
   'holiday' || 'weekend' || 'exempt' => const Color(0xFF6B7280),
   _ => Colors.blueGrey,
 };
@@ -49,6 +54,7 @@ IconData todayStatusIcon(String? status) => switch (status) {
   'convoy' => Icons.directions_bus_rounded,
   'fundraising' => Icons.festival_rounded,
   'on_leave' => Icons.beach_access_rounded,
+  'on_permit' || 'permit' || 'late_permit' || 'pending_permit' => Icons.schedule_rounded,
   'holiday' => Icons.celebration_rounded,
   'weekend' => Icons.weekend_rounded,
   'exempt' => Icons.verified_user_rounded,
@@ -77,7 +83,7 @@ enum TodayStatusGroup {
       TodayStatusGroup.present,
     'absent' => TodayStatusGroup.absent,
     'mission' || 'convoy' || 'fundraising' => TodayStatusGroup.offsite,
-    'on_leave' => TodayStatusGroup.leave,
+    'on_leave' || 'on_permit' || 'permit' || 'late_permit' || 'pending_permit' => TodayStatusGroup.leave,
     _ => TodayStatusGroup.other,
   };
 }

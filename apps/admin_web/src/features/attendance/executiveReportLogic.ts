@@ -191,6 +191,8 @@ export type ExecutiveEmployeeCategory =
   | 'mission_pending'
   | 'leave_approved'
   | 'leave_pending'
+  | 'permit_approved'
+  | 'permit_pending'
   | 'unexcused_absent'
   | 'shift_not_started'
   | 'unscheduled_rest'
@@ -206,6 +208,8 @@ export interface ClassifiedEmployee {
   isPendingMission: boolean;
   isLeave: boolean;
   isPendingLeave: boolean;
+  isPermit: boolean;
+  isPendingPermit: boolean;
   isClinicStaff: boolean;
 }
 
@@ -220,7 +224,13 @@ export function classifyEmployee(item: AttendanceRosterItem, currentMinutesFromM
     (item.status === 'on_leave' || Boolean(item.hasApprovedLeave) || (Boolean(item.hasPendingRequest) && item.pendingRequestType === 'leave')) && !isMission;
   const isPendingLeave = isLeave && Boolean(item.hasPendingRequest) && !item.hasApprovedLeave;
 
-  const hasCheckIn = Boolean(item.firstCheckIn) || item.status === 'present' || item.status === 'late' || item.status === 'missing_checkout';
+  const isPermit =
+    (item.status === 'on_permit' || Boolean(item.hasApprovedPermit) || (Boolean(item.hasPendingRequest) && item.pendingRequestType === 'permit')) &&
+    !isMission &&
+    !isLeave;
+  const isPendingPermit = isPermit && Boolean(item.hasPendingRequest) && !item.hasApprovedPermit && item.status !== 'on_permit';
+
+  const hasCheckIn = Boolean(item.firstCheckIn);
 
   let category: ExecutiveEmployeeCategory;
 
@@ -240,6 +250,8 @@ export function classifyEmployee(item: AttendanceRosterItem, currentMinutesFromM
     category = isPendingMission ? 'mission_pending' : 'mission_approved';
   } else if (isLeave) {
     category = isPendingLeave ? 'leave_pending' : 'leave_approved';
+  } else if (isPermit) {
+    category = isPendingPermit ? 'permit_pending' : 'permit_approved';
   } else if (isOffOrUnscheduled(item)) {
     category = 'unscheduled_rest';
   } else if (isShiftUpcoming(shiftWindow, currentMinutesFromMidnight)) {
@@ -273,6 +285,8 @@ export function classifyEmployee(item: AttendanceRosterItem, currentMinutesFromM
     isPendingMission,
     isLeave,
     isPendingLeave,
+    isPermit,
+    isPendingPermit,
     isClinicStaff,
   };
 }
@@ -295,11 +309,14 @@ export interface ExecutiveMetrics {
   leavesTotal: number; // إجمالي الإجازات والراحات المسجلة
   leavesApprovedCount: number; // إجازات معتمدة رسمياً
   leavesPendingCount: number; // طلبات إجازة معلّقة تنتظر القرار
+  permitsTotal: number; // إجمالي أذونات وتصاريح العمل
+  permitsApprovedCount: number; // أذونات معتمدة رسمياً
+  permitsPendingCount: number; // طلبات إذن معلقة تنتظر القرار
   unexcusedAbsent: number; // غياب حقيقي بدون إذن لمن بدأت ورديتهم فقط
   shiftNotStartedYet: number; // فترات مسائية لم تبدأ بعد (مثل العيادات 3 م)
   unscheduledRest: number; // راحة أسبوعية / غير مجدول
   actualPresenceRate: number; // نسبة الحضور الفعلي الصافية بالمقر %
-  overallComplianceRate: number; // نسبة الالتزام الكلية (حضور + مأموريات معتمدة) %
+  overallComplianceRate: number; // نسبة الالتزام الكلية (حضور + مأموريات وأذونات معتمدة) %
   attendancePercentage: number; // للتوافق العكسي: نسبة الالتزام الشاملة %
   needsDecisionCount: number; // عناصر شريط "يحتاج قرار فوري"
 }
@@ -324,28 +341,33 @@ export function computeExecutiveMetrics(classified: ClassifiedEmployee[]): Execu
   const leavesPendingCount = active.filter((c) => c.category === 'leave_pending').length;
   const leavesTotal = leavesApprovedCount + leavesPendingCount;
 
+  const permitsApprovedCount = active.filter((c) => c.category === 'permit_approved').length;
+  const permitsPendingCount = active.filter((c) => c.category === 'permit_pending').length;
+  const permitsTotal = permitsApprovedCount + permitsPendingCount;
+
   const unexcusedAbsent = active.filter((c) => c.category === 'unexcused_absent').length;
   const shiftNotStartedYet = active.filter((c) => c.category === 'shift_not_started').length;
   const unscheduledRest = active.filter((c) => c.category === 'unscheduled_rest').length;
 
   // قوة العمل المجدولة المطالبة بالحضور حتى الآن:
-  // الحاضرون + الغائبون بدون إذن + المأموريات (معتمدة ومعلقة) + الإجازات
-  const denominator = presentTotal + unexcusedAbsent + missionsApprovedOnly + missionsPendingOnly + leavesTotal;
+  // الحاضرون + الغائبون بدون إذن + المأموريات (معتمدة ومعلقة) + الإجازات + الأذونات
+  const denominator = presentTotal + unexcusedAbsent + missionsApprovedOnly + missionsPendingOnly + leavesTotal + permitsTotal;
 
   // 1. نسبة الحضور الفعلي البحتة بالمقر
   const actualPresenceRate = denominator > 0 ? Math.round((presentTotal / denominator) * 100) : 100;
 
-  // 2. نسبة الالتزام الشاملة (حضور + مأموريات رسمية معتمدة)
-  const overallComplianceRate = denominator > 0 ? Math.round(((presentTotal + missionsApprovedOnly) / denominator) * 100) : 100;
+  // 2. نسبة الالتزام الشاملة (حضور + مأموريات رسمية معتمدة + أذونات معتمدة)
+  const overallComplianceRate = denominator > 0 ? Math.round(((presentTotal + missionsApprovedOnly + permitsApprovedCount) / denominator) * 100) : 100;
   const attendancePercentage = overallComplianceRate;
 
   // عناصر تحتاج قرار فوري من المدير التنفيذي:
   // 1. مأموريات خرج أصحابها قبل الاعتماد
   // 2. طلبات إجازة معلّقة لم تُعتمد بعد
-  // 3. غياب قطعي بدون إذن
-  // 4. تأخيرات حرجة (> 60 دقيقة)
+  // 3. طلبات إذن معلقة لم تعتمد بعد
+  // 4. غياب قطعي بدون إذن
+  // 5. تأخيرات حرجة (> 60 دقيقة)
   const criticalLate = active.filter((c) => c.category === 'present_late' && c.trueLateMinutes >= 60).length;
-  const needsDecisionCount = missionsPendingLeft + leavesPendingCount + unexcusedAbsent + criticalLate;
+  const needsDecisionCount = missionsPendingLeft + leavesPendingCount + permitsPendingCount + unexcusedAbsent + criticalLate;
 
   return {
     totalScheduledEmployees: denominator,
@@ -362,6 +384,9 @@ export function computeExecutiveMetrics(classified: ClassifiedEmployee[]): Execu
     leavesTotal,
     leavesApprovedCount,
     leavesPendingCount,
+    permitsTotal,
+    permitsApprovedCount,
+    permitsPendingCount,
     unexcusedAbsent,
     shiftNotStartedYet,
     unscheduledRest,

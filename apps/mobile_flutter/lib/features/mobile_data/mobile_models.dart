@@ -3491,6 +3491,7 @@ class AttendanceTodayEmployee {
       'late' => 'متأخر',
       'absent' => 'غائب',
       'on_leave' => 'إجازة',
+      'on_permit' || 'permit' || 'late_permit' => 'في إذن',
       'holiday' => 'عطلة',
       'weekend' => 'إجازة أسبوعية',
       'partial' => 'حضور جزئي',

@@ -227,6 +227,9 @@ function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIs
           if (item.pendingRequestType === 'mission') {
             statusBadgeClass = 'status-badge-mission';
             statusText = 'مأمورية (قيد المراجعة)';
+          } else if (item.pendingRequestType === 'permit') {
+            statusBadgeClass = 'status-badge-late';
+            statusText = 'إذن (قيد المراجعة)';
           } else {
             statusBadgeClass = 'status-badge-leave';
             statusText = 'إجازة (قيد المراجعة)';
@@ -234,10 +237,13 @@ function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIs
         } else {
           statusBadgeClass = 'status-badge-absent';
           statusText =
-            item.status === 'unexcused_absent' || (!item.hasPendingRequest && !item.hasApprovedLeave && !item.hasMission && item.status === 'absent')
+            item.status === 'unexcused_absent' || (!item.hasPendingRequest && !item.hasApprovedLeave && !item.hasMission && !item.hasApprovedPermit && item.status === 'absent')
               ? 'غياب بدون إذن'
               : 'غائب';
         }
+      } else if (item.status === 'on_permit' || item.hasApprovedPermit) {
+        statusBadgeClass = 'status-badge-neutral';
+        statusText = item.permitTitle ?? 'في إذن (معتمد)';
       } else if (item.status === 'on_leave' || item.hasApprovedLeave) {
         statusBadgeClass = 'status-badge-leave';
         statusText = item.leaveName ?? 'إجازة';

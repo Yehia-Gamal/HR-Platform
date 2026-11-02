@@ -818,10 +818,31 @@ function Row({
             <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
             متأخر (في العمل)
           </span>
+        ) : isWorkingNow && item.hasApprovedPermit ? (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap shrink-0 bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
+            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+            حاضر (بإذن معتمد)
+          </span>
         ) : isWorkingNow && classified.category === 'present_on_time' ? (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap shrink-0 bg-emerald-500/10 text-emerald-500 border border-emerald-500/25">
             <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
             حاضر (في العمل)
+          </span>
+        ) : !item.firstCheckIn && (item.hasApprovedPermit || item.status === 'on_permit' || classified.category === 'permit_approved') ? (
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap shrink-0 bg-violet-500/15 text-violet-300 border border-violet-500/30"
+            title={`إذن عمل معتمد: ${item.permitTitle ?? item.leaveTitle ?? 'إذن تأخير'}${item.permitMinutes ? ` (${item.permitMinutes} دقيقة)` : ''}`}
+          >
+            <Clock3 className="size-3 text-violet-400" />
+            في إذن معتمد {item.permitMinutes ? `(${item.permitMinutes} د)` : ''}
+          </span>
+        ) : !item.firstCheckIn && (item.status === 'pending_permit' || item.pendingRequestType === 'permit' || classified.category === 'permit_pending') ? (
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap shrink-0 bg-amber-500/15 text-amber-300 border border-amber-500/30"
+            title={`طلب إذن قيد المراجعة: ${item.pendingRequestTitle ?? 'إذن عمل'}`}
+          >
+            <Clock3 className="size-3 text-amber-400" />
+            إذن (قيد المراجعة)
           </span>
         ) : classified.category === 'leave_pending' ? (
           <span

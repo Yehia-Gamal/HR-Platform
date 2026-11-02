@@ -129,6 +129,7 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
   const missionPendingList = classified.filter((c) => c.category === 'present_mission_pending' || c.category === 'mission_pending');
   const missionApprovedList = classified.filter((c) => c.category === 'present_mission_approved' || c.category === 'mission_approved');
   const leaveList = classified.filter((c) => c.category === 'leave_approved' || c.category === 'leave_pending');
+  const permitList = classified.filter((c) => c.category === 'permit_approved' || c.category === 'permit_pending');
   const upcomingShiftList = classified.filter((c) => c.category === 'shift_not_started');
   const onTimePresentList = classified.filter((c) => c.category === 'present_on_time');
 
@@ -377,7 +378,7 @@ ${
   metrics.needsDecisionCount > 0
     ? `🚨 *يحتاج قرار فوري من الإدارة (${metrics.needsDecisionCount} حالات):*
 • ${metrics.missionsPendingLeft} خرجوا لمأمورية قبل الاعتماد (طلبات معلقة)
-${metrics.leavesPendingCount > 0 ? `• ${metrics.leavesPendingCount} طلبات إجازة معلّقة بانتظار الاعتماد\n` : ''}• ${metrics.unexcusedAbsent} غياب بدون إذن
+${metrics.leavesPendingCount > 0 ? `• ${metrics.leavesPendingCount} طلبات إجازة معلّقة بانتظار الاعتماد\n` : ''}${metrics.permitsPendingCount > 0 ? `• ${metrics.permitsPendingCount} طلبات إذن وتصريح معلّقة بانتظار الاعتماد\n` : ''}• ${metrics.unexcusedAbsent} غياب بدون إذن
 • ${metrics.presentLate} متأخرون عن الموعد
 ━━━━━━━━━━━━━━━━━━━━\n`
     : ''
@@ -388,7 +389,7 @@ ${metrics.leavesPendingCount > 0 ? `• ${metrics.leavesPendingCount} طلبات
 • المتأخرون: ${metrics.presentLate} موظف
 • المأموريات الرسمية المعتمدة: ${metrics.missionsApproved} موظف
 • إجازات وراحات: ${metrics.leavesTotal} موظف (${metrics.leavesApprovedCount} معتمدة · ${metrics.leavesPendingCount} معلقة)
-• غياب بدون إذن: ${metrics.unexcusedAbsent} موظف
+${metrics.permitsTotal > 0 ? `• أذونات وتصاريح: ${metrics.permitsTotal} موظف (${metrics.permitsApprovedCount} معتمدة · ${metrics.permitsPendingCount} معلقة)\n` : ''}• غياب بدون إذن: ${metrics.unexcusedAbsent} موظف
 ${metrics.shiftNotStartedYet > 0 ? `• فترات مسائية لم تبدأ بعد: ${metrics.shiftNotStartedYet} موظف` : ''}
 ━━━━━━━━━━━━━━━━━━━━
 🔴 *الغياب بدون إذن (${unexcusedAbsentList.length}):*
@@ -439,6 +440,19 @@ ${
   leaveList.length === 0
     ? '— لا توجد إجازات —'
     : leaveList.map((l, i) => `${i + 1}. ${l.item.employeeName} (${l.item.departmentName ?? '—'}) · ${l.item.leaveName ?? 'إجازة رسمية'}`).join('\n')
+}
+${
+  permitList.length > 0
+    ? `\n⏱️ *أذونات وتصاريح العمل (${permitList.length}):*\n` +
+      permitList
+        .map(
+          (p, i) =>
+            `${i + 1}. ${p.item.employeeName} (${p.item.departmentName ?? '—'}) · ${
+              p.category === 'permit_pending' ? 'طلب إذن معلق' : p.item.permitTitle ?? 'إذن معتمد'
+            }${p.item.permitMinutes ? ` (${p.item.permitMinutes} دقيقة)` : ''}`,
+        )
+        .join('\n')
+    : ''
 }
 ━━━━━━━━━━━━━━━━━━━━
 🔐 *كود التحقق الرقمي:* ${securityInfo.code}
@@ -1066,6 +1080,54 @@ ${
                                     </span>
                                   </td>
                                   <td className="p-2 text-slate-300 font-medium">{sanitizeLeaveReason(l.item.leaveReason, l.item.leaveName)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+
+                      {/* هـ) جدول أذونات وتصاريح العمل الرسمية */}
+                      {permitList.length > 0 && (
+                        <div className="rounded-xl border border-violet-500/30 overflow-hidden bg-slate-900/40">
+                          <div className="bg-violet-900/80 border-b border-violet-500/20 text-white px-4 py-2 flex items-center justify-between text-xs font-black">
+                            <div className="flex items-center gap-2">
+                              <Clock3 className="size-4 text-violet-400" />
+                              <span>قائمة أذونات وتصاريح العمل الرسمية (تأخير / انصراف)</span>
+                            </div>
+                            <span className="bg-violet-800 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-black">{permitList.length} إذن</span>
+                          </div>
+                          <table className="w-full text-[11px] border-collapse text-start">
+                            <thead>
+                              <tr className="bg-slate-900/90 text-slate-300 border-b border-slate-800 font-black">
+                                <th className="p-2 w-8 text-center">#</th>
+                                <th className="p-2">اسم الموظف</th>
+                                <th className="p-2">الإدارة</th>
+                                <th className="p-2">حالة ونوع الإذن</th>
+                                <th className="p-2">المدة والبيان</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-800 font-medium">
+                              {permitList.map((pm, idx) => (
+                                <tr key={pm.item.employeeId} className="bg-slate-950/40">
+                                  <td className="p-2 text-center text-slate-500 font-bold font-mono">{idx + 1}</td>
+                                  <td className="p-2 font-black text-white">{pm.item.employeeName}</td>
+                                  <td className="p-2 text-slate-300">{pm.item.departmentName ?? '—'}</td>
+                                  <td className="p-2">
+                                    <span
+                                      className={`inline-block px-2 py-0.5 rounded font-black text-[10.5px] ${
+                                        pm.category === 'permit_pending'
+                                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                          : 'bg-violet-500/20 text-violet-300 border border-violet-500/30'
+                                      }`}
+                                    >
+                                      {pm.category === 'permit_pending' ? '⏳ طلب إذن معلّق' : `⏱️ ${pm.item.permitTitle ?? 'إذن معتمد'}`}
+                                    </span>
+                                  </td>
+                                  <td className="p-2 text-slate-300 font-medium">
+                                    {pm.item.permitMinutes ? `${pm.item.permitMinutes} دقيقة — ` : ''}
+                                    {pm.item.permitReason ?? pm.item.leaveReason ?? 'ظرف طارئ'}
+                                  </td>
                                 </tr>
                               ))}
                             </tbody>
