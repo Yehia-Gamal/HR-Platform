@@ -85,7 +85,7 @@ class _LeavePlannerSheetState extends ConsumerState<LeavePlannerSheet> {
 
   Future<void> _pickCustomRange() async {
     final now = DateTime.now();
-    final first = DateTime(now.year, 1, 1);
+    final first = DateTime(now.year - 1, 1, 1);
     final last = DateTime(now.year + 1, 12, 31);
 
     final picked = await showDateRangePicker(

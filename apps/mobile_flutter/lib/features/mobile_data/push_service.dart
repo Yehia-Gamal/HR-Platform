@@ -47,7 +47,7 @@ class PushService {
   static const String urgentChannelDesc =
       'إشعارات طلب الموقع الفوري — صوت عالي متكرر واهتزاز وشاشة كاملة';
 
-  static const String generalChannelId = 'general_notifications_v4';
+  static const String generalChannelId = 'general_notifications_v5';
   static const String generalChannelName = 'الإشعارات والتنبيهات العامة';
   static const String generalChannelDesc =
       'إشعارات القرارات، طلبات الموافقة، الغرامات الفورية، والإعلانات الإدارية';
@@ -81,7 +81,8 @@ class PushService {
         importance: Importance.max,
         playSound: true,
         enableVibration: true,
-        vibrationPattern: Int64List.fromList([0, 300, 200, 300]),
+        sound: const RawResourceAndroidNotificationSound('urgent_notification'),
+        vibrationPattern: Int64List.fromList([0, 500, 200, 500]),
       );
 
   static const _platform = MethodChannel('com.ahlashabab/urgent_notification');
@@ -143,6 +144,7 @@ class PushService {
         >();
     await androidPlugin?.deleteNotificationChannel('general_notifications_v2');
     await androidPlugin?.deleteNotificationChannel('general_notifications_v3');
+    await androidPlugin?.deleteNotificationChannel('general_notifications_v4');
     await androidPlugin?.createNotificationChannel(_urgentChannel);
     await androidPlugin?.createNotificationChannel(_generalChannel);
 
@@ -315,9 +317,7 @@ class PushService {
           : AndroidNotificationCategory.reminder,
       playSound: true,
       enableVibration: true,
-      sound: isUrgent
-          ? const RawResourceAndroidNotificationSound('urgent_notification')
-          : null,
+      sound: const RawResourceAndroidNotificationSound('urgent_notification'),
       vibrationPattern: isUrgent
           ? Int64List.fromList([0, 800, 300, 800, 300, 800, 300, 800])
           : Int64List.fromList([0, 300, 200, 300]),
@@ -609,9 +609,7 @@ Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
       importance: Importance.max,
       playSound: true,
       enableVibration: true,
-      sound: isUrgent
-          ? const RawResourceAndroidNotificationSound('urgent_notification')
-          : null,
+      sound: const RawResourceAndroidNotificationSound('urgent_notification'),
       vibrationPattern: isUrgent
           ? Int64List.fromList([
               0,
@@ -687,9 +685,7 @@ Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
               : AndroidNotificationCategory.reminder,
           playSound: true,
           enableVibration: true,
-          sound: isUrgent
-              ? const RawResourceAndroidNotificationSound('urgent_notification')
-              : null,
+          sound: const RawResourceAndroidNotificationSound('urgent_notification'),
           vibrationPattern: isUrgent
               ? Int64List.fromList([0, 500, 200, 500])
               : Int64List.fromList([0, 300, 200, 300]),

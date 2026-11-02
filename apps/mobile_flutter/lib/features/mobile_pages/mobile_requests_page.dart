@@ -435,35 +435,53 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  // بداية المأمورية: اليوم (تلقائي)
-                  Row(
-                    children: [
-                      const Icon(Icons.today_outlined, size: 18),
-                      const SizedBox(width: 6),
-                      Text(
-                        'بداية المأمورية: اليوم (تلقائي)',
-                        style: Theme.of(sheetContext).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(sheetContext).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  // تمديد المأمورية لأكثر من يوم (اختياري)
-                  _DateButton(
-                    label: 'تمديد المأمورية حتى تاريخ (اختياري)',
-                    value: endDate?.isAfter(startDate ?? DateTime.now()) == true ? endDate : null,
-                    firstDate: DateTime.now(),
-                    onPressed: () async {
-                      final today = DateUtils.dateOnly(DateTime.now());
-                      final picked = await _pickDate(
-                        sheetContext,
-                        endDate != null && endDate!.isAfter(today) ? endDate : today,
-                        firstDate: today,
+                  Builder(
+                    builder: (context) {
+                      final retroactiveAllowed = DateTime.now().subtract(const Duration(days: 365));
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: _DateButton(
+                              label: 'بداية المأمورية',
+                              value: startDate ?? DateTime.now(),
+                              firstDate: retroactiveAllowed,
+                              onPressed: () async {
+                                final picked = await _pickDate(
+                                  sheetContext,
+                                  startDate ?? DateTime.now(),
+                                  firstDate: retroactiveAllowed,
+                                );
+                                if (picked != null) {
+                                  setModalState(() {
+                                    startDate = picked;
+                                    if (endDate != null && endDate!.isBefore(picked)) {
+                                      endDate = picked;
+                                    }
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _DateButton(
+                              label: 'نهاية المأمورية (اختياري)',
+                              value: endDate?.isAfter(startDate ?? DateTime.now()) == true ? endDate : null,
+                              firstDate: startDate ?? retroactiveAllowed,
+                              onPressed: () async {
+                                final picked = await _pickDate(
+                                  sheetContext,
+                                  endDate ?? startDate ?? DateTime.now(),
+                                  firstDate: startDate ?? retroactiveAllowed,
+                                );
+                                if (picked != null) {
+                                  setModalState(() => endDate = picked);
+                                }
+                              },
+                            ),
+                          ),
+                        ],
                       );
-                      if (picked != null) {
-                        setModalState(() => endDate = picked);
-                      }
                     },
                   ),
                   if (endDate != null && endDate!.isAfter(startDate ?? DateTime.now())) ...[
@@ -488,11 +506,7 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                     type == 'fundraising') ...[
                   Builder(
                     builder: (context) {
-                      final now = DateTime.now();
-                      final monthStart = DateTime(now.year, now.month, 1);
-                      final allowedFirstDate = (type == 'leave' && (leaveType == 'casual' || leaveType == 'sick'))
-                          ? monthStart
-                          : null;
+                      final allowedFirstDate = DateTime.now().subtract(const Duration(days: 365));
                       return Row(
                         children: [
                           Expanded(
@@ -888,10 +902,15 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
     DateTime? firstDate,
   }) {
     final today = DateUtils.dateOnly(DateTime.now());
+    final effectiveFirst = firstDate ?? today.subtract(const Duration(days: 365));
+    final effectiveInitial = initial ?? today;
+    final clampedInitial = effectiveInitial.isBefore(effectiveFirst)
+        ? effectiveFirst
+        : effectiveInitial;
     return showDatePicker(
       context: context,
-      initialDate: initial ?? firstDate ?? today,
-      firstDate: firstDate ?? today,
+      initialDate: clampedInitial,
+      firstDate: effectiveFirst,
       lastDate: today.add(const Duration(days: 730)),
     );
   }

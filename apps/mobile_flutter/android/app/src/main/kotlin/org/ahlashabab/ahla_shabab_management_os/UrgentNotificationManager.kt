@@ -17,12 +17,13 @@ object UrgentNotificationManager {
     private const val CHANNEL_DESCRIPTION =
         "إشعارات طلب الموقع الفوري — صوت عالي متكرر واهتزاز وشاشة كاملة"
 
-    const val GENERAL_CHANNEL_ID = "general_notifications_v4"
+    const val GENERAL_CHANNEL_ID = "general_notifications_v5"
     private const val GENERAL_CHANNEL_NAME = "الإشعارات والتنبيهات العامة"
     private const val GENERAL_CHANNEL_DESCRIPTION =
         "إشعارات القرارات، طلبات الموافقة، الغرامات الفورية، والإعلانات الإدارية"
 
     private val LEGACY_CHANNEL_IDS = listOf(
+        "general_notifications_v4",
         "general_notifications_v3",
         "general_notifications_v2",
         "general_notifications",
@@ -71,25 +72,26 @@ object UrgentNotificationManager {
 
         // 2. إنشاء قناة الإشعارات والتنبيهات العامة (صوت النظام القياسي واهتزاز واضح)
         val existingGeneral = manager.getNotificationChannel(GENERAL_CHANNEL_ID)
-        if (existingGeneral == null || existingGeneral.importance < NotificationManager.IMPORTANCE_HIGH) {
+        if (existingGeneral == null || existingGeneral.importance < NotificationManager.IMPORTANCE_MAX) {
             if (existingGeneral != null) manager.deleteNotificationChannel(GENERAL_CHANNEL_ID)
-            val generalSound = android.media.RingtoneManager.getDefaultUri(
-                android.media.RingtoneManager.TYPE_NOTIFICATION,
+            val generalSound = Uri.parse(
+                "android.resource://${context.packageName}/${R.raw.urgent_notification}",
             )
             val generalAudioAttributes = AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                .setUsage(AudioAttributes.USAGE_ALARM)
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                 .build()
             val generalChannel = NotificationChannel(
                 GENERAL_CHANNEL_ID,
                 GENERAL_CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_HIGH,
+                NotificationManager.IMPORTANCE_MAX,
             ).apply {
                 description = GENERAL_CHANNEL_DESCRIPTION
                 enableVibration(true)
-                vibrationPattern = longArrayOf(0, 300, 200, 300)
+                vibrationPattern = longArrayOf(0, 500, 200, 500)
                 setSound(generalSound, generalAudioAttributes)
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                setBypassDnd(true)
                 setShowBadge(true)
             }
             manager.createNotificationChannel(generalChannel)

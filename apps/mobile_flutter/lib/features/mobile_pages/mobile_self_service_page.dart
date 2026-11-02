@@ -752,13 +752,8 @@ class NewRequestSheetState extends State<NewRequestSheet> {
 
   Future<void> _pickDate(bool isStart) async {
     final now = DateTime.now();
-    final monthStart = DateTime(now.year, now.month, 1);
-    final isRetroactiveAllowed = widget.type == 'leave' ||
-        widget.type == 'mission' ||
-        widget.type == 'convoy' ||
-        widget.type == 'fundraising';
-    final baseFirst = isRetroactiveAllowed ? monthStart : now;
-    final initial = isStart ? (isRetroactiveAllowed ? (_startDate ?? now) : now) : (_startDate ?? now);
+    final baseFirst = now.subtract(const Duration(days: 365));
+    final initial = isStart ? (_startDate ?? now) : (_endDate ?? _startDate ?? now);
     // تاريخ النهاية لا يمكن أن يسبق تاريخ البداية.
     final first = isStart ? baseFirst : (_startDate ?? baseFirst);
     final picked = await showDatePicker(
@@ -1306,7 +1301,7 @@ class NewRequestSheetState extends State<NewRequestSheet> {
                 final picked = await showDatePicker(
                   context: context,
                   initialDate: _permitDate ?? DateTime.now(),
-                  firstDate: DateTime.now(),
+                  firstDate: DateTime.now().subtract(const Duration(days: 365)),
                   lastDate: DateTime.now().add(const Duration(days: 30)),
                   locale: const Locale('ar'),
                 );
@@ -1442,7 +1437,7 @@ class _ForgotPunchSheetState extends State<_ForgotPunchSheet> {
               final picked = await showDatePicker(
                 context: context,
                 initialDate: _workDate,
-                firstDate: DateTime.now().subtract(const Duration(days: 14)),
+                firstDate: DateTime.now().subtract(const Duration(days: 365)),
                 lastDate: DateTime.now(),
                 locale: const Locale('ar'),
               );
