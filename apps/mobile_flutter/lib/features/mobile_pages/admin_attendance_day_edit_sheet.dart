@@ -559,6 +559,24 @@ class _AdminAttendanceDayEditSheetState
                           FilledButton.tonalIcon(
                             style: FilledButton.styleFrom(
                               visualDensity: VisualDensity.compact,
+                              backgroundColor: Colors.purple.shade100,
+                              foregroundColor: Colors.purple.shade900,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            ),
+                            icon: const Icon(Icons.auto_fix_high_rounded, size: 16),
+                            label: const Text(
+                              'اعتماد نهاية الوردية (18:00)',
+                              style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800),
+                            ),
+                            onPressed: () => _applyQuickPreset(
+                              dayType: 'work',
+                              reason: 'اعتماد انصراف نهاية الوردية الرسمية',
+                              outTime: '18:00',
+                            ),
+                          ),
+                          FilledButton.tonalIcon(
+                            style: FilledButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                             ),
                             icon: const Icon(Icons.work_rounded, size: 16),

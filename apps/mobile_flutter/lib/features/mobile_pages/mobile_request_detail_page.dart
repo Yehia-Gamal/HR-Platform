@@ -652,6 +652,17 @@ class _HeroCard extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
+                      Builder(builder: (_) {
+                        final retro = checkRetroactiveRequest(
+                          request.createdAt,
+                          request.payload,
+                        );
+                        if (!retro.isRetroactive) return const SizedBox.shrink();
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: RetroactiveRequestBadge(daysDiff: retro.daysDiff),
+                        );
+                      }),
                     ],
                   ),
                 ),

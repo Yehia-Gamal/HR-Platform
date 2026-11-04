@@ -520,6 +520,76 @@ DateTime? requestLastDay(Map<String, dynamic> payload) =>
     _payloadDate(payload, 'startDate') ??
     _payloadDate(payload, 'permitDate');
 
+/// فحص ما إذا كان الطلب مقدماً بأثر رجعي (أي أن تاريخ حدوثه يسبق تاريخ تقديمه بأكثر من يوم).
+({bool isRetroactive, int daysDiff}) checkRetroactiveRequest(
+  DateTime createdAt,
+  Map<String, dynamic> payload,
+) {
+  final targetDate = _payloadDate(payload, 'startDate') ??
+      _payloadDate(payload, 'permitDate') ??
+      _payloadDate(payload, 'workDate') ??
+      _payloadDate(payload, 'date') ??
+      _payloadDate(payload, 'correctionDate');
+  if (targetDate == null) return (isRetroactive: false, daysDiff: 0);
+  final createdOnly = DateUtils.dateOnly(createdAt);
+  final targetOnly = DateUtils.dateOnly(targetDate);
+  final diff = createdOnly.difference(targetOnly).inDays;
+  return (isRetroactive: diff > 0, daysDiff: diff);
+}
+
+/// شارة تمييز الطلب بأثر رجعي لمتخذ القرار والمديرين.
+class RetroactiveRequestBadge extends StatelessWidget {
+  const RetroactiveRequestBadge({
+    super.key,
+    required this.daysDiff,
+    this.compact = false,
+  });
+
+  final int daysDiff;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = daysDiff == 1
+        ? 'طلب بأثر رجعي (مقدم بعد بيوم)'
+        : 'طلب بأثر رجعي (مقدم بعد تاريخه بـ $daysDiff يوم)';
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 6 : 8,
+        vertical: compact ? 2 : 4,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFFD97706).withValues(alpha: .12),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: const Color(0xFFD97706).withValues(alpha: .4),
+          width: 0.8,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.history_rounded,
+            size: 13,
+            color: Color(0xFFD97706),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: compact ? 10.5 : 11.5,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFFD97706),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
 String _permitMinutes(Object? raw) {
   final minutes = raw is num ? raw.round() : int.tryParse('$raw') ?? 120;
   if (minutes % 60 == 0) {

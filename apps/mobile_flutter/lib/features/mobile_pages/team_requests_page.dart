@@ -798,6 +798,14 @@ class _TeamRequestCard extends StatelessWidget {
                       ],
                     ),
                   ),
+                  Builder(builder: (_) {
+                    final retro = checkRetroactiveRequest(r.createdAt, r.payload);
+                    if (!retro.isRetroactive) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsetsDirectional.only(start: 6),
+                      child: RetroactiveRequestBadge(daysDiff: retro.daysDiff, compact: true),
+                    );
+                  }),
                   const SizedBox(width: 8),
                   Text(
                     'رقم ${r.number}',
