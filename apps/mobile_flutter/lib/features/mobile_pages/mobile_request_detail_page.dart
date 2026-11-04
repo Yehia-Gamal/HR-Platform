@@ -161,7 +161,12 @@ class _RequestScreen extends ConsumerWidget {
           onRefresh: () async =>
               ref.invalidate(mobileRequestDetailProvider(request.id)),
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+            padding: EdgeInsets.fromLTRB(
+              16,
+              12,
+              16,
+              MediaQuery.paddingOf(context).bottom + 120,
+            ),
             children: [
             _HeroCard(
               request: request,
@@ -208,7 +213,7 @@ class _RequestScreen extends ConsumerWidget {
                         : Icons.undo_rounded),
                 label: Text(_cancelButtonLabel(request, isAdminOrHr, isMine)),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 36),
             ],
             if (isMine &&
                 request.canResubmit &&
