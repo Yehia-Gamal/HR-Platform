@@ -208,6 +208,7 @@ class _RequestScreen extends ConsumerWidget {
                         : Icons.undo_rounded),
                 label: Text(_cancelButtonLabel(request, isAdminOrHr, isMine)),
               ),
+              const SizedBox(height: 24),
             ],
             if (isMine &&
                 request.canResubmit &&
