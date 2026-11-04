@@ -176,7 +176,7 @@ class _RequestScreen extends ConsumerWidget {
               const SizedBox(height: 12),
               _ContextCard(request: request),
             ],
-            if (isFieldAssignmentType(request.type)) ...[
+            if (hasFieldExecution(request.type)) ...[
               const SizedBox(height: 12),
               _MissionExecutionCard(request: request, isOwner: isMine),
             ],
@@ -203,15 +203,7 @@ class _RequestScreen extends ConsumerWidget {
                     : isFieldAssignmentType(request.type)
                         ? Icons.cancel_outlined
                         : Icons.undo_rounded),
-                label: Text(request.status == 'approved'
-                    ? (isAdminOrHr && !isMine
-                        ? 'سحب / إلغاء الاعتماد (إدارياً)'
-                        : 'إلغاء المأمورية')
-                    : isFieldAssignmentType(request.type)
-                        ? 'إلغاء المأمورية'
-                        : (isAdminOrHr && !isMine
-                            ? 'إلغاء الطلب إدارياً'
-                            : 'سحب الطلب قبل صدور القرار')),
+                label: Text(_cancelButtonLabel(request, isAdminOrHr, isMine)),
               ),
             ],
             if (isMine &&
@@ -257,6 +249,33 @@ Future<void> _openDecision(
     decision: decision,
   );
   if (done) ref.invalidate(mobileRequestDetailProvider(request.id));
+}
+
+String _cancelButtonLabel(
+  MobileRequestDetail request,
+  bool isAdminOrHr,
+  bool isMine,
+) {
+  if (isAdminOrHr && !isMine) {
+    return request.status == 'approved'
+        ? 'سحب / إلغاء الاعتماد (إدارياً)'
+        : 'إلغاء الطلب إدارياً';
+  }
+  final typeNoun = switch (request.type) {
+    'fundraising' => 'الفاندي',
+    'convoy' => 'القافلة',
+    'mission' => 'المأمورية',
+    'leave' => 'الإجازة',
+    'permit' || 'late_permit' || 'early_permit' => 'الإذن',
+    _ => 'الطلب',
+  };
+  return request.status == 'approved'
+      ? 'إلغاء $typeNoun'
+      : (request.type == 'mission' ||
+              request.type == 'convoy' ||
+              request.type == 'fundraising'
+          ? 'إلغاء $typeNoun'
+          : 'سحب الطلب قبل صدور القرار');
 }
 
 Future<void> _openWithdraw(
@@ -906,7 +925,25 @@ class _DetailsCard extends StatelessWidget {
         if (days != null) {
           add(Icons.event_available_rounded, 'المدة', arDays(days));
         }
-      case 'mission' || 'convoy' || 'fundraising':
+      case 'fundraising':
+        add(
+          Icons.celebration_rounded,
+          'نوع الفعالية',
+          'يوم ترفيهي للموظفين (فاندي)',
+        );
+        add(Icons.place_rounded, 'مكان اليوم الترفيهي / الوجهة', _text('location'));
+        add(
+          Icons.date_range_rounded,
+          days != null && days > 1 ? 'الفترة' : 'تاريخ اليوم الترفيهي',
+          period,
+        );
+        if (days != null && days > 1) {
+          add(Icons.event_available_rounded, 'المدة', arDays(days));
+        }
+        if (_text('notes') != null && _text('notes')!.trim().isNotEmpty) {
+          add(Icons.notes_rounded, 'ملاحظات', _text('notes'));
+        }
+      case 'mission' || 'convoy':
         add(Icons.place_rounded, 'الوجهة', _text('location'));
         add(
           Icons.date_range_rounded,

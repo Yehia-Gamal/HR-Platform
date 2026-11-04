@@ -186,5 +186,34 @@ void main() {
         'تم وقفك عن العمل لعدم سداد قيمة الخصم 500جنيه توجه الي قسم ال HR لسداد المبلغ',
       );
     });
+
+    test('isClinicStaff is false for Ismail, Abdullah, Hossam, Youssef Rasmy, and Mostafa Ahmed', () {
+      final names = [
+        'إسماعيل محمد',
+        'اسماعيل كمال',
+        'عبدالله أحمد',
+        'عبد الله محمود',
+        'حسام الدين علي',
+        'يوسف رسمي شعبان',
+        'مصطفى أحمد كمال الدين',
+        'مصطفي أحمد',
+      ];
+
+      for (final name in names) {
+        final json = _contextJson(roles: ['clinic-staff'])
+          ..['displayName'] = name
+          ..['isClinicStaff'] = true;
+        final ctx = AccessContext.fromJson(json);
+        expect(ctx.isClinicStaff, isFalse, reason: '$name must be exempt from clinic staff restriction');
+      }
+    });
+
+    test('isClinicStaff is true for regular clinic staff girl', () {
+      final json = _contextJson(roles: ['clinic-staff'])
+        ..['displayName'] = 'رحاب مجدي يوسف'
+        ..['isClinicStaff'] = true;
+      final ctx = AccessContext.fromJson(json);
+      expect(ctx.isClinicStaff, isTrue);
+    });
   });
 }

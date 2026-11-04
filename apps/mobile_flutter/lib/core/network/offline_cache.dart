@@ -50,14 +50,14 @@ class OfflineCache {
   }
 
   /// يُرجع البيانات المخزّنة إن لم تنتهِ صلاحيتها (خلال [_maxAge]).
-  /// إن انتهت، يُحذف العنصر ويُرجع null.
-  Future<dynamic> get(String cacheKey) async {
+  /// إن انتهت، يُحذف العنصر ويُرجع null إلا إذا كان [allowStale] مفعلاً.
+  Future<dynamic> get(String cacheKey, {bool allowStale = false}) async {
     try {
       // تحقق من TTL قبل الإرجاع
       final ts = await getTimestamp(cacheKey);
       if (ts == null) return null;
       final age = DateTime.now().difference(ts);
-      if (age > _maxAge) {
+      if (age > _maxAge && !allowStale) {
         await remove(cacheKey);
         return null;
       }

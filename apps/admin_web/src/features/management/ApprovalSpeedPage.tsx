@@ -9,7 +9,7 @@ const REQUEST_TYPE_LABELS: Record<string, string> = {
   convoy: 'قافلة خارجية',
   late_permit: 'إذن تأخير',
   early_permit: 'إذن انصراف مبكر',
-  fundraising: 'حملة تبرع',
+  fundraising: 'فاندي ترفيهي',
   work_assignment: 'تكليف عمل',
   overtime: 'ساعات إضافية',
   payroll_advance: 'سلفة مالية',

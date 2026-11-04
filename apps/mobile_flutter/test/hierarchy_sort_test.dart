@@ -126,6 +126,30 @@ void main() {
         ),
         equals(6),
       );
+      expect(
+        getHierarchyRank(
+          name: 'إسماعيل محمد',
+          jobTitle: 'مسؤول إداري',
+          department: 'إدارة العيادات الطبية',
+        ),
+        equals(6),
+      );
+      expect(
+        getHierarchyRank(
+          name: 'عبدالله أحمد',
+          jobTitle: 'إداري',
+          department: 'إدارة العيادات الطبية',
+        ),
+        equals(6),
+      );
+      expect(
+        getHierarchyRank(
+          name: 'حسام الدين علي',
+          jobTitle: 'مشرف',
+          department: 'إدارة العيادات الطبية',
+        ),
+        equals(6),
+      );
 
       // 7. تيم البنات بتوع الطاقم الطبي (آخر شيء خالص)
       expect(

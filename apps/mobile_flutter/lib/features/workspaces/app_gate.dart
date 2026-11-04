@@ -1,9 +1,12 @@
 import 'dart:async';
 
+import 'package:ahla_design_tokens/ahla_design_tokens.dart';
 import 'package:ahla_shabab_management_os/core/config/app_config.dart';
+import 'package:ahla_shabab_management_os/core/network/connectivity_probe.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/core/network/offline_cache.dart';
 import 'package:ahla_shabab_management_os/core/network/session_cleanup.dart';
+import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/core/widgets/phone_display.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/auth/login_page.dart';
@@ -95,15 +98,19 @@ class _AuthenticatedGateState extends ConsumerState<_AuthenticatedGate>
 
         if (isExpiredOrExpiringSoon) {
           try {
-            await supabase.auth.refreshSession();
-            if (mounted) {
-              ref.invalidate(authSessionProvider);
-              ref.invalidate(accessContextProvider);
+            final conn = ref.read(connectivityProvider);
+            if (conn != ConnectivityState.offline) {
+              await supabase.auth.refreshSession();
+              if (mounted) {
+                ref.invalidate(authSessionProvider);
+                ref.invalidate(accessContextProvider);
+              }
             }
           } catch (e) {
             if (kDebugMode) {
               debugPrint('[AppGate] Proactive resume token refresh failed: $e');
             }
+            // عند انقطاع الشبكة في الخلفية لا نبطل المزودات حتى لا تسقط إلى شاشة الخطأ
           }
         }
 
@@ -147,11 +154,14 @@ class _AuthenticatedGateState extends ConsumerState<_AuthenticatedGate>
         connectivity == ConnectivityState.reconnecting ||
         connectivity == ConnectivityState.serverUnavailable;
 
-    // 0471-UX: عند عودة الاتصال بعد انقطاع، نعيد تحميل الصلاحيات تلقائيًا
+    // 0471-UX: عند عودة الاتصال بعد انقطاع، نعيد فحص الجلسة والصلاحيات تلقائيًا
     // إن كانت في حالة خطأ — بدل ترك المستخدم أمام زر إعادة المحاولة.
     ref.listen(connectivityProvider, (previous, next) {
       if (previous != ConnectivityState.online &&
           next == ConnectivityState.online) {
+        if (ref.read(authSessionProvider) is AsyncError) {
+          ref.invalidate(authSessionProvider);
+        }
         if (ref.read(accessContextProvider) is AsyncError) {
           ref.invalidate(accessContextProvider);
         }
@@ -163,31 +173,47 @@ class _AuthenticatedGateState extends ConsumerState<_AuthenticatedGate>
         label: 'أستغفر الله العظيم وأتوب إليه',
         timeout: const Duration(seconds: 15),
         onRetry: () {
+          ref.read(connectivityProvider.notifier).recheck();
           ref.invalidate(authSessionProvider);
           ref.invalidate(accessContextProvider);
         },
         onSignOut: offlineLike ? null : signOut,
       ),
-      error: (_, _) => _ErrorPage(
-        message: 'تعذر استعادة جلسة الدخول بأمان. أعد تسجيل الدخول.',
-        onRetry: () {
-          ref.invalidate(authSessionProvider);
-          ref.invalidate(accessContextProvider);
-        },
-        onSignOut: signOut,
-      ),
+      error: (err, _) {
+        final isNetError = offlineLike ||
+            err.toString().contains('SocketException') ||
+            err.toString().contains('ClientException') ||
+            err.toString().contains('AuthRetryableFetchException') ||
+            err.toString().contains('Failed host lookup') ||
+            err.toString().contains('TimeoutException');
+
+        final errorMessage = isNetError
+            ? 'انقطع الاتصال بالإنترنت مؤقتاً. بياناتك وجلستك محفوظة وسيتم إعادة المحاولة تلقائياً بمجرد توفر الشبكة.'
+            : 'تعذر استعادة جلسة الدخول بأمان. أعد المحاولة أو سجّل الدخول مجدداً.';
+
+        return _ErrorPage(
+          message: errorMessage,
+          onRetry: () {
+            ref.read(connectivityProvider.notifier).recheck();
+            ref.invalidate(authSessionProvider);
+            ref.invalidate(accessContextProvider);
+          },
+          onSignOut: (offlineLike || isNetError) ? null : signOut,
+        );
+      },
       data: (value) {
         if (value == null) {
           // P0-20: If offline, show connection error instead of login page.
           // Prevents silent logout on temporary DNS/network failure.
-          if (connectivity == ConnectivityState.offline ||
-              connectivity == ConnectivityState.reconnecting) {
+          if (offlineLike) {
             return _ErrorPage(
-              message: 'انقطع الاتصال بالخادم. تحقق من الشبكة وأعد المحاولة.',
+              message: 'انقطع الاتصال بالخادم. تحقق من توفر الإنترنت وسيتم إعادة المحاولة تلقائياً.',
               onRetry: () {
+                ref.read(connectivityProvider.notifier).recheck();
                 ref.invalidate(authSessionProvider);
                 ref.invalidate(accessContextProvider);
               },
+              onSignOut: null,
             );
           }
           return const LoginPage();
@@ -203,14 +229,20 @@ class _AuthenticatedGateState extends ConsumerState<_AuthenticatedGate>
           loading: () => _TimedLoadingPage(
             label: 'اللهم صلِّ وسلِّم وبارك على نبينا محمد ﷺ',
             timeout: const Duration(seconds: 20),
-            onRetry: () => ref.invalidate(accessContextProvider),
+            onRetry: () {
+              ref.read(connectivityProvider.notifier).recheck();
+              ref.invalidate(accessContextProvider);
+            },
             onSignOut: offlineLike ? null : signOut,
           ),
-          error: (_, _) => _ErrorPage(
+          error: (err, _) => _ErrorPage(
             message: offlineLike
-                ? 'انقطع الاتصال أثناء تجهيز البيانات. سيتم إعادة المحاولة تلقائيًا — أو اضغط إعادة المحاولة بعد عودة الإنترنت.'
-                : 'تعذر الاتصال بالخادم بأمان. تحقق من الاتصال وأعد المحاولة.',
-            onRetry: () => ref.invalidate(accessContextProvider),
+                ? 'انقطع الاتصال أثناء تجهيز البيانات. جاري إعادة المحاولة تلقائياً بمجرد عودة الإنترنت.'
+                : humanizeError(err),
+            onRetry: () {
+              ref.read(connectivityProvider.notifier).recheck();
+              ref.invalidate(accessContextProvider);
+            },
             onSignOut: offlineLike ? null : signOut,
           ),
           data: (contextData) {
@@ -324,78 +356,166 @@ class _ReleaseStatusPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final blocked = policy.action == MobileReleaseAction.blocked;
     final maintenance = policy.action == MobileReleaseAction.maintenance;
     final icon = blocked
-        ? Icons.phonelink_erase_outlined
+        ? Icons.phonelink_erase_rounded
         : maintenance
-        ? Icons.engineering_outlined
-        : Icons.system_update_alt;
+        ? Icons.engineering_rounded
+        : Icons.system_update_rounded;
     final title = blocked
         ? 'تم إبطال هذا الجهاز'
         : maintenance
         ? 'النظام تحت الصيانة'
-        : 'يجب تحديث التطبيق';
+        : 'يتوفر تحديث جديد للتطبيق';
     final defaultMessage = blocked
-        ? 'تم إيقاف هذا التثبيت لأسباب أمنية. تواصل مع مسؤول النظام.'
+        ? 'تم إيقاف هذا التثبيت لأسباب أمنية. تواصل مع مسؤول النظام للمساعدة.'
         : maintenance
-        ? 'نعمل على تحديث النظام. أعد المحاولة بعد قليل.'
-        : 'هذه النسخة لم تعد مدعومة. حدّث التطبيق للمتابعة بأمان.';
+        ? 'نعمل على تحسين النظام حالياً. يرجى إعادة المحاولة بعد قليل.'
+        : 'هذه النسخة بحاجة إلى تحديث للاستفادة من أحدث التحسينات ومتابعة العمل بأمان.';
+
+    final Color statusColor = blocked
+        ? theme.colorScheme.error
+        : maintenance
+        ? (isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706)) // amber
+        : (isDark ? AppColors.darkPrimary : AppColors.brandPrimary);
+
+    final Color statusBg = statusColor.withValues(alpha: isDark ? 0.20 : 0.12);
+
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(28),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 480),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(28),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(icon, size: 64),
-                      const SizedBox(height: 18),
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 23,
-                          fontWeight: FontWeight.w900,
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF131D2E) : Colors.white,
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.10)
+                        : theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+                    width: 1.2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isDark ? 0.40 : 0.08),
+                      blurRadius: 30,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const BrandLogo(compact: false, markSize: 46),
+                    const SizedBox(height: 24),
+                    Container(
+                      width: 76,
+                      height: 76,
+                      decoration: BoxDecoration(
+                        color: statusBg,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: statusColor.withValues(alpha: 0.35),
+                          width: 2,
                         ),
-                        textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 12),
-                      Text(
-                        policy.messageAr ?? defaultMessage,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(height: 1.7),
+                      child: Center(
+                        child: Icon(icon, size: 38, color: statusColor),
                       ),
-                      const SizedBox(height: 12),
-                      if (policy.action == MobileReleaseAction.updateRequired)
-                        Text(
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 21,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.3,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      policy.messageAr ?? defaultMessage,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1.65,
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    if (policy.action == MobileReleaseAction.updateRequired) ...[
+                      const SizedBox(height: 14),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
                           'نسختك ${policy.currentVersion}+${policy.currentBuild} · الحد الأدنى ${policy.minSupportedVersion}+${policy.minSupportedBuild}',
-                          style: Theme.of(context).textTheme.bodySmall,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      const SizedBox(height: 22),
-                      if (policy.action == MobileReleaseAction.updateRequired &&
-                          policy.storeUrl != null)
-                        FilledButton.icon(
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    if (policy.action == MobileReleaseAction.updateRequired &&
+                        policy.storeUrl != null)
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: FilledButton.icon(
                           onPressed: () => launchUrl(
                             Uri.parse(policy.storeUrl!),
                             mode: LaunchMode.externalApplication,
                           ),
-                          icon: const Icon(Icons.open_in_new),
-                          label: const Text('فتح صفحة التحديث'),
+                          style: FilledButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          icon: const Icon(Icons.open_in_new_rounded, size: 20),
+                          label: const Text(
+                            'تحميل التحديث الآن',
+                            style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800),
+                          ),
                         ),
+                      ),
+                    if (!blocked) ...[
                       const SizedBox(height: 10),
-                      if (!blocked)
-                        OutlinedButton.icon(
+                      SizedBox(
+                        width: double.infinity,
+                        height: 46,
+                        child: OutlinedButton.icon(
                           onPressed: onRetry,
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('إعادة التحقق'),
+                          style: OutlinedButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            side: BorderSide(color: theme.colorScheme.outlineVariant),
+                          ),
+                          icon: const Icon(Icons.refresh_rounded, size: 18),
+                          label: const Text(
+                            'إعادة التحقق',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                          ),
                         ),
+                      ),
                     ],
-                  ),
+                  ],
                 ),
               ),
             ),
@@ -406,68 +526,375 @@ class _ReleaseStatusPage extends StatelessWidget {
   }
 }
 
-class _ErrorPage extends StatelessWidget {
-  const _ErrorPage({required this.message, this.onRetry, this.onSignOut});
+class _ErrorPage extends ConsumerStatefulWidget {
+  const _ErrorPage({
+    required this.message,
+    this.onRetry,
+    this.onSignOut,
+  });
+
   final String message;
   final VoidCallback? onRetry;
   final VoidCallback? onSignOut;
 
   @override
+  ConsumerState<_ErrorPage> createState() => _ErrorPageState();
+}
+
+class _ErrorPageState extends ConsumerState<_ErrorPage> {
+  bool _isRetrying = false;
+  Timer? _autoRetryTimer;
+  Timer? _dhikrTimer;
+  int _dhikrIndex = 0;
+
+  static const List<String> _dhikrItems = [
+    'لا حول ولا قوة إلا بالله العلي العظيم',
+    'أستغفر الله العظيم وأتوب إليه',
+    'سبحان الله وبحمده، سبحان الله العظيم',
+    'اللهم صلِّ وسلِّم وبارك على سيدنا محمد ﷺ',
+    'حسبي الله لا إله إلا هو عليه توكلت وهو رب العرش العظيم',
+    'يا حي يا قيوم برحمتك أستغيث، أصلح لي شأني كله',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    // تدوير الأذكار بسلاسة لراحة البال واكتساب الأجر
+    _dhikrTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (mounted) {
+        setState(() {
+          _dhikrIndex = (_dhikrIndex + 1) % _dhikrItems.length;
+        });
+      }
+    });
+
+    // إذا كان الخطأ متعلقاً بالاتصال أو الشبكة، نقوم بفحص تلقائي دوري
+    if (_isNetworkRelated(widget.message)) {
+      _autoRetryTimer = Timer.periodic(const Duration(seconds: 6), (_) async {
+        if (!mounted || _isRetrying) return;
+        try {
+          final online = await hasNetworkConnection().timeout(const Duration(seconds: 4));
+          if (online && mounted) {
+            _triggerRetry();
+          }
+        } catch (_) {}
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _autoRetryTimer?.cancel();
+    _dhikrTimer?.cancel();
+    super.dispose();
+  }
+
+  bool _isNetworkRelated(String msg) {
+    return msg.contains('الاتصال') ||
+        msg.contains('الشبكة') ||
+        msg.contains('الإنترنت') ||
+        msg.contains('خادم') ||
+        msg.contains('Socket') ||
+        msg.contains('ClientException') ||
+        msg.contains('Timeout');
+  }
+
+  bool _isSessionRelated(String msg) {
+    return msg.contains('جلسة') ||
+        msg.contains('تسجيل الدخول') ||
+        msg.contains('صلاحية');
+  }
+
+  Future<void> _triggerRetry() async {
+    if (_isRetrying || !mounted) return;
+    setState(() => _isRetrying = true);
+    try {
+      ref.read(connectivityProvider.notifier).recheck();
+      widget.onRetry?.call();
+      await Future<void>.delayed(const Duration(milliseconds: 1200));
+    } finally {
+      if (mounted) {
+        setState(() => _isRetrying = false);
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isOffline = message.contains('الاتصال') || message.contains('الشبكة');
-    final icon = isOffline ? Icons.cloud_off_outlined : Icons.error_outline;
+    final isDark = theme.brightness == Brightness.dark;
+    final connectivity = ref.watch(connectivityProvider);
+    final isOffline = connectivity == ConnectivityState.offline ||
+        connectivity == ConnectivityState.reconnecting ||
+        connectivity == ConnectivityState.serverUnavailable ||
+        _isNetworkRelated(widget.message);
+    final isSession = !isOffline && _isSessionRelated(widget.message);
+
+    // إعادة المحاولة تلقائياً عند عودة الإنترنت
+    ref.listen(connectivityProvider, (previous, next) {
+      if (previous != ConnectivityState.online &&
+          next == ConnectivityState.online) {
+        _triggerRetry();
+      }
+    });
+
+    final String title = isOffline
+        ? 'الاتصال معلق مؤقتاً'
+        : isSession
+            ? 'استعادة جلسة العمل'
+            : 'تعذر تحميل البيانات';
+
+    final String displayMessage = isOffline && !widget.message.contains('بياناتك')
+        ? 'انقطع الاتصال بالإنترنت مؤقتاً. بياناتك وجلستك محفوظة بأمان وسنعيد المزامنة تلقائياً بمجرد توفر الشبكة.'
+        : widget.message;
+
+    final Color iconColor = isOffline
+        ? (isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7))
+        : isSession
+            ? (isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5))
+            : theme.colorScheme.error;
+
+    final Color iconBgColor = isOffline
+        ? (isDark
+            ? const Color(0xFF0369A1).withValues(alpha: 0.22)
+            : const Color(0xFFE0F2FE))
+        : isSession
+            ? (isDark
+                ? const Color(0xFF4338CA).withValues(alpha: 0.22)
+                : const Color(0xFFEEF2FF))
+            : (isDark
+                ? theme.colorScheme.error.withValues(alpha: 0.18)
+                : const Color(0xFFFEE2E2));
+
+    final IconData mainIcon = isOffline
+        ? Icons.wifi_off_rounded
+        : isSession
+            ? Icons.lock_reset_rounded
+            : Icons.error_outline_rounded;
 
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(28),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 480),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(28),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        icon,
-                        size: 64,
-                        color: theme.colorScheme.error.withValues(alpha: 0.8),
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF131D2E) : Colors.white,
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.10)
+                        : theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+                    width: 1.2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isDark ? 0.40 : 0.08),
+                      blurRadius: 30,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // الشعار الرسمي لجمعية أحلى شباب
+                    const BrandLogo(compact: false, markSize: 46),
+                    const SizedBox(height: 24),
+
+                    // الأيقونة البارزة ذات الخلفية الهادئة
+                    Container(
+                      width: 76,
+                      height: 76,
+                      decoration: BoxDecoration(
+                        color: iconBgColor,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: iconColor.withValues(alpha: 0.35),
+                          width: 2,
+                        ),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          mainIcon,
+                          size: 38,
+                          color: iconColor,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+
+                    // العنوان الرئيسي
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 21,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.3,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 10),
+
+                    // نص التوضيح المطمئن
+                    Text(
+                      displayMessage,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1.65,
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+
+                    // شارة الفحص التلقائي الحيّة في حالة انقطاع الشبكة
+                    if (isOffline) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withValues(alpha: isDark ? 0.16 : 0.08),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: theme.colorScheme.primary.withValues(alpha: 0.25),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              width: 13,
+                              height: 13,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: isDark ? AppColors.darkPrimary : AppColors.brandPrimary,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'جاري فحص الاتصال تلقائياً...',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: isDark ? AppColors.darkPrimary : AppColors.brandPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 18),
-                      Text(
-                        isOffline ? 'انقطع الاتصال' : 'تعذر تحميل النظام',
-                        style: const TextStyle(
-                          fontSize: 23,
-                          fontWeight: FontWeight.w900,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        message,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(height: 1.7),
-                      ),
-                      const SizedBox(height: 22),
-                      if (onRetry != null)
-                        FilledButton.icon(
-                          onPressed: onRetry,
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('إعادة المحاولة'),
-                        ),
-                      if (onSignOut != null) ...[
-                        const SizedBox(height: 10),
-                        OutlinedButton.icon(
-                          onPressed: onSignOut,
-                          icon: const Icon(Icons.logout),
-                          label: const Text('تسجيل الخروج'),
-                        ),
-                      ],
                     ],
-                  ),
+
+                    // بنر الذكر الروحاني المطمئن للقلب
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.12 : 0.08),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: const Color(0xFF10B981).withValues(alpha: 0.22),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.volunteer_activism_rounded,
+                            size: 16,
+                            color: Color(0xFF10B981),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 350),
+                              child: Text(
+                                _dhikrItems[_dhikrIndex],
+                                key: ValueKey<int>(_dhikrIndex),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF10B981),
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // زر إعادة المحاولة
+                    if (widget.onRetry != null)
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: FilledButton.icon(
+                          onPressed: _isRetrying ? null : _triggerRetry,
+                          style: FilledButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            elevation: 0,
+                          ),
+                          icon: _isRetrying
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(Icons.refresh_rounded, size: 20),
+                          label: Text(
+                            _isRetrying
+                                ? 'جاري الفحص والتحديث...'
+                                : 'إعادة المحاولة الآن',
+                            style: const TextStyle(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                    // زر تسجيل الخروج (لا يظهر عند انقطاع الشبكة لمنع خروج الموظف بالخطأ)
+                    if (widget.onSignOut != null && !isOffline) ...[
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 46,
+                        child: OutlinedButton.icon(
+                          onPressed: widget.onSignOut,
+                          style: OutlinedButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            side: BorderSide(
+                              color: theme.colorScheme.outlineVariant,
+                            ),
+                          ),
+                          icon: const Icon(Icons.logout_rounded, size: 18),
+                          label: const Text(
+                            'تسجيل الخروج',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ),

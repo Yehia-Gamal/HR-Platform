@@ -29,7 +29,7 @@ IconData requestTypeIcon(String type) => switch (type) {
   'leave' => Icons.beach_access_rounded,
   'mission' => Icons.business_center_rounded,
   'convoy' => Icons.directions_bus_rounded,
-  'fundraising' => Icons.festival_rounded,
+  'fundraising' => Icons.celebration_rounded,
   'late_permit' => Icons.login_rounded,
   'early_permit' => Icons.logout_rounded,
   'attendance_correction' => Icons.fingerprint_rounded,
@@ -51,6 +51,10 @@ Color requestTypeColor(String type) => switch (type) {
 
 bool isFieldAssignmentType(String type) =>
     type == 'mission' || type == 'convoy' || type == 'fundraising';
+
+/// تكليفات العمل الميدانية التي تتطلب تتبع بدء/إنهاء تنفيذي بموقع GPS (مأمورية، قافلة).
+/// الفاندي هو يوم ترفيهي للموظفين يبدأ تلقائياً من بداية اليوم ولا يتطلب تنفيذاً.
+bool hasFieldExecution(String type) => type == 'mission' || type == 'convoy';
 
 String leaveTypeLabel(String? value) => switch (value) {
   'annual' => 'إجازة اعتيادية',

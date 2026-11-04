@@ -71,8 +71,23 @@ class AccessContext {
             json['suspensionReason'].toString().trim().isNotEmpty);
 
     final rolesList = List<String>.from(json['roles'] as List<dynamic>? ?? const []);
-    final isClinic = (json['isClinicStaff'] as bool? ?? false) ||
-        (rolesList.contains('clinic-staff') && !rolesList.contains('clinics-manager'));
+    final displayName = (json['displayName'] as String? ?? '').trim();
+    final isExemptFromClinic = displayName.contains('اسماعيل') ||
+        displayName.contains('إسماعيل') ||
+        displayName.contains('عبدالله') ||
+        displayName.contains('عبد الله') ||
+        displayName.contains('حسام') ||
+        displayName.contains('يوسف رسمي') ||
+        displayName.contains('مصطفى أحمد') ||
+        displayName.contains('مصطفي أحمد') ||
+        rolesList.contains('clinics-manager') ||
+        rolesList.contains('manager') ||
+        rolesList.contains('direct-manager') ||
+        rolesList.contains('department-manager');
+
+    final isClinic = !isExemptFromClinic &&
+        ((json['isClinicStaff'] as bool? ?? false) ||
+            (rolesList.contains('clinic-staff') && !rolesList.contains('clinics-manager')));
 
     final managerContact = json['managerContact'] as Map<dynamic, dynamic>?;
     final managerName = managerContact?['name'] as String? ?? 'م. يحيى جمال السبع';

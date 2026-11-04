@@ -17,10 +17,13 @@ import 'package:url_launcher/url_launcher.dart';
 /// (الخادم يقصر المدير على فريقه — 0642)، و«صندوق الزمالة» برصيده وحركاته.
 /// السداد نقدًا لدى مسؤول الصندوق وتؤكده الإدارة (أُزيل السداد عبر إنستاباي).
 class MyInstantPenaltiesPage extends ConsumerWidget {
-  const MyInstantPenaltiesPage({this.highlightId, super.key});
+  const MyInstantPenaltiesPage({this.highlightId, this.initialIndex, super.key});
 
   /// معرّف الغرامة القادمة من إشعار — تُبرز بطاقتها عند الفتح.
   final String? highlightId;
+
+  /// الفهرس الأولي للتبويب المفتوح (مثلاً التبويب الموقوفون عن العمل).
+  final int? initialIndex;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -38,8 +41,12 @@ class MyInstantPenaltiesPage extends ConsumerWidget {
         ('الموقوفون عن العمل', Icons.person_off_rounded, const _SuspendedEmployeesTab()),
       ('صندوق الزمالة', Icons.volunteer_activism_outlined, const _FundTab()),
     ];
+    final activeInitial = (initialIndex != null && initialIndex! >= 0 && initialIndex! < tabs.length)
+        ? initialIndex!
+        : 0;
     return DefaultTabController(
       key: ValueKey(tabs.length),
+      initialIndex: activeInitial,
       length: tabs.length,
       child: Scaffold(
         appBar: AppBar(
@@ -1258,26 +1265,130 @@ Future<void> _liftEmployeeSuspensionAdmin(
   BuildContext context,
   WidgetRef ref,
   SuspendedEmployeeInfo emp,
-) => _runPenaltyAction(
-  context,
-  ref,
-  title: 'رفع الإيقاف عن العمل',
-  message:
-      'سيتم رفع الإيقاف عن الزميل  وإعادة تفعيل حسابه على المنظومة فوراً، وإرجاع أي غرامات موقوفة أو مضاعفة لقيمتها الأصلية ().',
-  confirmLabel: 'تأكيد رفع الإيقاف',
-  inputLabel: 'ملاحظة أو سبب إداري (اختياري)',
-  inputRequired: false,
-  success: 'تم رفع الإيقاف عن الزميل بنجاح',
-  action: (note) => ref
-      .read(supabaseProvider)
-      .rpc<dynamic>(
-        'lift_employee_suspension_admin',
-        params: {
-          'p_employee_id': emp.employeeId,
-          'p_reason': note.isEmpty ? null : note,
-        },
+) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      title: const Row(
+        children: [
+          Icon(Icons.lock_open_rounded, color: AppColors.statusSuccess, size: 24),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text('رفع الإيقاف عن العمل', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+          ),
+        ],
       ),
-);
+      content: Text(
+        'سيتم رفع الإيقاف عن الزميل ${emp.employeeName} وإعادة تفعيل حسابه فوراً، وإرجاع الغرامات لقيمتها الأصلية وإرسال إشعار فوري صوتي له.',
+        style: const TextStyle(fontSize: 13.5, height: 1.5),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('إلغاء'),
+        ),
+        FilledButton.icon(
+          onPressed: () => Navigator.pop(ctx, true),
+          icon: const Icon(Icons.check_circle_rounded, size: 18),
+          label: const Text('تأكيد رفع الإيقاف'),
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.statusSuccess,
+            foregroundColor: Colors.white,
+          ),
+        ),
+      ],
+    ),
+  );
+
+  if (confirmed != true || !context.mounted) return;
+
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    await ref.read(supabaseProvider).rpc<dynamic>(
+      'lift_employee_suspension_admin',
+      params: {
+        'p_employee_id': emp.employeeId,
+      },
+    );
+    ref
+      ..invalidate(suspendedEmployeesProvider)
+      ..invalidate(teamInstantPenaltiesProvider);
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text('تم رفع الإيقاف عن الزميل ${emp.employeeName} بنجاح وإرسال الإشعار الفوري 🟢'),
+        backgroundColor: AppColors.statusSuccess,
+      ),
+    );
+  } catch (e) {
+    messenger.showSnackBar(
+      SnackBar(content: Text('تعذر رفع الإيقاف: ${humanizeError(e)}')),
+    );
+  }
+}
+
+Future<void> _liftAllEmployeesSuspensionAdmin(
+  BuildContext context,
+  WidgetRef ref,
+  int employeeCount,
+) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      title: const Row(
+        children: [
+          Icon(Icons.people_outline_rounded, color: AppColors.statusSuccess, size: 24),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text('رفع إيقاف جميع الموظفين', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+          ),
+        ],
+      ),
+      content: Text(
+        'هل تريد رفع الإيقاف عن كافة الموظفين الموقوفين وعددهم $employeeCount موظفاً دفعة واحدة؟\n\nسيتم إعادة تفعيل كافة الحسابات فوراً، وإرجاع الغرامات لقيمتها الأصلية، وإرسال إشعارات صوتية فورية للجميع لمباشرة العمل.',
+        style: const TextStyle(fontSize: 13.5, height: 1.5),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('إلغاء'),
+        ),
+        FilledButton.icon(
+          onPressed: () => Navigator.pop(ctx, true),
+          icon: const Icon(Icons.lock_open_rounded, size: 18),
+          label: Text('رفع الإيقاف للجميع ($employeeCount)'),
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.statusSuccess,
+            foregroundColor: Colors.white,
+          ),
+        ),
+      ],
+    ),
+  );
+
+  if (confirmed != true || !context.mounted) return;
+
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    await ref.read(supabaseProvider).rpc<dynamic>(
+      'lift_all_suspended_employees_admin',
+    );
+    ref
+      ..invalidate(suspendedEmployeesProvider)
+      ..invalidate(teamInstantPenaltiesProvider);
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text('تم رفع إيقاف جميع الموظفين ($employeeCount) وإعادة تفعيل حساباتهم بنجاح 🟢'),
+        backgroundColor: AppColors.statusSuccess,
+      ),
+    );
+  } catch (e) {
+    messenger.showSnackBar(
+      SnackBar(content: Text('تعذر رفع الإيقاف الجماعي: ${humanizeError(e)}')),
+    );
+  }
+}
 
 Future<void> _liftSuspension(
   BuildContext context,
@@ -1996,6 +2107,36 @@ class _SuspendedEmployeesTab extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 12),
+              // زر رفع إيقاف جميع الموظفين دفعة واحدة
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => _liftAllEmployeesSuspensionAdmin(
+                    context,
+                    ref,
+                    employees.length,
+                  ),
+                  icon: const Icon(Icons.lock_open_rounded, size: 20),
+                  label: Text(
+                    'رفع إيقاف جميع الموظفين (${employees.length}) دفعة واحدة',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.statusSuccess,
+                    foregroundColor: Colors.white,
+                    elevation: 1,
+                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
               for (final emp in employees) ...[
                 _SuspendedEmployeeCard(emp: emp),
                 const SizedBox(height: 10),
@@ -2079,7 +2220,12 @@ class _SuspendedEmployeeCard extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('المبلغ المطلوب حالياً (بالمضاعفة):', style: TextStyle(fontSize: 12)),
+                      const Expanded(
+                        child: Text(
+                          'المبلغ المطلوب حالياً (بالمضاعفة):',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                      ),
                       Text(
                         _money(emp.totalCurrentDue),
                         style: const TextStyle(
@@ -2094,7 +2240,12 @@ class _SuspendedEmployeeCard extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('أصل الغرامات بدون مضاعفة:', style: TextStyle(fontSize: 12)),
+                      const Expanded(
+                        child: Text(
+                          'أصل الغرامات بدون مضاعفة:',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                      ),
                       Text(
                         _money(emp.totalOriginalDue),
                         style: const TextStyle(
@@ -2109,7 +2260,12 @@ class _SuspendedEmployeeCard extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('عدد الغرامات غير المسددة:', style: TextStyle(fontSize: 12)),
+                      const Expanded(
+                        child: Text(
+                          'عدد الغرامات غير المسددة:',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                      ),
                       Text(
                         '${emp.unpaidCount}',
                         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
@@ -2150,16 +2306,17 @@ class _SuspendedEmployeeCard extends ConsumerWidget {
                       Text(
                         '${_money((pen["originalAmount"] as num?)?.toDouble() ?? 0)} ← ${_money((pen["currentAmount"] as num?)?.toDouble() ?? 0)}',
                         style: const TextStyle(
-                          fontSize: 12,
+                          fontSize: 11,
                           fontWeight: FontWeight.w900,
                           color: AppColors.statusDanger,
                         ),
                       ),
-                      const SizedBox(width: 6),
                       // زر إرجاع هذه الغرامة الفردية لأصلها
                       if (((pen["currentAmount"] as num?)?.toDouble() ?? 0) > ((pen["originalAmount"] as num?)?.toDouble() ?? 0))
                         IconButton(
-                          icon: const Icon(Icons.undo_rounded, size: 16, color: Color(0xFF4F46E5)),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 26, minHeight: 26),
+                          icon: const Icon(Icons.undo_rounded, size: 15, color: Color(0xFF4F46E5)),
                           tooltip: 'إرجاع هذه الغرامة لأصلها (${_money((pen["originalAmount"] as num?)?.toDouble() ?? 0)})',
                           onPressed: () => _runPenaltyAction(
                             context,
@@ -3052,15 +3209,31 @@ String _paymentLabel(String? method) => switch (method) {
         exempt: true,
       );
     }
+    final isFunday = hay.contains('فاندي') || hay.contains('فندى');
+    if (isFunday) {
+      return (
+        label: 'معفاة (يوم فاندي)',
+        color: const Color(0xFF7C3AED),
+        icon: Icons.celebration_rounded,
+        exempt: true,
+      );
+    }
+    final isMission = hay.contains('مأمورية');
+    if (isMission) {
+      return (
+        label: 'معفاة (مأمورية عمل)',
+        color: const Color(0xFF0D9488),
+        icon: Icons.work_outline_rounded,
+        exempt: true,
+      );
+    }
     final exempt = const [
       'إعفاء',
       'معفى',
       'إلغاء تلقائي',
       'بأثر رجعي',
-      'مأمورية',
       'إجازة',
       'قافلة',
-      'فاندي',
       'استثناء',
     ].any(hay.contains);
     return exempt

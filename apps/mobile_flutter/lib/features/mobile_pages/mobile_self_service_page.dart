@@ -263,11 +263,11 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
               ),
             ],
 
-            // ── أرصدة الإجازات ──
+            // ── أرصدة الإجازات والأذونات ──
             const SizedBox(height: 20),
             const MobileSectionHeader(
-              title: 'أرصدة الإجازات',
-              subtitle: 'الرصيد المتاح لكل نوع إجازة في السنة الحالية.',
+              title: 'أرصدة الإجازات والأذونات',
+              subtitle: 'الرصيد المتاح للإجازات وأذونات الشهر (4 أذونات / 8 ساعات).',
             ),
             const SizedBox(height: 10),
             balances.when(
@@ -296,7 +296,11 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
               ),
               data: (items) => Column(
                 children: [
-                  LeaveBalanceStrip(balances: items),
+                  LeaveBalanceStrip(
+                    balances: items,
+                    onTap: () => LeavePlannerSheet.show(context),
+                    onPermitTap: () => _submitRequest(context, ref, 'permit'),
+                  ),
                   const SizedBox(height: 10),
                   InkWell(
                     borderRadius: BorderRadius.circular(14),
@@ -695,6 +699,11 @@ class NewRequestSheetState extends State<NewRequestSheet> {
       _titleController.text = 'مأمورية عمل خارجية';
       _reasonController.text = 'مأمورية عمل رسمية بتكليف من الإدارة';
       _locationController.text = 'مأمورية عمل خارجية';
+    } else if (widget.type == 'fundraising' && widget.initial == null) {
+      _titleController.text = 'يوم ترفيهي للموظفين (فاندي)';
+      _reasonController.text = '';
+      _startDate = DateTime.now();
+      _endDate = DateTime.now();
     }
     // 0451: تعبئة القيم الحالية عند تعديل طلب مرفوض
     final init = widget.initial;
@@ -735,7 +744,7 @@ class NewRequestSheetState extends State<NewRequestSheet> {
     'leave' => 'طلب إجازة',
     'mission' => 'طلب مأمورية عمل',
     'convoy' => 'طلب قافلة',
-    'fundraising' => 'طلب فاندي',
+    'fundraising' => 'طلب يوم ترفيهي (فاندي)',
     'permit' => 'طلب إذن',
     'late_permit' => 'إذن حضور',
     'early_permit' => 'إذن انصراف',
@@ -801,11 +810,12 @@ class NewRequestSheetState extends State<NewRequestSheet> {
     setState(() => _inlineError = null);
     final title = _titleController.text.trim();
     final reason = _reasonController.text.trim();
+    final isFunday = widget.type == 'fundraising';
     if (title.length < 3) {
       setState(() => _inlineError = 'يرجى كتابة عنوان واضح (3 أحرف على الأقل)');
       return;
     }
-    if (reason.length < 3) {
+    if (!isFunday && reason.length < 3) {
       setState(() => _inlineError = 'يرجى كتابة سبب الطلب (3 أحرف على الأقل)');
       return;
     }
@@ -852,7 +862,6 @@ class NewRequestSheetState extends State<NewRequestSheet> {
           'startedAtCreation': true,
         };
       case 'convoy':
-      case 'fundraising':
         if (_startDate == null || _endDate == null) {
           setState(() => _inlineError = 'يرجى تحديد تاريخ البداية والنهاية');
           return;
@@ -862,7 +871,7 @@ class NewRequestSheetState extends State<NewRequestSheet> {
           return;
         }
         final loc = _locationController.text.trim().isEmpty
-            ? (widget.type == 'convoy' ? 'قافلة ميدانية' : 'فعالية فاندي')
+            ? 'قافلة ميدانية'
             : _locationController.text.trim();
         final nowC = DateTime.now();
         final isSingleDayC = _startDate == _endDate;
@@ -875,6 +884,28 @@ class NewRequestSheetState extends State<NewRequestSheet> {
           if (_startTime != null) 'startTime': _formatTime(_startTime!),
           if (_endTime != null) 'endTime': _formatTime(_endTime!),
           if (isSingleDayC && isPastOrTodayC && isCurrentMonthC) 'dayMark': true,
+        };
+      case 'fundraising':
+        if (_startDate == null || _endDate == null) {
+          setState(() => _inlineError = 'يرجى تحديد تاريخ البداية والنهاية');
+          return;
+        }
+        if (_endDate!.isBefore(_startDate!)) {
+          setState(() => _inlineError = 'تاريخ النهاية يجب أن يكون بعد تاريخ البداية');
+          return;
+        }
+        final loc = _locationController.text.trim().isEmpty
+            ? 'يوم ترفيهي للموظفين'
+            : _locationController.text.trim();
+        final nowF = DateTime.now();
+        final isSingleDayF = _startDate == _endDate;
+        final isPastOrTodayF = !_startDate!.isAfter(DateTime(nowF.year, nowF.month, nowF.day));
+        final isCurrentMonthF = _startDate!.year == nowF.year && _startDate!.month == nowF.month;
+        payload = {
+          'startDate': _startDate!.toIso8601String().substring(0, 10),
+          'endDate': _endDate!.toIso8601String().substring(0, 10),
+          'location': loc,
+          if (isSingleDayF && isPastOrTodayF && isCurrentMonthF) 'dayMark': true,
         };
       case 'permit':
       case 'late_permit':
@@ -891,9 +922,12 @@ class NewRequestSheetState extends State<NewRequestSheet> {
       default:
         payload = {};
     }
+    final effectiveReason = isFunday
+        ? (reason.isEmpty ? 'يوم ترفيهي للموظفين لقضاء عطلة على حساب العمل' : reason)
+        : reason;
     Navigator.pop(context, {
       'title': title,
-      'reason': reason,
+      'reason': effectiveReason,
       'payload': payload,
     });
   }
@@ -1208,8 +1242,7 @@ class NewRequestSheetState extends State<NewRequestSheet> {
                 border: OutlineInputBorder(),
               ),
             ),
-          ] else if (widget.type == 'convoy' ||
-              widget.type == 'fundraising') ...[
+          ] else if (widget.type == 'convoy') ...[
             Row(
               children: [
                 Expanded(
@@ -1241,7 +1274,7 @@ class NewRequestSheetState extends State<NewRequestSheet> {
             TextFormField(
               controller: _locationController,
               decoration: const InputDecoration(
-                labelText: 'الموقع / الوجهة',
+                labelText: 'الموقع / مقر القافلة',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -1272,6 +1305,74 @@ class NewRequestSheetState extends State<NewRequestSheet> {
                   ),
                 ),
               ],
+            ),
+          ] else if (widget.type == 'fundraising') ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0D9488).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color(0xFF0D9488).withValues(alpha: 0.25),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.celebration_rounded,
+                    color: Color(0xFF0D9488),
+                    size: 22,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'يوم ترفيهي للموظفين لقضاء عطلة على حساب العمل. يبدأ تلقائياً من بداية اليوم ولا يحتاج لتسجيل أوقات أو بدء تنفيذي.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _pickDate(true),
+                    icon: const Icon(Icons.calendar_today, size: 18),
+                    label: Text(
+                      _startDate == null
+                          ? 'من تاريخ'
+                          : DateFormat('d/M/y').format(_startDate!),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _pickDate(false),
+                    icon: const Icon(Icons.calendar_today, size: 18),
+                    label: Text(
+                      _endDate == null
+                          ? 'إلى تاريخ'
+                          : DateFormat('d/M/y').format(_endDate!),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _locationController,
+              decoration: const InputDecoration(
+                labelText: 'الموقع / الوجهة (مكان اليوم الترفيهي)',
+                hintText: 'مثال: الريف الأوروبي فيلا لازورد / منتجع...',
+                prefixIcon: Icon(Icons.place_rounded, size: 20),
+                border: OutlineInputBorder(),
+              ),
             ),
           ] else if (widget.type == 'permit' ||
               widget.type == 'late_permit' ||
@@ -1318,17 +1419,32 @@ class NewRequestSheetState extends State<NewRequestSheet> {
             const _PermitAndLeaveBalancesSection(),
           ],
 
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: _reasonController,
-            maxLines: 3,
-            maxLength: 300,
-            decoration: const InputDecoration(
-              labelText: 'السبب',
-              border: OutlineInputBorder(),
-              alignLabelWithHint: true,
+          if (widget.type != 'fundraising') ...[
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _reasonController,
+              maxLines: 3,
+              maxLength: 300,
+              decoration: const InputDecoration(
+                labelText: 'السبب',
+                border: OutlineInputBorder(),
+                alignLabelWithHint: true,
+              ),
             ),
-          ),
+          ] else ...[
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _reasonController,
+              maxLines: 2,
+              maxLength: 200,
+              decoration: const InputDecoration(
+                labelText: 'ملاحظات إضافية (اختياري)',
+                hintText: 'أي تفاصيل اختيارية تود إضافتها...',
+                border: OutlineInputBorder(),
+                alignLabelWithHint: true,
+              ),
+            ),
+          ],
           if (_inlineError != null) ...[
             const SizedBox(height: 12),
             Container(

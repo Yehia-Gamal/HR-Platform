@@ -804,7 +804,7 @@ export function RequestsPage() {
           <p id="decision-reason" className="rounded-2xl bg-[var(--surface-muted)] p-4 text-sm leading-7">
             {selected.reason || 'لا يوجد سبب تفصيلي.'}
           </p>
-          {(selected.requestType === 'mission' || selected.requestType === 'convoy' || selected.requestType === 'fundraising') && selected.missionExecution ? (
+          {(selected.requestType === 'mission' || selected.requestType === 'convoy') && selected.missionExecution ? (
             <div className="mt-4 space-y-2 rounded-2xl border border-[var(--border)] p-4 text-sm">
               <p className="flex flex-wrap items-center gap-2">
                 <strong>سجل التنفيذ:</strong>

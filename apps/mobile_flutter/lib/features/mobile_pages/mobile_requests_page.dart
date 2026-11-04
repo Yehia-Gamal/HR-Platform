@@ -168,7 +168,10 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
               const SizedBox(height: 12),
             ],
             if (!_showAll) ...[
-              const MobileSectionHeader(title: 'أرصدة الإجازات'),
+              const MobileSectionHeader(
+                title: 'أرصدة الإجازات والأذونات',
+                subtitle: 'الرصيد المتاح للإجازات وأذونات الشهر (4 أذونات / 8 ساعات).',
+              ),
               const SizedBox(height: 10),
               balances.when(
                 loading: () => const LinearProgressIndicator(),
@@ -329,7 +332,7 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                       ),
                       DropdownMenuItem(
                         value: 'fundraising',
-                        child: Text('فاندي'),
+                        child: Text('يوم ترفيهي (فاندي)'),
                       ),
                     ],
                   ],
@@ -346,6 +349,12 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                       if (title.text.trim().isEmpty) title.text = 'مأمورية عمل خارجية';
                       if (reason.text.trim().isEmpty) reason.text = 'مأمورية عمل رسمية بتكليف من الإدارة';
                       if (location.text.trim().isEmpty) location.text = 'مأمورية عمل خارجية';
+                    } else if (type == 'fundraising') {
+                      final now = DateTime.now();
+                      startDate = DateTime(now.year, now.month, now.day);
+                      endDate = DateTime(now.year, now.month, now.day);
+                      if (title.text.trim().isEmpty) title.text = 'يوم ترفيهي للموظفين (فاندي)';
+                      if (reason.text.trim().isEmpty) reason.text = 'يوم ترفيهي للموظفين لقضاء عطلة على حساب العمل';
                     }
                   }),
                 ),
@@ -561,12 +570,17 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                     type == 'fundraising') ...[
                   TextField(
                     controller: location,
-                    decoration: const InputDecoration(
-                      labelText: 'المكان أو جهة التكليف',
+                    decoration: InputDecoration(
+                      labelText: type == 'fundraising'
+                          ? 'مكان اليوم الترفيهي / الوجهة'
+                          : 'المكان أو جهة التكليف',
+                      hintText: type == 'fundraising'
+                          ? 'مثال: الريف الأوروبي فيلا لازورد / منتجع...'
+                          : null,
                     ),
                   ),
                   const SizedBox(height: 12),
-                  if (type != 'mission') ...[
+                  if (type == 'convoy') ...[
                     OutlinedButton.icon(
                       onPressed: () async {
                         final picked = await _pickTime(
@@ -712,14 +726,26 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
                   decoration: const InputDecoration(labelText: 'عنوان الطلب'),
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: reason,
-                  maxLines: 3,
-                  maxLength: 300,
-                  decoration: const InputDecoration(
-                    labelText: 'السبب والتفاصيل',
+                if (type != 'fundraising') ...[
+                  TextField(
+                    controller: reason,
+                    maxLines: 3,
+                    maxLength: 300,
+                    decoration: const InputDecoration(
+                      labelText: 'السبب والتفاصيل',
+                    ),
                   ),
-                ),
+                ] else ...[
+                  TextField(
+                    controller: reason,
+                    maxLines: 2,
+                    maxLength: 200,
+                    decoration: const InputDecoration(
+                      labelText: 'ملاحظات إضافية (اختياري)',
+                      hintText: 'أي تفاصيل اختيارية تود إضافتها...',
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 FilledButton(
                   onPressed: () {
@@ -753,8 +779,12 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
 );
 
     final requestTitle = title.text.trim();
-    final requestReason = reason.text.trim();
-    final requestLocation = location.text.trim();
+    final requestReason = reason.text.trim().isEmpty && type == 'fundraising'
+        ? 'يوم ترفيهي للموظفين لقضاء عطلة على حساب العمل'
+        : reason.text.trim();
+    final requestLocation = location.text.trim().isEmpty && type == 'fundraising'
+        ? 'يوم ترفيهي للموظفين'
+        : location.text.trim();
     title.dispose();
     reason.dispose();
     location.dispose();
@@ -794,7 +824,8 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
         'startDate': _dateValue(startDate!),
         'endDate': _dateValue(endDate!),
         'location': requestLocation,
-        if (startTime != null) 'startTime': _formatTimeValue(startTime!),
+        if (type == 'convoy' && startTime != null)
+          'startTime': _formatTimeValue(startTime!),
       });
     } else if (type == 'permit' ||
         type == 'late_permit' ||
@@ -872,7 +903,9 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
     required String minutes,
   }) {
     if (title.trim().length < 3) return 'اكتب عنوانًا واضحًا للطلب.';
-    if (reason.trim().length < 3) return 'اكتب سبب الطلب وتفاصيله.';
+    if (type != 'fundraising' && reason.trim().length < 3) {
+      return 'اكتب سبب الطلب وتفاصيله.';
+    }
     if (reason.trim().length > 300) {
       return 'السبب طويل جدًا (300 حرف كحد أقصى).';
     }
@@ -886,9 +919,8 @@ class _MobileRequestsPageState extends ConsumerState<MobileRequestsPage> {
         return 'تاريخ النهاية يجب ألا يسبق البداية.';
       }
     }
-    if ((type == 'convoy' || type == 'fundraising') &&
-        location.trim().length < 2) {
-      return 'حدد مكان أو جهة التكليف.';
+    if (type == 'convoy' && location.trim().length < 2) {
+      return 'حدد مقر القافلة أو جهة التكليف.';
     }
     if (type == 'permit' || type == 'late_permit' || type == 'early_permit') {
       if (permitDate == null) return 'حدد تاريخ الإذن.';

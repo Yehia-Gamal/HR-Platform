@@ -62,17 +62,30 @@ int getHierarchyRank({
     return 4;
   }
 
-  // هل هو من مديري العيادات (مصطفى أحمد كمال الدين، يوسف رسمي شعبان)؟
+  // هل هو من مديري العيادات (مصطفى أحمد كمال الدين، يوسف رسمي شعبان) أو التيم الإداري المستثنى؟
   final isMedicalManager = n.contains('مصطفي أحمد') ||
       n.contains('مصطفى أحمد') ||
       n.contains('يوسف رسمي') ||
       t.contains('مدير مجمع') ||
       (d.contains('عياد') && t.contains('مدير'));
 
-  // 7 — تيم البنات بتوع الطاقم الطبي (آخر شيء خالص)
-  if (!isMedicalManager) {
-    if (d.contains('عياد') ||
-        t.contains('تمريض') ||
+  final isExemptFromClinicGirls = isMedicalManager ||
+      n.contains('اسماعيل') ||
+      n.contains('إسماعيل') ||
+      n.contains('عبدالله') ||
+      n.contains('عبد الله') ||
+      n.contains('حسام') ||
+      t.contains('مشرف') ||
+      t.contains('مسؤول') ||
+      t.contains('مسئول') ||
+      t.contains('إداري') ||
+      t.contains('اداري') ||
+      t.contains('سكرتير') ||
+      t.contains('منسق');
+
+  // 7 — تيم البنات بتوع الطاقم الطبي (آخر شيء خالص - محصور على الـ 6 بنات)
+  if (!isExemptFromClinicGirls) {
+    if (t.contains('تمريض') ||
         t.contains('معمل') ||
         t.contains('دكتورة المعمل') ||
         t.contains('استقبال') ||

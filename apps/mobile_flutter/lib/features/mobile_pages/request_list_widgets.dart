@@ -1,20 +1,29 @@
 import 'package:ahla_design_tokens/ahla_design_tokens.dart';
 import 'package:ahla_shabab_management_os/core/formatting/arabic_text.dart';
-import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_request_detail_page.dart';
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
+import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
+import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_request_detail_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/request_display.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' show DateFormat;
 
 /// عناصر قوائم الطلبات المشتركة بين «الطلبات» و«طلباتي» (الخدمة الذاتية).
 
-/// أرصدة الإجازات: المتاح بخط كبير، وشريط المستهلك والمحجوز من الإجمالي.
-class LeaveBalanceStrip extends StatelessWidget {
-  const LeaveBalanceStrip({required this.balances, this.onTap, super.key});
+/// أرصدة الإجازات وأذونات الشهر: المتاح بخط بارز، وشريط المستهلك والمحجوز.
+/// يعرض جميع أرصدة الإجازات وأذونات الشهر الـ 4 مع خيار التبديل بين الشبكة والشريط.
+class LeaveBalanceStrip extends ConsumerStatefulWidget {
+  const LeaveBalanceStrip({
+    required this.balances,
+    this.onTap,
+    this.onPermitTap,
+    super.key,
+  });
 
   final List<MobileLeaveBalance> balances;
   final VoidCallback? onTap;
+  final VoidCallback? onPermitTap;
 
   /// «14 يومًا متاحًا» / «6 أيام متاحة» / «يومان متاحان».
   static String availableWord(double v) {
@@ -35,9 +44,104 @@ class LeaveBalanceStrip extends StatelessWidget {
   }
 
   @override
+  ConsumerState<LeaveBalanceStrip> createState() => _LeaveBalanceStripState();
+}
+
+class _LeaveBalanceStripState extends ConsumerState<LeaveBalanceStrip> {
+  bool _isGridView = true;
+
+  static Color _balanceColor(String code) {
+    return switch (code.toLowerCase()) {
+      'annual' => const Color(0xFF0284C7),
+      'casual' => const Color(0xFFF59E0B),
+      'rest_day' || 'weekly_rest' || 'rest' => const Color(0xFF10B981),
+      'sick' => const Color(0xFFE11D48),
+      'permit' => const Color(0xFF6366F1),
+      _ => const Color(0xFF8B5CF6),
+    };
+  }
+
+  static IconData _balanceIcon(String code) {
+    return switch (code.toLowerCase()) {
+      'annual' => Icons.beach_access_rounded,
+      'casual' => Icons.flash_on_rounded,
+      'rest_day' || 'weekly_rest' || 'rest' => Icons.weekend_rounded,
+      'sick' => Icons.healing_rounded,
+      'permit' => Icons.alarm_on_rounded,
+      _ => Icons.event_note_rounded,
+    };
+  }
+
+  @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    if (balances.isEmpty) {
+    final permitBalance = ref.watch(myPermitBalanceProvider).asData?.value;
+
+    final remPermits = permitBalance?.remainingPermits ?? 4;
+    final maxPermits = permitBalance?.maxPermits ?? 4;
+    final remHours = permitBalance?.remainingHours ?? (remPermits * 2);
+    final totalUsed = permitBalance?.totalUsed ?? 0;
+    final usedPending = permitBalance?.usedPending ?? 0;
+    final permitProgress =
+        maxPermits > 0 ? (totalUsed / maxPermits).clamp(0.0, 1.0) : 0.0;
+
+    final permitCard = _BalanceCard(
+      icon: Icons.alarm_on_rounded,
+      title: 'أذونات الشهر',
+      tag: 'شهري',
+      valueText: '$remPermits',
+      unitText: 'من $maxPermits أذونات',
+      extraText: '($remHours س)',
+      progress: permitProgress,
+      progressColor: remPermits == 0
+          ? AppColors.statusDanger
+          : remPermits <= 1
+          ? AppColors.statusWarning
+          : const Color(0xFF6366F1),
+      footerText: 'مستهلك $totalUsed من 4 · محجوز $usedPending',
+      accentColor: const Color(0xFF6366F1),
+      onTap: widget.onPermitTap ?? widget.onTap,
+    );
+
+    final leaveCards = widget.balances.map((balance) {
+      final accent = _balanceColor(balance.code);
+      final icon = _balanceIcon(balance.code);
+      final progress = LeaveBalanceStrip.usedShare(balance);
+      return _BalanceCard(
+        icon: icon,
+        title: balance.name,
+        tag: 'سنوي',
+        valueText: fmtUnits(balance.availableUnits),
+        unitText: LeaveBalanceStrip.availableWord(balance.availableUnits),
+        progress: progress,
+        progressColor: balance.availableUnits <= 0
+            ? AppColors.statusDanger
+            : balance.availableUnits <= 3
+            ? AppColors.statusWarning
+            : AppColors.statusSuccess,
+        footerText:
+            'مستهلك ${fmtUnits(balance.consumedUnits)} · محجوز ${fmtUnits(balance.reservedUnits)}',
+        accentColor: accent,
+        onTap: widget.onTap,
+      );
+    }).toList();
+
+    // تنظيم البطاقات بحيث تظهر السنوية والعارضة أولاً، ثم الأذونات، ثم بدل الراحة والإجازات الأخرى
+    final allCards = <Widget>[];
+    final annualIndex = widget.balances.indexWhere((b) => b.code == 'annual');
+    final casualIndex = widget.balances.indexWhere((b) => b.code == 'casual');
+
+    if (annualIndex != -1) allCards.add(leaveCards[annualIndex]);
+    if (casualIndex != -1) allCards.add(leaveCards[casualIndex]);
+    allCards.add(permitCard);
+
+    for (int i = 0; i < widget.balances.length; i++) {
+      if (i != annualIndex && i != casualIndex) {
+        allCards.add(leaveCards[i]);
+      }
+    }
+
+    if (allCards.isEmpty) {
       return Card(
         child: Padding(
           padding: const EdgeInsets.all(18),
@@ -51,77 +155,257 @@ class LeaveBalanceStrip extends StatelessWidget {
         ),
       );
     }
-    return SizedBox(
-      height: 128,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: balances.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 10),
-        itemBuilder: (context, index) {
-          final balance = balances[index];
-          return SizedBox(
-            width: 190,
-            child: Card(
-              clipBehavior: Clip.antiAlias,
-              child: InkWell(
-                onTap: onTap,
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'الأرصدة المتاحة (${allCards.length})',
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+              InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () => setState(() => _isGridView = !_isGridView),
                 child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
+                      Icon(
+                        _isGridView
+                            ? Icons.view_carousel_rounded
+                            : Icons.grid_view_rounded,
+                        size: 15,
+                        color: scheme.primary,
+                      ),
+                      const SizedBox(width: 4),
                       Text(
-                        balance.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                      const Spacer(),
-                      Text.rich(
-                        TextSpan(
-                          children: [
-                            TextSpan(
-                              text: fmtUnits(balance.availableUnits),
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                            TextSpan(
-                              text: '  ${availableWord(balance.availableUnits)}',
-                              style: const TextStyle(
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
+                        _isGridView ? 'عرض شريط' : 'عرض شبكي',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: scheme.primary,
                         ),
-                      ),
-                      const SizedBox(height: 6),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          minHeight: 6,
-                          value: usedShare(balance),
-                          backgroundColor:
-                              AppColors.statusSuccess.withValues(alpha: .18),
-                          valueColor: const AlwaysStoppedAnimation(
-                            AppColors.statusWarning,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'مستهلك ${fmtUnits(balance.consumedUnits)} · محجوز ${fmtUnits(balance.reservedUnits)}',
-                        style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
                   ),
                 ),
               ),
+            ],
+          ),
+        ),
+        if (_isGridView)
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              final tileWidth = (width - 10) / 2;
+              const targetHeight = 124.0;
+              final ratio = (tileWidth / targetHeight).clamp(1.1, 3.8);
+              return GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: 10,
+                crossAxisSpacing: 10,
+                childAspectRatio: ratio,
+                children: allCards,
+              );
+            },
+          )
+        else
+          SizedBox(
+            height: 132,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: allCards.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 10),
+              itemBuilder: (context, index) => SizedBox(
+                width: 195,
+                child: allCards[index],
+              ),
             ),
-          );
-        },
+          ),
+      ],
+    );
+  }
+}
+
+class _BalanceCard extends StatelessWidget {
+  const _BalanceCard({
+    required this.icon,
+    required this.title,
+    required this.tag,
+    required this.valueText,
+    required this.unitText,
+    this.extraText,
+    required this.progress,
+    required this.progressColor,
+    required this.footerText,
+    required this.accentColor,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String tag;
+  final String valueText;
+  final String unitText;
+  final String? extraText;
+  final double progress;
+  final Color progressColor;
+  final String footerText;
+  final Color accentColor;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final scheme = theme.colorScheme;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
+          decoration: BoxDecoration(
+            color: accentColor.withValues(alpha: isDark ? 0.09 : 0.05),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: accentColor.withValues(alpha: isDark ? 0.28 : 0.18),
+              width: 1.2,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // الصف العلوي: الأيقونة + العنوان + التاج
+              Row(
+                children: [
+                  Container(
+                    width: 26,
+                    height: 26,
+                    decoration: BoxDecoration(
+                      color: accentColor.withValues(alpha: 0.14),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Icon(icon, size: 14, color: accentColor),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: scheme.onSurface,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                    decoration: BoxDecoration(
+                      color: accentColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      tag,
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        color: accentColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+
+              // القيمة الرئيسية المتاحة
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      valueText,
+                      style: TextStyle(
+                        fontSize: 21,
+                        fontWeight: FontWeight.w900,
+                        color: scheme.onSurface,
+                        letterSpacing: -0.4,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      unitText,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    if (extraText != null) ...[
+                      const SizedBox(width: 4),
+                      Text(
+                        extraText!,
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w600,
+                          color: accentColor,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 5),
+
+              // شريط نسبة الاستهلاك
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  minHeight: 5,
+                  value: progress,
+                  backgroundColor: accentColor.withValues(alpha: .14),
+                  valueColor: AlwaysStoppedAnimation(progressColor),
+                ),
+              ),
+              const SizedBox(height: 4),
+
+              // التذييل: المستهلك والمحجوز
+              Text(
+                footerText,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w500,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

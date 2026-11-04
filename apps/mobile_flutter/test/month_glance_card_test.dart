@@ -79,7 +79,24 @@ void main() {
     expect(find.text('العارضة: 4.5'), findsOneWidget);
     expect(find.text('1'), findsOneWidget); // غرامة واحدة هذا الشهر (الملغاة لا تُحسب)
     expect(find.text('مستحق 20 ج.م'), findsOneWidget);
+    expect(find.text('إجازات الشهر'), findsOneWidget);
+    expect(find.text('أذونات الشهر'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('النقر على خانة الغرامات يفتح صفحة الغرامات', (tester) async {
+    await pumpCard(
+      tester,
+      penalties: [
+        {'id': 'p1', 'work_date': day(1), 'status': 'pending_payment', 'current_amount': 20, 'created_at': '${day(1)}T10:00:00Z'},
+      ],
+    );
+
+    // النقر على خانة غرامات الشهر
+    await tester.tap(find.text('غرامات الشهر'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('غراماتي'), findsOneWidget);
   });
 
   testWidgets('بلا غرامات: «لا غرامات» و«لا مستحقات»', (tester) async {
