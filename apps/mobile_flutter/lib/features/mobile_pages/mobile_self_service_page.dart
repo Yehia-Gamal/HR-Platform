@@ -942,7 +942,7 @@ class NewRequestSheetState extends State<NewRequestSheet> {
           left: 20,
           right: 20,
           top: 20,
-          bottom: bottomInset > 0 ? bottomInset + 16 : 16,
+          bottom: bottomInset > 0 ? bottomInset + 16 : 36,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1517,7 +1517,7 @@ class _ForgotPunchSheetState extends State<_ForgotPunchSheet> {
           left: 20,
           right: 20,
           top: 20,
-          bottom: bottomInset > 0 ? bottomInset + 16 : 16,
+          bottom: bottomInset > 0 ? bottomInset + 16 : 36,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,

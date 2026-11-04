@@ -367,7 +367,7 @@ class _AdminAttendanceDayEditSheetState
           builder: (context, scrollController) {
             return ListView(
               controller: scrollController,
-              padding: const EdgeInsets.fromLTRB(18, 12, 18, 32),
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 48),
               children: [
                 // 1) مقبض السحب بالأعلى
                 Center(

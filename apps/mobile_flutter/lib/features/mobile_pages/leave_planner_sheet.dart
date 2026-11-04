@@ -175,7 +175,7 @@ class _LeavePlannerSheetState extends ConsumerState<LeavePlannerSheet> {
       child: SafeArea(
         top: false,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
+          padding: const EdgeInsets.fromLTRB(18, 12, 18, 48),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
