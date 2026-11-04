@@ -165,7 +165,12 @@ class _ApprovalSpeedRadarPageState
                 : 0;
 
             return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+              padding: EdgeInsets.fromLTRB(
+                16,
+                12,
+                16,
+                MediaQuery.paddingOf(context).bottom + 120,
+              ),
               children: [
                 // فلتر الفترة
                 SingleChildScrollView(

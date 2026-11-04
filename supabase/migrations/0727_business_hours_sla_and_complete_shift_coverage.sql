@@ -590,3 +590,4 @@ update public.requests
    and decision_due_at < now();
 
 commit;
+

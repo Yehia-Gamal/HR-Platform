@@ -206,7 +206,12 @@ class _AttendanceCorrectionDetailPageState
               children: [
                 Expanded(
                   child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      12,
+                      16,
+                      MediaQuery.paddingOf(context).bottom + 120,
+                    ),
                     children: [
                     // شريط حالة الطلب
                     Container(

@@ -241,7 +241,7 @@ class _DailyReportsFeedPageState extends ConsumerState<DailyReportsFeedPage> {
                   child: ListView.builder(
                     physics: const AlwaysScrollableScrollPhysics(),
                     // 96 أسفلًا: كان زر «تقرير اليوم» العائم يغطي ذيل آخر بطاقة
-                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 96),
+                    padding: EdgeInsets.fromLTRB(12, 8, 12, MediaQuery.paddingOf(context).bottom + 120),
                     itemCount: items.length,
                     itemBuilder: (context, index) {
                       final item = items[index];

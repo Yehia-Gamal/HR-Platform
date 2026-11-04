@@ -183,7 +183,12 @@ class _ProfileBody extends StatelessWidget {
     final isExempt = isExecutive || employee.todayStatus?.status == 'exempt';
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        16,
+        16,
+        MediaQuery.paddingOf(context).bottom + 120,
+      ),
       children: [
         _HeroCard(employee: employee, detailed: detailed, code: code),
         const SizedBox(height: 12),
