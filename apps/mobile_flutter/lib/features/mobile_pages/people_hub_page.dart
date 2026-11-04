@@ -384,7 +384,7 @@ class _PeopleHubPageState extends ConsumerState<PeopleHubPage> {
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 48),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 110),
       children: [
         _searchField(),
         const SizedBox(height: 10),
@@ -550,7 +550,7 @@ class _PeopleHubPageState extends ConsumerState<PeopleHubPage> {
         );
         return ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 48),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 110),
           children: [
             _searchField(),
             const SizedBox(height: 10),

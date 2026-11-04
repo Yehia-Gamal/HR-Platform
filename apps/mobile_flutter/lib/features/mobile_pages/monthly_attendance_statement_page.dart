@@ -206,7 +206,7 @@ class _StatementBody extends StatelessWidget {
 
     if (s.isAttendanceExempt || isExecutive) {
       return ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 48),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
         children: [
           _EmployeeHeader(statement: statement),
           const SizedBox(height: 24),
@@ -271,7 +271,7 @@ class _StatementBody extends StatelessWidget {
     final fDays = statement.days.isNotEmpty ? fundiDays : 0;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 48),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
       children: [
         // ───── بطاقة بيانات الموظف ─────
         _EmployeeHeader(statement: statement),

@@ -167,7 +167,7 @@ class _MobileOperationsCenterPageState
             data: (data) {
               final summary = data.summary;
               return ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 48),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                 children: [
                   MobileSectionHeader(
                     title: 'مركز العمليات',

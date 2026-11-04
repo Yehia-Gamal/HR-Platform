@@ -97,7 +97,7 @@ class _MyPenaltiesTab extends ConsumerWidget {
               unpaid.where((p) => p.workDate == todayStr).firstOrNull;
           return ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
             children: [
               _MySummaryCard(items: items),
               if (unpaidToday != null) ...[
@@ -1724,7 +1724,7 @@ class _TeamPenaltiesTabState extends ConsumerState<_TeamPenaltiesTab> {
 
           return ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 48),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 96),
             children: [
               Card(
                 child: Padding(
@@ -2051,7 +2051,7 @@ class _SuspendedEmployeesTab extends ConsumerWidget {
 
           return ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 48),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 96),
             children: [
               Card(
                 color: AppColors.statusDanger.withValues(alpha: .08),
@@ -2474,7 +2474,7 @@ class _FundTab extends ConsumerWidget {
         ),
         data: (s) => ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
           children: [
             Card(
               color: AppColors.statusSuccess.withValues(alpha: .08),

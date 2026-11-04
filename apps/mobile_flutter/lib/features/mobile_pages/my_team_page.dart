@@ -224,14 +224,14 @@ class _TeamMembersViewState extends ConsumerState<_TeamMembersView>
             );
             if (data.isEmpty) {
               return ListView(
-                padding: const EdgeInsets.fromLTRB(16, 40, 16, 32),
+                padding: const EdgeInsets.fromLTRB(16, 40, 16, 100),
                 children: const [
                   _EmptyHint(),
                 ],
               );
             }
             return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 48),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
               children: [
                 MobileSectionHeader(title: _title, subtitle: _subtitle),
                 const SizedBox(height: 8),

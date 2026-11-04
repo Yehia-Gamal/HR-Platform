@@ -240,7 +240,7 @@ class _ConvoyRadarPageState extends State<ConvoyRadarPage> {
       body: SafeArea(
         top: false,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
         children: [
           // Convoy Hero Card
           Card(

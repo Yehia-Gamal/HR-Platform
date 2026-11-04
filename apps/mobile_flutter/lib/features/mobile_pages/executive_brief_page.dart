@@ -99,7 +99,7 @@ class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
         ? null
         : () => _openPage(LocationRequestsPage(access: access));
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 48),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
       children: [
         Container(
           padding: const EdgeInsets.all(22),

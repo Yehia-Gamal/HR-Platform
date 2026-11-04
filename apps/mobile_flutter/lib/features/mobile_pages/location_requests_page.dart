@@ -178,7 +178,7 @@ class _RequestsList extends StatelessWidget {
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
       children: [
         // ── لافتة الخصوصية — 0451 ──
         Container(

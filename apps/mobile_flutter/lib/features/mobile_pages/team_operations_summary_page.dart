@@ -128,7 +128,7 @@ class _TeamOperationsSummaryPageState
               onRefresh: () async =>
                   ref.invalidate(mobileManagerOperationsProvider),
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
                 children: [
                   // 1. شريط التنقل بين الشهور (الشهر الحالي أو التنقل بالسهم)
                   _MonthNavigator(

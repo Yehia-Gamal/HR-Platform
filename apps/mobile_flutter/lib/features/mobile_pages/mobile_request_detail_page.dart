@@ -154,12 +154,15 @@ class _RequestScreen extends ConsumerWidget {
               currentStage: currentStage,
             )
           : null,
-      body: RefreshIndicator(
-        onRefresh: () async =>
-            ref.invalidate(mobileRequestDetailProvider(request.id)),
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-          children: [
+      body: SafeArea(
+        top: false,
+        bottom: !(canDecide || canDelegate),
+        child: RefreshIndicator(
+          onRefresh: () async =>
+              ref.invalidate(mobileRequestDetailProvider(request.id)),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+            children: [
             _HeroCard(
               request: request,
               isMine: isMine,
@@ -224,6 +227,7 @@ class _RequestScreen extends ConsumerWidget {
             ],
           ],
         ),
+      ),
       ),
     );
   }

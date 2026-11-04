@@ -199,12 +199,15 @@ class _AttendanceCorrectionDetailPageState
                   ? 'مرفوض'
                   : 'قيد المراجعة والاعتماد';
 
-          return Column(
-            children: [
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                  children: [
+          return SafeArea(
+            top: false,
+            bottom: !(isPending && detail.canDecide),
+            child: Column(
+              children: [
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+                    children: [
                     // شريط حالة الطلب
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -522,6 +525,7 @@ class _AttendanceCorrectionDetailPageState
                   ),
                 ),
             ],
+          ),
           );
         },
       ),

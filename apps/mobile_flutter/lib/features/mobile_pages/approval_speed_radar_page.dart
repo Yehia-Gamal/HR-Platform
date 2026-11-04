@@ -101,9 +101,11 @@ class _ApprovalSpeedRadarPageState
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: () async =>
-            ref.invalidate(approvalSpeedRadarProvider(_selectedFilter)),
+      body: SafeArea(
+        top: false,
+        child: RefreshIndicator(
+          onRefresh: () async =>
+              ref.invalidate(approvalSpeedRadarProvider(_selectedFilter)),
         child: reportAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (err, _) => Center(
@@ -163,7 +165,7 @@ class _ApprovalSpeedRadarPageState
                 : 0;
 
             return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
               children: [
                 // فلتر الفترة
                 SingleChildScrollView(
@@ -466,6 +468,7 @@ class _ApprovalSpeedRadarPageState
             );
           },
         ),
+      ),
       ),
     );
   }

@@ -457,7 +457,7 @@ class _TeamRequestsPageState extends ConsumerState<TeamRequestsPage> {
               ref.invalidate(mobileTeamProvider);
             },
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 32),
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 96),
               children: [
                 _SummaryCard(
                   awaiting: awaiting,
