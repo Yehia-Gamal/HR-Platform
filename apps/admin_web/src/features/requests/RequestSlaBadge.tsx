@@ -167,3 +167,49 @@ export function RequestWhatsAppShareButton({
     </button>
   );
 }
+
+/**
+ * فحص ما إذا كان الطلب مقدماً بأثر رجعي (أي أن تاريخ حدوثه الفعلي يسبق تاريخ تقديمه).
+ */
+export function checkRetroactiveRequest(
+  createdAt: string,
+  payload?: Record<string, unknown> | null,
+): { isRetroactive: boolean; daysDiff: number } {
+  if (!payload || !createdAt) return { isRetroactive: false, daysDiff: 0 };
+  const targetStr = (payload.startDate || payload.permitDate || payload.workDate || payload.date || payload.correctionDate) as
+    | string
+    | undefined;
+  if (!targetStr || typeof targetStr !== 'string') return { isRetroactive: false, daysDiff: 0 };
+
+  const targetDate = new Date(targetStr);
+  const createdDate = new Date(createdAt);
+  if (Number.isNaN(targetDate.getTime()) || Number.isNaN(createdDate.getTime())) {
+    return { isRetroactive: false, daysDiff: 0 };
+  }
+
+  // مقارنة على مستوى الأيام التقويمية
+  const targetDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate()).getTime();
+  const createdDay = new Date(createdDate.getFullYear(), createdDate.getMonth(), createdDate.getDate()).getTime();
+  const diffDays = Math.floor((createdDay - targetDay) / (1000 * 60 * 60 * 24));
+
+  return { isRetroactive: diffDays > 0, daysDiff: diffDays };
+}
+
+/**
+ * شارة تمييز الطلب بأثر رجعي أمام المديرين والموارد البشرية.
+ */
+export function RetroactiveBadge({ daysDiff, compact }: { daysDiff: number; compact?: boolean }) {
+  const label = daysDiff === 1 ? 'طلب بأثر رجعي (بعد بيوم)' : `طلب بأثر رجعي (بعد ${daysDiff} يوم)`;
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 font-bold text-amber-600 dark:text-amber-400 shrink-0 ${
+        compact ? 'px-1.5 py-0.5 text-[10.5px]' : 'px-2 py-1 text-xs'
+      }`}
+      title={`قُدم هذا الطلب بعد موعد حدوثه الفعلي بـ ${daysDiff} يوم`}
+    >
+      <Clock3 className={compact ? 'size-2.5' : 'size-3'} />
+      {label}
+    </span>
+  );
+}
+

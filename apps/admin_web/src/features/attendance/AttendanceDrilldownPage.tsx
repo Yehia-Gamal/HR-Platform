@@ -376,6 +376,31 @@ export function AttendanceDrilldownPage() {
     }
   };
 
+  const handleAutoGraceCheckout = async (employeeId: string, employeeName: string) => {
+    setIsActionPending(true);
+    try {
+      await rpc('admin_auto_grace_checkout', {
+        p_employee_id: employeeId,
+        p_work_date: dateIso,
+        p_note: 'اعتماد انصراف نهاية الوردية الرسمية من شاشة متابعة الحضور',
+      });
+      setLocallyMarkedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(employeeId);
+        return next;
+      });
+      setToastMessage(`تم اعتماد انصراف نهاية الوردية للموظف (${employeeName}) بنجاح وإلغاء الغرامة ✅`);
+      setTimeout(() => setToastMessage(null), 4000);
+      await Promise.all([query.refetch(), presentQuery.refetch()]);
+    } catch (err) {
+      console.error('Failed auto grace checkout', err);
+      setToastMessage('تعذر اعتماد انصراف الوردية، يرجى المحاولة ثانية.');
+      setTimeout(() => setToastMessage(null), 3000);
+    } finally {
+      setIsActionPending(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* ─── إشعار لقطة الشاشة ─── */}
@@ -691,6 +716,7 @@ export function AttendanceDrilldownPage() {
                       isMissingCheckoutTab={isMissingCheckoutTab}
                       isMarked={isMarked}
                       onUnmark={(id) => void handleUnmarkMissingCheckout(id)}
+                      onGraceCheckout={(id, name) => void handleAutoGraceCheckout(id, name)}
                       isActionPending={isActionPending}
                     />
                   );
@@ -742,6 +768,7 @@ function Row({
   isMissingCheckoutTab,
   isMarked,
   onUnmark,
+  onGraceCheckout,
   isActionPending,
 }: {
   item: AttendanceRosterItem;
@@ -751,6 +778,7 @@ function Row({
   isMissingCheckoutTab: boolean;
   isMarked: boolean;
   onUnmark: (id: string) => void;
+  onGraceCheckout: (id: string, name: string) => void;
   isActionPending: boolean;
 }) {
   const hrPrefix = useHrPrefix();
@@ -1110,15 +1138,27 @@ function Row({
       <td className="min-w-[120px] text-end whitespace-nowrap" data-hide-capture="true">
         <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
           {isMissingCheckoutTab && isMarked ? (
-            <button
-              type="button"
-              disabled={isActionPending}
-              onClick={() => void onUnmark(item.employeeId)}
-              className="btn-ghost btn-xs text-xs font-bold text-slate-400 hover:text-rose-400 rounded-lg px-2 py-1 transition-colors whitespace-nowrap shrink-0"
-              title="إلغاء وسم بصمة بلا انصراف والعودة للنظام"
-            >
-              تراجع
-            </button>
+            <>
+              <button
+                type="button"
+                disabled={isActionPending}
+                onClick={() => void onGraceCheckout(item.employeeId, item.employeeName)}
+                className="btn-primary btn-xs text-xs font-bold rounded-lg px-2.5 py-1 whitespace-nowrap shrink-0 flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs"
+                title="اعتماد انصراف نهاية الوردية الرسمية تلقائياً وحساب ساعات العمل وإلغاء الغرامة"
+              >
+                <CheckCircle2 className="size-3" />
+                اعتماد الوردية
+              </button>
+              <button
+                type="button"
+                disabled={isActionPending}
+                onClick={() => void onUnmark(item.employeeId)}
+                className="btn-ghost btn-xs text-xs font-bold text-slate-400 hover:text-rose-400 rounded-lg px-2 py-1 transition-colors whitespace-nowrap shrink-0"
+                title="إلغاء وسم بصمة بلا انصراف والعودة للنظام"
+              >
+                تراجع
+              </button>
+            </>
           ) : null}
           <Link
             to={`${hrPrefix}/employees/${item.employeeId}`}

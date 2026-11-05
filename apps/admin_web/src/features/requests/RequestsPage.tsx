@@ -51,7 +51,7 @@ import {
   type Decision,
 } from './useRequests';
 import { DecisionInsights, RequestJourney } from './RequestJourney';
-import { RequestSlaBadge, RequestWhatsAppShareButton } from './RequestSlaBadge';
+import { RequestSlaBadge, RequestWhatsAppShareButton, RetroactiveBadge, checkRetroactiveRequest } from './RequestSlaBadge';
 import { useAttendanceOperations, useAttendanceOperationsCommands } from '../advanced/useAdvancedOperations';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { cairoMonthIso } from '../../core/cairoTime';
@@ -620,6 +620,10 @@ export function RequestsPage() {
                     <span className="rounded-lg bg-[var(--surface-muted)] px-2 py-1 text-xs font-black">#{item.requestNumber}</span>
                     <StatusBadge value={item.status} />
                     <RequestSlaBadge status={item.status} createdAt={item.createdAt} decidedAt={item.decidedAt} activeStepName={item.activeStepName} compact />
+                    {(() => {
+                      const retro = checkRetroactiveRequest(item.createdAt, item.payload);
+                      return retro.isRetroactive ? <RetroactiveBadge daysDiff={retro.daysDiff} compact /> : null;
+                    })()}
                     {isAwaitingMe(item) ? (
                       <span className="rounded-lg bg-[var(--warning)]/15 px-2 py-1 text-xs font-black text-[var(--warning)]">بانتظارك</span>
                     ) : item.isMine ? (
@@ -790,6 +794,10 @@ export function RequestsPage() {
             <UserAvatar displayName={selected.employeeName} size="sm" />
             <p className="muted text-sm flex-1">{selected.employeeName}</p>
             <RequestSlaBadge status={selected.status} createdAt={selected.createdAt} decidedAt={selected.decidedAt} activeStepName={selected.activeStepName} />
+            {(() => {
+              const retro = checkRetroactiveRequest(selected.createdAt, selected.payload);
+              return retro.isRetroactive ? <RetroactiveBadge daysDiff={retro.daysDiff} /> : null;
+            })()}
             <RequestWhatsAppShareButton
               number={selected.requestNumber}
               typeLabel={labels[selected.requestType]}
