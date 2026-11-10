@@ -937,12 +937,12 @@ export function RequestsPage() {
                       className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-sky-500/30 bg-sky-500/10 px-4 py-2.5 text-xs font-bold text-sky-600 dark:text-sky-400 hover:bg-sky-500/20 transition disabled:opacity-50"
                       disabled={delegateMutation.isPending || decision.isPending}
                       onClick={() => {
-                        if (window.confirm('هل تريد تفويض وتسريع هذا الطلب فوراً لأبو عمار (مدير العمليات 1) للبت فيه؟')) {
+                        if (window.confirm('هل تريد تفويض وتسريع هذا الطلب فوراً لمدير التشغيل (م. محمد عبدالباسط) للبت فيه؟')) {
                           delegateMutation.mutate(
                             { requestId: selected.id, comment: comment.trim() || undefined },
                             {
                               onSuccess: () => {
-                                toast({ message: 'تم تفويض وتسريع الطلب لأبو عمار بنجاح', tone: 'success' });
+                                toast({ message: 'تم تفويض وتسريع الطلب لمدير التشغيل بنجاح', tone: 'success' });
                                 setSelected(null);
                               },
                             },
@@ -951,7 +951,7 @@ export function RequestsPage() {
                       }}
                     >
                       <Forward className="size-4" />
-                      <span>{delegateMutation.isPending ? 'جارٍ التفويض…' : 'تسريع وتفويض لأبو عمار (مدير العمليات 1)'}</span>
+                      <span>{delegateMutation.isPending ? 'جارٍ التفويض…' : 'تسريع وتفويض لمدير التشغيل (م. محمد عبدالباسط)'}</span>
                     </button>
                   </div>
                 )}
@@ -997,12 +997,12 @@ export function RequestsPage() {
                     className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-sky-500/30 bg-sky-500/10 px-4 py-2.5 text-xs font-bold text-sky-600 dark:text-sky-400 hover:bg-sky-500/20 transition disabled:opacity-50"
                     disabled={delegateMutation.isPending || decision.isPending}
                     onClick={() => {
-                      if (window.confirm('هل تريد تفويض وتسريع هذا الطلب فوراً لأبو عمار (مدير العمليات 1) للبت فيه؟')) {
+                      if (window.confirm('هل تريد تفويض وتسريع هذا الطلب فوراً لمدير التشغيل (م. محمد عبدالباسط) للبت فيه؟')) {
                         delegateMutation.mutate(
                           { requestId: selected.id, comment: comment.trim() || undefined },
                           {
                             onSuccess: () => {
-                              toast({ message: 'تم تفويض وتسريع الطلب لأبو عمار بنجاح', tone: 'success' });
+                              toast({ message: 'تم تفويض وتسريع الطلب لمدير التشغيل بنجاح', tone: 'success' });
                               setSelected(null);
                             },
                           },
@@ -1011,7 +1011,7 @@ export function RequestsPage() {
                     }}
                   >
                     <Forward className="size-4" />
-                    <span>{delegateMutation.isPending ? 'جارٍ التفويض…' : 'تسريع وتفويض لأبو عمار (مدير العمليات 1)'}</span>
+                    <span>{delegateMutation.isPending ? 'جارٍ التفويض…' : 'تسريع وتفويض لمدير التشغيل (م. محمد عبدالباسط)'}</span>
                   </button>
                 )}
               </div>
