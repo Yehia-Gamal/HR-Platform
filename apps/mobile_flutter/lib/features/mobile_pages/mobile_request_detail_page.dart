@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:ahla_design_tokens/ahla_design_tokens.dart';
 import 'package:ahla_shabab_management_os/core/formatting/arabic_text.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
@@ -184,6 +186,7 @@ class _RequestScreen extends ConsumerWidget {
               currentStage: currentStage,
             ),
             const SizedBox(height: 12),
+            _SlaCountdownBanner(request: request, isMine: isMine),
             _DetailsCard(request: request),
             if (!isMine && _DecisionContextCard.hasContent(request)) ...[
               const SizedBox(height: 12),
@@ -413,6 +416,148 @@ Future<void> _openAttachment(BuildContext context, String path) async {
         context,
       ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
     }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// عداد تنازلي حي لمهلة الـ ساعتين
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// شريط العد التنازلي الحي لمهلة الـ ساعتين حتى تصعيد الطلب لأبو عمار.
+/// يظهر فقط للموظف صاحب الطلب وللمدير المباشر إذا كان الطلب pending.
+class _SlaCountdownBanner extends StatefulWidget {
+  const _SlaCountdownBanner({required this.request, required this.isMine});
+  final MobileRequestDetail request;
+  final bool isMine;
+
+  @override
+  State<_SlaCountdownBanner> createState() => _SlaCountdownBannerState();
+}
+
+class _SlaCountdownBannerState extends State<_SlaCountdownBanner> {
+  late Timer _timer;
+  Duration _remaining = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _updateRemaining();
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) setState(_updateRemaining);
+    });
+  }
+
+  void _updateRemaining() {
+    // SLA = createdAt + 2 hours
+    final slaDeadline = widget.request.createdAt.add(const Duration(hours: 2));
+    final now = DateTime.now();
+    final diff = slaDeadline.difference(now);
+    _remaining = diff.isNegative ? Duration.zero : diff;
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  String _formatDuration(Duration d) {
+    final h = d.inHours;
+    final m = d.inMinutes.remainder(60);
+    final s = d.inSeconds.remainder(60);
+    if (h > 0) return '$hس $mد';
+    if (m > 0) return '$mد $sث';
+    return '$sث';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // يظهر فقط إذا الطلب pending ومن أنواع الأذونات (late_permit/early_permit)
+    if (widget.request.status != 'pending') return const SizedBox.shrink();
+    if (!['late_permit', 'early_permit', 'leave', 'mission', 'convoy']
+        .contains(widget.request.type)) {
+      return const SizedBox.shrink();
+    }
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isOverdue = _remaining == Duration.zero;
+    final isWarning = !isOverdue && _remaining.inMinutes <= 30;
+
+    final bgColor = isOverdue
+        ? (isDark ? const Color(0xFF3B1515) : const Color(0xFFFEF2F2))
+        : isWarning
+            ? (isDark ? const Color(0xFF2E1708) : const Color(0xFFFFF7ED))
+            : (isDark ? const Color(0xFF0A2318) : const Color(0xFFF0FDF4));
+
+    final borderColor = isOverdue
+        ? AppColors.statusDanger.withValues(alpha: .5)
+        : isWarning
+            ? const Color(0xFFF97316).withValues(alpha: .6)
+            : AppColors.statusSuccess.withValues(alpha: .4);
+
+    final iconColor = isOverdue
+        ? AppColors.statusDanger
+        : isWarning
+            ? const Color(0xFFF97316)
+            : AppColors.statusSuccess;
+
+    final textColor = isOverdue
+        ? AppColors.statusDanger
+        : isWarning
+            ? (isDark ? const Color(0xFFFB923C) : const Color(0xFFC2410C))
+            : (isDark ? const Color(0xFF34D399) : AppColors.statusSuccess);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: borderColor, width: 1.3),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isOverdue ? Icons.warning_amber_rounded : Icons.timer_outlined,
+            color: iconColor,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isOverdue
+                      ? 'انتهت مهلة المدير المباشر — تصعّد الطلب لمدير التشغيل (أبو عمار) ⚡'
+                      : isWarning
+                          ? 'تنبيه: متبقٍ ${_formatDuration(_remaining)} على تصعيد الطلب لأبو عمار!'
+                          : 'المهلة المتاحة للمدير المباشر: ${_formatDuration(_remaining)}',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                    color: textColor,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  isOverdue
+                      ? 'المدير المباشر لا يزال بإمكانه البت في الطلب حتى الآن'
+                      : 'بعد انتهاء المهلة يُصعَّد تلقائياً، وللمدير المباشر حق البت حتى بعد التصعيد',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

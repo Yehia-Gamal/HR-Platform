@@ -5250,7 +5250,83 @@ class _PenaltyCompensateBanner extends ConsumerWidget {
       );
     }
 
-    // 2) فحص الغرامة الفورية المسجلة لليوم (إن وجدت)
+    // 2) فحص هل يوجد إذن حضور/انصراف قيد الاعتماد للموظف اليوم
+    final shiftInfo = ref.watch(myWorkShiftInfoProvider).asData?.value;
+    final todayPermit = shiftInfo?.todayPermit ?? shiftInfo?.currentShift.todayPermit;
+    final isPermitPending = todayPermit != null && todayPermit.status == 'pending';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (isPermitPending) {
+      final isLateArrival = todayPermit.isLateArrival;
+      final mins = todayPermit.permitMinutes;
+      return Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF0F1E36) : const Color(0xFFEFF6FF),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: isDark ? const Color(0xFF2563EB) : const Color(0xFF93C5FD),
+            width: 1.3,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: isDark ? Colors.black.withValues(alpha: .3) : const Color(0xFF3B82F6).withValues(alpha: .08),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? const Color(0xFF1D4ED8).withValues(alpha: .35)
+                    : const Color(0xFFDBEAFE),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isLateArrival ? Icons.hourglass_top_rounded : Icons.logout_rounded,
+                color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isLateArrival
+                        ? 'طلب إذن حضور ($mins دقيقة) ⏳ قيد الاعتماد'
+                        : 'طلب إذن انصراف ($mins دقيقة) ⏳ قيد الاعتماد',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                      color: isDark ? const Color(0xFF93C5FD) : const Color(0xFF1E40AF),
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'طلبك مسجل وبانتظار قرار المدير المباشر. تم إيقاف أي احتساب لتأخير أو غرامات تلقائياً لحين البت في الطلب 🌿',
+                    style: TextStyle(
+                      fontSize: 12,
+                      height: 1.4,
+                      color: isDark ? const Color(0xFFBFDBFE) : const Color(0xFF1E3A8A),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // 3) فحص الغرامة الفورية المسجلة لليوم (إن وجدت)
     final activePen = penalties
         .where(
           (p) =>
@@ -5290,8 +5366,6 @@ class _PenaltyCompensateBanner extends ConsumerWidget {
     final overtimeMins = state.overtimeMinutes > 0
         ? state.overtimeMinutes
         : (reached ? now.difference(targetCheckout).inMinutes : 0);
-
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),

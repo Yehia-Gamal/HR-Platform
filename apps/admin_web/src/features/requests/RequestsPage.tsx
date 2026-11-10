@@ -168,6 +168,15 @@ export function RequestsPage() {
   const [bulkComment, setBulkComment] = useState('');
   const delegateMutation = useDelegateRequestToAbuAmmar();
   const cancelMutation = useCancelRequest();
+  const [lastRefresh, setLastRefresh] = useState(() => new Date());
+  // تحديث تلقائي كل 90 ثانية للطلبات المعلقة
+  useEffect(() => {
+    const interval = setInterval(() => {
+      void query.refetch();
+      setLastRefresh(new Date());
+    }, 90_000);
+    return () => clearInterval(interval);
+  }, [query]);
   const isAdminOrHr =
     auth.access != null &&
     (auth.access.roles.some((r) =>
@@ -239,6 +248,9 @@ export function RequestsPage() {
     const fundraising = allRequests.filter((r) => r.requestType === 'fundraising').length;
     const permits = allRequests.filter((r) => r.requestType === 'late_permit' || r.requestType === 'early_permit').length;
     const shiftChanges = allRequests.filter((r) => r.requestType === 'shift_change').length;
+    const escalated = allRequests.filter(
+      (r) => r.status === 'pending' && (r.workflowStatus === 'awaiting_operator' || r.workflowStatus === 'escalated'),
+    ).length;
 
     return {
       total,
@@ -254,6 +266,7 @@ export function RequestsPage() {
       fundraising,
       permits,
       shiftChanges,
+      escalated,
       approvalRate: total > 0 ? Math.round((approved / total) * 100) : 0,
     };
   }, [allRequests, corrections]);
@@ -279,7 +292,11 @@ export function RequestsPage() {
               typeTab === 'corrections' ||
               // تبويب «أذونات الحضور» يجمع نوعين (يطابق عدّاده metrics.permits) —
               // كانت المقارنة الحرفية بـ 'attendance_permit' تُفرغ القائمة رغم العدّاد.
-              (typeTab === 'attendance_permit' ? item.requestType === 'late_permit' || item.requestType === 'early_permit' : item.requestType === typeTab))
+              (typeTab === 'escalated'
+                ? item.workflowStatus === 'awaiting_operator' || item.workflowStatus === 'escalated'
+                : typeTab === 'attendance_permit'
+                  ? item.requestType === 'late_permit' || item.requestType === 'early_permit'
+                  : item.requestType === typeTab))
           );
         })
         // الأحدث أولًا (قاعدة المالك لكل قائمة) — الاستعجال شارة «بانتظارك» لا ترتيب.
@@ -363,6 +380,7 @@ export function RequestsPage() {
               <RefreshCw className="size-3.5" />
               <span className="hidden sm:inline">تحديث</span>
             </button>
+            <span className="muted text-xs hidden sm:inline">آخر تحديث: {lastRefresh.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</span>
           </div>
         }
       />
@@ -413,6 +431,18 @@ export function RequestsPage() {
               setStatus('rejected');
             }}
           />
+          {metrics.escalated > 0 ? (
+            <MetricCard
+              label="مصعّدة لأبو عمار"
+              value={metrics.escalated}
+              hint="تجاوزت مهلة المدير المباشر وانتقلت لمدير التشغيل"
+              icon={AlertTriangle}
+              compact={true}
+              onClick={() => {
+                setTypeTab('escalated');
+              }}
+            />
+          ) : null}
         </section>
       )}
       <nav className="flex flex-wrap gap-2" aria-label="تصنيف الطلبات">
@@ -425,6 +455,7 @@ export function RequestsPage() {
           { key: 'attendance_permit' as const, label: 'أذونات الحضور', count: metrics.permits },
           { key: 'shift_change' as const, label: 'فترات العمل', count: metrics.shiftChanges },
           { key: 'corrections' as const, label: 'تصحيحات الحضور', count: corrections.length },
+          { key: 'escalated' as const, label: '⚡ مصعّدة لأبو عمار', count: metrics.escalated },
         ].map((tab) => (
           <button
             key={tab.key}
