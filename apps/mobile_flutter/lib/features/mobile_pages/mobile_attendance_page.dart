@@ -5291,25 +5291,39 @@ class _PenaltyCompensateBanner extends ConsumerWidget {
         ? state.overtimeMinutes
         : (reached ? now.difference(targetCheckout).inMinutes : 0);
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: reached
-            ? AppColors.statusSuccess.withValues(alpha: .12)
-            : const Color(0xFFFFF7ED),
+            ? (isDark
+                ? const Color(0xFF064E3B).withValues(alpha: .35)
+                : AppColors.statusSuccess.withValues(alpha: .12))
+            : (isDark
+                ? const Color(0xFF26150B)
+                : const Color(0xFFFFF7ED)),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: reached
-              ? AppColors.statusSuccess.withValues(alpha: .4)
-              : const Color(0xFFFDBA74),
+              ? (isDark
+                  ? const Color(0xFF059669)
+                  : AppColors.statusSuccess.withValues(alpha: .4))
+              : (isDark
+                  ? const Color(0xFF9A3412)
+                  : const Color(0xFFFDBA74)),
           width: 1.3,
         ),
         boxShadow: [
           BoxShadow(
             color: reached
-                ? AppColors.statusSuccess.withValues(alpha: .06)
-                : const Color(0xFFEA580C).withValues(alpha: .08),
+                ? (isDark
+                    ? const Color(0xFF059669).withValues(alpha: .15)
+                    : AppColors.statusSuccess.withValues(alpha: .06))
+                : (isDark
+                    ? Colors.black.withValues(alpha: .3)
+                    : const Color(0xFFEA580C).withValues(alpha: .08)),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -5324,15 +5338,19 @@ class _PenaltyCompensateBanner extends ConsumerWidget {
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: reached
-                      ? AppColors.statusSuccess.withValues(alpha: .18)
-                      : const Color(0xFFF97316).withValues(alpha: .18),
+                      ? (isDark
+                          ? const Color(0xFF065F46).withValues(alpha: .4)
+                          : AppColors.statusSuccess.withValues(alpha: .18))
+                      : (isDark
+                          ? const Color(0xFF7C2D12).withValues(alpha: .45)
+                          : const Color(0xFFF97316).withValues(alpha: .18)),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   reached ? Icons.verified_user_rounded : Icons.lightbulb_rounded,
                   color: reached
-                      ? AppColors.statusSuccess
-                      : const Color(0xFFEA580C),
+                      ? (isDark ? const Color(0xFF34D399) : AppColors.statusSuccess)
+                      : (isDark ? const Color(0xFFFB923C) : const Color(0xFFEA580C)),
                   size: 22,
                 ),
               ),
@@ -5349,18 +5367,18 @@ class _PenaltyCompensateBanner extends ConsumerWidget {
                         fontSize: 14.5,
                         fontWeight: FontWeight.bold,
                         color: reached
-                            ? AppColors.statusSuccess
-                            : const Color(0xFFC2410C),
+                            ? (isDark ? const Color(0xFF34D399) : AppColors.statusSuccess)
+                            : (isDark ? const Color(0xFFFB923C) : const Color(0xFFC2410C)),
                       ),
                     ),
                     if (!reached && lateMins > 0) ...[
                       const SizedBox(height: 2),
                       Text(
                         'تأخير $lateMins دقيقة • الخصم المقرر: ${penaltyAmount.toStringAsFixed(0)} ج.م',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF9A3412),
+                          color: isDark ? const Color(0xFFFDBA74) : const Color(0xFF9A3412),
                         ),
                       ),
                     ],
@@ -5378,7 +5396,9 @@ class _PenaltyCompensateBanner extends ConsumerWidget {
               fontSize: 13,
               height: 1.45,
               fontWeight: FontWeight.w500,
-              color: Theme.of(context).colorScheme.onSurface,
+              color: reached
+                  ? (isDark ? const Color(0xFFA7F3D0) : const Color(0xFF166534))
+                  : (isDark ? const Color(0xFFFFEDD5) : const Color(0xFF431407)),
             ),
           ),
           if (!reached) ...[
@@ -5386,25 +5406,27 @@ class _PenaltyCompensateBanner extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFEDD5),
+                color: isDark ? const Color(0xFF3A1C0B) : const Color(0xFFFFEDD5),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFFED7AA)),
+                border: Border.all(
+                  color: isDark ? const Color(0xFF7C2D12) : const Color(0xFFFED7AA),
+                ),
               ),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.access_time_filled_rounded,
                     size: 18,
-                    color: Color(0xFFEA580C),
+                    color: isDark ? const Color(0xFFFB923C) : const Color(0xFFEA580C),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'موعد الانصراف المقترح: $targetStr',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF9A3412),
+                        color: isDark ? const Color(0xFFFFEDD5) : const Color(0xFF9A3412),
                       ),
                     ),
                   ),
@@ -5412,10 +5434,10 @@ class _PenaltyCompensateBanner extends ConsumerWidget {
                     remainingMins > 0
                         ? 'متبقٍ ${remainingMins ~/ 60} س و ${remainingMins % 60} د'
                         : 'دقائق معدودة',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFFC2410C),
+                      color: isDark ? const Color(0xFFFDBA74) : const Color(0xFFC2410C),
                     ),
                   ),
                 ],
@@ -5427,27 +5449,31 @@ class _PenaltyCompensateBanner extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: const Color(0xFF0D9488).withValues(alpha: 0.15),
+                color: isDark
+                    ? const Color(0xFF0D9488).withValues(alpha: 0.25)
+                    : const Color(0xFF0D9488).withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: const Color(0xFF0D9488).withValues(alpha: 0.35),
+                  color: isDark
+                      ? const Color(0xFF2DD4BF).withValues(alpha: 0.5)
+                      : const Color(0xFF0D9488).withValues(alpha: 0.35),
                 ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.more_time_rounded,
                     size: 16,
-                    color: Color(0xFF0D9488),
+                    color: isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0D9488),
                   ),
                   const SizedBox(width: 6),
                   Text(
                     'الوقت الإضافي حتى الآن: +$overtimeMins دقيقة (${(overtimeMins / 60).floor()} س و ${overtimeMins % 60} د)',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF0D9488),
+                      color: isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0D9488),
                     ),
                   ),
                 ],
