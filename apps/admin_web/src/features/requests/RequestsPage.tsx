@@ -102,8 +102,11 @@ function isAwaitingMe(item: RequestSummary): boolean {
 
 /** شارة المرحلة الحالية للطلب مع لونها */
 function TierBadge({ workflowStatus, activeStepName }: { workflowStatus: string; activeStepName: string | null }) {
-  const label = activeStepName;
+  let label = activeStepName;
   if (!label) return null;
+  if (workflowStatus === 'awaiting_operator' || label.includes('مدير التشغيل')) {
+    label = 'مدير التشغيل 1 (أبو عمار)';
+  }
   const colorClass =
     workflowStatus === 'awaiting_operator'
       ? 'bg-[var(--warning)]/15 text-[var(--warning)]'
@@ -203,6 +206,9 @@ export function RequestsPage() {
           'hr-specialist',
           'hr-officer',
           'operations-manager',
+          'operations-manager-1',
+          'direct-manager',
+          'department-manager',
         ].includes(r),
       ) ||
       auth.access.workspaces.includes('main_admin'));

@@ -438,6 +438,8 @@ class _DecisionBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    final isEscalatedToOps = request.workflowStatus == 'awaiting_operator' ||
+        (currentStage?.contains('مدير التشغيل') ?? false);
     return Material(
       elevation: 8,
       color: scheme.surface,
@@ -451,15 +453,17 @@ class _DecisionBar extends ConsumerWidget {
             children: [
               Text(
                 canDecide
-                    ? (awaitingMe
-                        ? 'الطلب بانتظار قرارك'
-                        : 'الطلب الآن عند ${currentStage ?? 'مرحلة أخرى'} — ويمكنك البت فيه بصلاحيتك')
-                    : 'القرار في هذه المرحلة لغيرك — ويمكنك تسريعه وتفويضه لمدير التشغيل',
+                    ? (isEscalatedToOps
+                        ? 'الطلب عند مدير التشغيل (أبو عمار) — وبصفتك مديراً يمكنك قبوله أو رفضه الآن'
+                        : (awaitingMe
+                            ? 'الطلب بانتظار قرارك (مهلة ساعتان)'
+                            : 'الطلب الآن عند ${currentStage ?? 'مرحلة أخرى'} — ويمكنك البت فيه بصلاحيتك'))
+                    : 'القرار في هذه المرحلة لغيرك — ويمكنك تسريعه وتفويضه لمدير التشغيل (أبو عمار)',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: awaitingMe && canDecide
+                  color: (awaitingMe || isEscalatedToOps) && canDecide
                       ? AppColors.statusInfo
                       : scheme.onSurfaceVariant,
                 ),
@@ -821,13 +825,23 @@ class _HeroCard extends StatelessWidget {
     Widget? chip;
     switch (request.status) {
       case 'pending':
+        final isEscalatedToOps = request.workflowStatus == 'awaiting_operator' ||
+            (currentStage?.contains('مدير التشغيل') ?? false);
         final awaiting = canDecide && (request.awaitingMe ?? true);
-        main = awaiting
-            ? 'الطلب بانتظار قرارك'
-            : 'بانتظار قرار ${currentStage ?? 'الإدارة'}';
+        if (isEscalatedToOps && canDecide) {
+          main = 'الطلب مصعّد لمدير التشغيل (أبو عمار)';
+        } else {
+          main = awaiting
+              ? 'الطلب بانتظار قرارك'
+              : 'بانتظار قرار ${currentStage ?? 'الإدارة'}';
+        }
         final current = currentStepIndex(request.steps, request.status);
         final dueAt = current >= 0 ? request.steps[current].dueAt : request.decisionDueAt;
-        if (awaiting) {
+        if (isEscalatedToOps && canDecide) {
+          detail = dueAt != null
+              ? 'المرحلة: مدير التشغيل 1 (أبو عمار) · متاح لك كمدير مباشر اعتماده أو رفضه فوراً'
+              : 'المرحلة: مدير التشغيل 1 (أبو عمار) · متاح لك كمدير مباشر اعتماده أو رفضه فوراً';
+        } else if (awaiting) {
           if (currentStage != null) {
             detail = dueAt != null
                 ? 'المرحلة الحالية: $currentStage · أقصى موعد للبت: ${arDateTime(dueAt)}'

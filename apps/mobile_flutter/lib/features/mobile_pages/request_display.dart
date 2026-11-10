@@ -245,7 +245,7 @@ String requestStageName(String? name, {String? roleSlug, int? order}) {
       n.contains('مشرف العمليات') ||
       n.contains('مدير التشغيل') ||
       n.contains('الأوبريشن')) {
-    return 'مدير التشغيل 1';
+    return 'مدير التشغيل 1 (أبو عمار)';
   }
   if (n.contains('المدير المباشر') || roleSlug == 'direct_manager') return 'المدير المباشر';
   for (final prefix in const ['موافقة ', 'اعتماد ', 'مراجعة ']) {
@@ -257,7 +257,7 @@ String requestStageName(String? name, {String? roleSlug, int? order}) {
 
 /// الجهة التي صُعِّد إليها الطلب آليًا.
 String escalationTargetLabel(String? roleSlug) => switch (roleSlug) {
-  'operations-manager-1' => 'مدير التشغيل 1',
+  'operations-manager-1' => 'مدير التشغيل 1 (أبو عمار)',
   'operations-manager-2' => 'مدير التشغيل 2',
   'operations-officer' => 'ضابط العمليات',
   'hr-manager' || 'hr-specialist' || 'hr-officer' => 'الموارد البشرية',
