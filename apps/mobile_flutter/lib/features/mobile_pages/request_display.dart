@@ -394,15 +394,15 @@ String arDurationMinutes(int minutes) {
   return '$hours و${arCount(m, one: 'دقيقة', two: 'دقيقتان', few: 'دقائق', many: 'دقيقة', base: 'دقيقة')}';
 }
 
-/// حالة المهلة: «متأخر منذ يومين» (حمراء) أو «خلال 3 ساعات».
+/// حالة المهلة: «تجاوز المهلة منذ يومين» (حمراء) أو «متبقي على مهلة البت: 3 ساعات».
 ({String label, bool overdue})? requestDueStatus(
   DateTime? due, {
   DateTime? now,
 }) {
   if (due == null) return null;
   final d = due.difference(now ?? DateTime.now());
-  if (d.isNegative) return (label: 'متأخر منذ ${arSpan(d)}', overdue: true);
-  return (label: 'المهلة خلال ${arSpan(d)}', overdue: false);
+  if (d.isNegative) return (label: 'تجاوز المهلة منذ ${arSpan(d)}', overdue: true);
+  return (label: 'متبقي على مهلة البت: ${arSpan(d)}', overdue: false);
 }
 
 String _timeOf(DateTime local) => DateFormat('h:mm a', 'ar').format(local);
@@ -824,7 +824,7 @@ RequestSlaInfo calculateRequestSla({
   if (elapsed.inHours < 2) {
     return RequestSlaInfo(
       tone: RequestSlaTone.fast,
-      label: 'جديد (${_formatSlaDuration(elapsed)})',
+      label: 'جديد (منذ ${_formatSlaDuration(elapsed)})',
       detail: responsible != null ? 'عند: $responsible' : 'أقل من ساعتين',
       color: AppColors.statusSuccess,
       icon: Icons.speed_rounded,
@@ -835,7 +835,7 @@ RequestSlaInfo calculateRequestSla({
   } else if (elapsed.inHours < 24) {
     return RequestSlaInfo(
       tone: RequestSlaTone.warning,
-      label: 'قيد الانتظار (${_formatSlaDuration(elapsed)})',
+      label: 'معلق منذ ${_formatSlaDuration(elapsed)}',
       detail: responsible != null ? 'عند: $responsible' : 'أقل من 24 ساعة',
       color: const Color(0xFFD97706),
       icon: Icons.hourglass_top_rounded,
@@ -846,7 +846,7 @@ RequestSlaInfo calculateRequestSla({
   } else {
     return RequestSlaInfo(
       tone: RequestSlaTone.breached,
-      label: 'معلق أكثر من 24 س (${_formatSlaDuration(elapsed)})',
+      label: 'معلق منذ ${_formatSlaDuration(elapsed)}',
       detail: responsible != null ? 'واقف عند: $responsible' : 'تجاوز مهلة الـ 24 ساعة',
       color: AppColors.statusDanger,
       icon: Icons.warning_amber_rounded,

@@ -172,7 +172,9 @@ class _RequestScreen extends ConsumerWidget {
               16,
               12,
               16,
-              MediaQuery.paddingOf(context).bottom + 120,
+              (canDecide || canDelegate)
+                  ? 20
+                  : MediaQuery.paddingOf(context).bottom + 20,
             ),
             children: [
             _HeroCard(
@@ -220,7 +222,7 @@ class _RequestScreen extends ConsumerWidget {
                         : Icons.undo_rounded),
                 label: Text(_cancelButtonLabel(request, isAdminOrHr, isMine)),
               ),
-              const SizedBox(height: 48),
+              const SizedBox(height: 12),
             ],
             if (isMine &&
                 request.canResubmit &&
@@ -689,15 +691,55 @@ class _HeroCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 if (showTitle) ...[
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16.5,
-                      fontWeight: FontWeight.w900,
-                      height: 1.4,
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: typeColor.withValues(alpha: .07),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: typeColor.withValues(alpha: .28),
+                        width: 1,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.bookmark_rounded,
+                              size: 15,
+                              color: typeColor,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'موضوع ${requestTypeDefiniteLabel(request.type)}',
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w800,
+                                color: typeColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                            height: 1.45,
+                            color: scheme.onSurface,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                 ],
                 _statusBanner(context),
                 const SizedBox(height: 12),
@@ -780,15 +822,22 @@ class _HeroCard extends StatelessWidget {
         main = awaiting
             ? 'الطلب بانتظار قرارك'
             : 'بانتظار قرار ${currentStage ?? 'الإدارة'}';
-        if (awaiting) {
-          if (currentStage != null) detail = 'المرحلة الحالية: $currentStage';
-        } else if (canDecide) {
-          detail = 'يمكنك البت فيه بصلاحيتك قبل وصوله إليك';
-        }
         final current = currentStepIndex(request.steps, request.status);
-        final due = requestDueStatus(
-          current >= 0 ? request.steps[current].dueAt : request.decisionDueAt,
-        );
+        final dueAt = current >= 0 ? request.steps[current].dueAt : request.decisionDueAt;
+        if (awaiting) {
+          if (currentStage != null) {
+            detail = dueAt != null
+                ? 'المرحلة الحالية: $currentStage · أقصى موعد للبت: ${arDateTime(dueAt)}'
+                : 'المرحلة الحالية: $currentStage';
+          }
+        } else if (canDecide) {
+          detail = dueAt != null
+              ? 'يمكنك البت فيه بصلاحيتك · أقصى موعد: ${arDateTime(dueAt)}'
+              : 'يمكنك البت فيه بصلاحيتك قبل وصوله إليك';
+        } else if (dueAt != null) {
+          detail = 'أقصى موعد للرد: ${arDateTime(dueAt)}';
+        }
+        final due = requestDueStatus(dueAt);
         if (due != null) {
           chip = RequestMetaChip(
             icon: due.overdue
@@ -1031,18 +1080,18 @@ class _DetailsCard extends StatelessWidget {
       icon: Icons.assignment_outlined,
       title: 'بيانات ${requestTypeDefiniteLabel(request.type)}',
       children: [
-        for (final (icon, label, value) in rows)
+        for (var i = 0; i < rows.length; i++) ...[
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 5),
+            padding: const EdgeInsets.symmetric(vertical: 6.5),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(icon, size: 18, color: scheme.primary),
+                Icon(rows[i].$1, size: 18, color: scheme.primary),
                 const SizedBox(width: 10),
                 SizedBox(
-                  width: 92,
+                  width: 104,
                   child: Text(
-                    label,
+                    rows[i].$2,
                     style: TextStyle(
                       fontSize: 12.5,
                       color: scheme.onSurfaceVariant,
@@ -1052,7 +1101,7 @@ class _DetailsCard extends StatelessWidget {
                 ),
                 Expanded(
                   child: Text(
-                    value,
+                    rows[i].$3,
                     style: const TextStyle(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w800,
@@ -1063,6 +1112,13 @@ class _DetailsCard extends StatelessWidget {
               ],
             ),
           ),
+          if (i < rows.length - 1)
+            Divider(
+              height: 1,
+              thickness: 0.7,
+              color: scheme.outlineVariant.withValues(alpha: .25),
+            ),
+        ],
         if (showReason) ...[
           const SizedBox(height: 8),
           Container(
