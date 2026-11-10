@@ -25,6 +25,21 @@ String requestTypeLabel(String type) => switch (type) {
   _ => 'طلب',
 };
 
+/// التسمية المعرّفة لنوع الطلب لاستخدامها في عناوين البطاقات والتفاصيل (مثل «بيانات المأمورية»).
+String requestTypeDefiniteLabel(String type) => switch (type) {
+  'leave' => 'الإجازة',
+  'mission' => 'المأمورية',
+  'convoy' => 'القافلة',
+  'fundraising' => 'اليوم الترفيهي (الفاندي)',
+  'late_permit' => 'إذن الحضور',
+  'early_permit' => 'إذن الانصراف',
+  'attendance_correction' => 'تصحيح البصمة',
+  'shift_change' => 'تغيير فترة العمل',
+  'overtime' => 'العمل الإضافي',
+  'excuse' => 'الإذن',
+  _ => 'الطلب',
+};
+
 IconData requestTypeIcon(String type) => switch (type) {
   'leave' => Icons.beach_access_rounded,
   'mission' => Icons.business_center_rounded,

@@ -176,7 +176,7 @@ Future<bool> showRequestDelegateSheet(
             SizedBox(width: 8),
             Expanded(
               child: Text(
-                'تم التفويض الفوري لمدير التشغيل (أبو عمار) بنجاح ⚡',
+                'تم التفويض الفوري لمدير التشغيل (م. محمد عبدالباسط) بنجاح ⚡',
                 style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
               ),
             ),

@@ -100,8 +100,24 @@ class _RequestScreen extends ConsumerWidget {
     final isAdminOrHr = (access?.roles.any(adminOrHrRoles.contains) ?? false) ||
         (access?.hasPermission('requests.approve') ?? false) ||
         (access?.hasPermission('leave.request.manage') ?? false);
+
+    final current = currentStepIndex(request.steps, request.status);
+    final currentStage = current >= 0
+        ? requestStageName(
+            request.steps[current].name,
+            roleSlug: request.steps[current].roleSlug,
+            order: request.steps[current].order,
+          )
+        : null;
+
+    final isAbuAmmar = myEmployeeId == '767eae8e-e7be-458e-a6ca-879414e46b08' ||
+        (access?.roles.contains('operations-manager-1') ?? false);
+    final isCurrentStageOperations =
+        currentStage?.contains('مدير التشغيل') ?? false;
     final canDelegate = !isClinicStaff &&
         !isMine &&
+        !isAbuAmmar &&
+        !isCurrentStageOperations &&
         request.status == 'pending' &&
         (access?.roles.any(delegateRoles.contains) ?? false);
     // فتح تلقائي لورقة القرار عند القدوم من زر إشعار — مرة واحدة،
@@ -116,15 +132,6 @@ class _RequestScreen extends ConsumerWidget {
         if (context.mounted) _openDecision(context, ref, request, auto);
       });
     }
-
-    final current = currentStepIndex(request.steps, request.status);
-    final currentStage = current >= 0
-        ? requestStageName(
-            request.steps[current].name,
-            roleSlug: request.steps[current].roleSlug,
-            order: request.steps[current].order,
-          )
-        : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -195,7 +202,7 @@ class _RequestScreen extends ConsumerWidget {
                         (isFieldAssignmentType(request.type) &&
                             (request.status == 'pending' || request.status == 'approved') &&
                             request.missionExecution?.status != 'completed'))) ||
-                (isAdminOrHr && (request.status == 'pending' || request.status == 'approved'))) ...[
+                (isAdminOrHr && ((request.status == 'pending' && !canDecide) || request.status == 'approved'))) ...[
               const SizedBox(height: 14),
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
@@ -442,7 +449,7 @@ class _DecisionBar extends ConsumerWidget {
                     ? (awaitingMe
                         ? 'الطلب بانتظار قرارك'
                         : 'الطلب الآن عند ${currentStage ?? 'مرحلة أخرى'} — ويمكنك البت فيه بصلاحيتك')
-                    : 'القرار في هذه المرحلة لغيرك — ويمكنك تسريعه وتفويضه لأبو عمار',
+                    : 'القرار في هذه المرحلة لغيرك — ويمكنك تسريعه وتفويضه لمدير التشغيل',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 12,
@@ -523,7 +530,7 @@ class _DecisionBar extends ConsumerWidget {
                   ),
                   icon: const Icon(Icons.bolt_rounded, size: 18),
                   label: const Text(
-                    'تسريع وتفويض لأبو عمار (مدير التشغيل 1)',
+                    'تسريع وتفويض لمدير التشغيل (م. محمد عبدالباسط)',
                     style: TextStyle(
                       fontWeight: FontWeight.w800,
                       fontSize: 12,
@@ -974,7 +981,11 @@ class _DetailsCard extends StatelessWidget {
         if (days != null && days > 1) {
           add(Icons.event_available_rounded, 'المدة', arDays(days));
         }
-        add(Icons.logout_rounded, 'وقت الانطلاق', time12(_p['startTime']));
+        add(
+          Icons.logout_rounded,
+          days != null && days > 1 ? 'انطلاق اليوم الأول' : 'وقت الانطلاق',
+          time12(_p['startTime']),
+        );
         add(Icons.login_rounded, 'وقت العودة', time12(_p['endTime']));
       case 'late_permit' || 'early_permit':
         add(
@@ -1018,8 +1029,7 @@ class _DetailsCard extends StatelessWidget {
     }
     return _SectionCard(
       icon: Icons.assignment_outlined,
-      title:
-          'بيانات ${requestTypeLabel(request.type) == 'طلب' ? 'الطلب' : requestTypeLabel(request.type)}',
+      title: 'بيانات ${requestTypeDefiniteLabel(request.type)}',
       children: [
         for (final (icon, label, value) in rows)
           Padding(
@@ -1420,9 +1430,13 @@ class _DecisionContextCard extends StatelessWidget {
                     ? 'لا زملاء آخرين في إدارته'
                     : 'لا أحد من زملاء إدارته خارج الجمعية في الفترة نفسها')
               : '${arEmployees(away.length)} من إدارته خارج الجمعية في الفترة نفسها',
-          subtitle: away.isEmpty || ins.teamSize == 0
-              ? null
-              : 'من أصل ${arEmployees(ins.teamSize)} في الإدارة',
+          subtitle: away.isEmpty
+              ? (ins.teamSize == 0
+                    ? null
+                    : 'لا يوجد تعارض مع جدول الإدارة (متاح بالكامل)')
+              : (ins.teamSize == 0
+                    ? null
+                    : 'من أصل ${arEmployees(ins.teamSize)} في الإدارة'),
           extra: away.isEmpty
               ? null
               : Padding(
@@ -1875,16 +1889,24 @@ class _MissionExecutionCard extends ConsumerWidget {
         ].join(' '),
       ),
       _ => (
-        const Color(0xFF64748B),
-        Icons.flag_outlined,
-        'لم يبدأ التنفيذ بعد',
+        status == 'pending' ? AppColors.statusInfo : const Color(0xFF64748B),
+        status == 'pending'
+            ? Icons.pending_actions_rounded
+            : Icons.flag_outlined,
+        status == 'pending'
+            ? 'بانتظار الاعتماد لبدء التنفيذ'
+            : 'لم يبدأ التنفيذ بعد',
         isOwner
             ? (status == 'approved'
                   ? 'اعتُمدت $_noun — ابدأها عند انطلاقك فعليًا.'
-                  : 'يمكنك بدؤها الآن ولو كان الطلب قيد المراجعة.')
+                  : (status == 'pending'
+                        ? 'يبدأ التنفيذ الميداني بعد صدور قرار الإدارة واعتماد الطلب.'
+                        : null))
             : (status == 'approved'
                   ? 'اعتُمدت وبانتظار أن يبدأ الموظف التنفيذ.'
-                  : null),
+                  : (status == 'pending'
+                        ? 'لا يبدأ التنفيذ الميداني قبل اكتمال مسار الاعتماد والموافقة.'
+                        : null)),
       ),
     };
 
