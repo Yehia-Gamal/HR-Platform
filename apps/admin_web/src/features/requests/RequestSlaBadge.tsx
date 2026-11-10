@@ -171,14 +171,9 @@ export function RequestWhatsAppShareButton({
 /**
  * فحص ما إذا كان الطلب مقدماً بأثر رجعي (أي أن تاريخ حدوثه الفعلي يسبق تاريخ تقديمه).
  */
-export function checkRetroactiveRequest(
-  createdAt: string,
-  payload?: Record<string, unknown> | null,
-): { isRetroactive: boolean; daysDiff: number } {
+export function checkRetroactiveRequest(createdAt: string, payload?: Record<string, unknown> | null): { isRetroactive: boolean; daysDiff: number } {
   if (!payload || !createdAt) return { isRetroactive: false, daysDiff: 0 };
-  const targetStr = (payload.startDate || payload.permitDate || payload.workDate || payload.date || payload.correctionDate) as
-    | string
-    | undefined;
+  const targetStr = (payload.startDate || payload.permitDate || payload.workDate || payload.date || payload.correctionDate) as string | undefined;
   if (!targetStr || typeof targetStr !== 'string') return { isRetroactive: false, daysDiff: 0 };
 
   const targetDate = new Date(targetStr);
@@ -212,4 +207,3 @@ export function RetroactiveBadge({ daysDiff, compact }: { daysDiff: number; comp
     </span>
   );
 }
-
