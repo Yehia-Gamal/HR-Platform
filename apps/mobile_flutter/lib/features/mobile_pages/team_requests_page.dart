@@ -461,7 +461,7 @@ class _TeamRequestsPageState extends ConsumerState<TeamRequestsPage> {
                 14,
                 12,
                 14,
-                MediaQuery.paddingOf(context).bottom + 120,
+                MediaQuery.paddingOf(context).bottom + 80,
               ),
               children: [
                 _SummaryCard(

@@ -169,7 +169,7 @@ class _ApprovalSpeedRadarPageState
                 16,
                 12,
                 16,
-                MediaQuery.paddingOf(context).bottom + 120,
+                MediaQuery.paddingOf(context).bottom + 24,
               ),
               children: [
                 // فلتر الفترة

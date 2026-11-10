@@ -210,7 +210,9 @@ class _AttendanceCorrectionDetailPageState
                       16,
                       12,
                       16,
-                      MediaQuery.paddingOf(context).bottom + 120,
+                      (isPending && detail.canDecide)
+                          ? 20
+                          : MediaQuery.paddingOf(context).bottom + 20,
                     ),
                     children: [
                     // شريط حالة الطلب

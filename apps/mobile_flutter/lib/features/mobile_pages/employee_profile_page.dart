@@ -187,7 +187,7 @@ class _ProfileBody extends StatelessWidget {
         16,
         16,
         16,
-        MediaQuery.paddingOf(context).bottom + 120,
+        MediaQuery.paddingOf(context).bottom + 24,
       ),
       children: [
         _HeroCard(employee: employee, detailed: detailed, code: code),

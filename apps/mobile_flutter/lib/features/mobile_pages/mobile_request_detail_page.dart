@@ -193,7 +193,10 @@ class _RequestScreen extends ConsumerWidget {
               const SizedBox(height: 12),
               _ContextCard(request: request),
             ],
-            if (hasFieldExecution(request.type)) ...[
+            if (hasFieldExecution(request.type) &&
+                (request.status != 'pending' ||
+                    isMine ||
+                    request.missionExecution?.startedAt != null)) ...[
               const SizedBox(height: 12),
               _MissionExecutionCard(request: request, isOwner: isMine),
             ],
@@ -1036,6 +1039,11 @@ class _DetailsCard extends StatelessWidget {
           time12(_p['startTime']),
         );
         add(Icons.login_rounded, 'وقت العودة', time12(_p['endTime']));
+        if (_text('notes') != null &&
+            _text('notes')!.trim().isNotEmpty &&
+            _text('notes') != request.reason?.trim()) {
+          add(Icons.notes_rounded, 'ملاحظات', _text('notes'));
+        }
       case 'late_permit' || 'early_permit':
         add(
           Icons.category_rounded,
@@ -1059,9 +1067,30 @@ class _DetailsCard extends StatelessWidget {
           'الانصراف المطلوب',
           time12(_p['proposedCheckOutTime'] ?? _p['checkOutTime'] ?? _p['requestedCheckOut']),
         );
+      case 'overtime':
+        add(Icons.today_rounded, 'اليوم', period);
+        if (_p['hours'] != null) {
+          add(Icons.timer_outlined, 'ساعات العمل الإضافي', '${_p['hours']} ساعة');
+        }
+        if (_text('tasks') != null) {
+          add(Icons.assignment_outlined, 'المهام المنجزة', _text('tasks'));
+        }
+      case 'excuse':
+        add(Icons.today_rounded, 'اليوم', period);
+        if (_p['minutes'] != null) {
+          add(Icons.timer_outlined, 'المدة', permitDurationLabel(_p['minutes']));
+        }
+        if (_text('excuseType') != null) {
+          add(Icons.category_rounded, 'نوع العذر', _text('excuseType'));
+        }
       default:
         add(Icons.date_range_rounded, 'الفترة', period);
         add(Icons.place_rounded, 'المكان', _text('location'));
+        if (_text('notes') != null &&
+            _text('notes')!.trim().isNotEmpty &&
+            _text('notes') != request.reason?.trim()) {
+          add(Icons.notes_rounded, 'ملاحظات', _text('notes'));
+        }
     }
     return rows;
   }
