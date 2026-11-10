@@ -240,8 +240,9 @@ export function classifyEmployee(item: AttendanceRosterItem, currentMinutesFromM
     !isLeave;
   const isPendingPermit = isPermit && Boolean(item.hasPendingRequest) && !item.hasApprovedPermit && item.status !== 'on_permit';
 
-  const hasPermitBenefit = Boolean(item.hasApprovedPermit) || (Boolean(item.hasPendingRequest) && item.pendingRequestType === 'permit') || item.status === 'on_permit';
-  const effectivePermitMinutes = item.permitMinutes && item.permitMinutes > 0 ? item.permitMinutes : (hasPermitBenefit ? 120 : 0);
+  const hasPermitBenefit =
+    Boolean(item.hasApprovedPermit) || (Boolean(item.hasPendingRequest) && item.pendingRequestType === 'permit') || item.status === 'on_permit';
+  const effectivePermitMinutes = item.permitMinutes && item.permitMinutes > 0 ? item.permitMinutes : hasPermitBenefit ? 120 : 0;
 
   const trueLate = calculateTrueLateMinutes(item.firstCheckIn, shiftWindow, item.lateMinutes ?? 0, effectivePermitMinutes, hasPermitBenefit);
 

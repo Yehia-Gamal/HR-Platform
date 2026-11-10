@@ -237,7 +237,8 @@ function _buildPrintHtml(items: AttendanceRosterItem[], category: string, dateIs
         } else {
           statusBadgeClass = 'status-badge-absent';
           statusText =
-            item.status === 'unexcused_absent' || (!item.hasPendingRequest && !item.hasApprovedLeave && !item.hasMission && !item.hasApprovedPermit && item.status === 'absent')
+            item.status === 'unexcused_absent' ||
+            (!item.hasPendingRequest && !item.hasApprovedLeave && !item.hasMission && !item.hasApprovedPermit && item.status === 'absent')
               ? 'غياب بدون إذن'
               : 'غائب';
         }

@@ -448,7 +448,7 @@ ${
         .map(
           (p, i) =>
             `${i + 1}. ${p.item.employeeName} (${p.item.departmentName ?? '—'}) · ${
-              p.category === 'permit_pending' ? 'طلب إذن معلق' : p.item.permitTitle ?? 'إذن معتمد'
+              p.category === 'permit_pending' ? 'طلب إذن معلق' : (p.item.permitTitle ?? 'إذن معتمد')
             }${p.item.permitMinutes ? ` (${p.item.permitMinutes} دقيقة)` : ''}`,
         )
         .join('\n')

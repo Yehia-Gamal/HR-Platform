@@ -864,8 +864,8 @@ function Row({
               item.hasApprovedPermit
                 ? `تأخر بعد تجاوز مدة الإذن المعتمد بـ ${classified.trueLateMinutes} دقيقة`
                 : classified.isPendingPermit
-                ? `تأخر مع وجود طلب إذن قيد المراجعة`
-                : undefined
+                  ? `تأخر مع وجود طلب إذن قيد المراجعة`
+                  : undefined
             }
           >
             <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
@@ -972,11 +972,7 @@ function Row({
         {classified.trueLateMinutes > 0 ? (
           <span
             className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20 font-mono whitespace-nowrap shrink-0"
-            title={
-              item.hasApprovedPermit
-                ? `تأخير بعد استنفاد مدة الإذن المعتمد (${item.permitMinutes ?? 120} دقيقة)`
-                : undefined
-            }
+            title={item.hasApprovedPermit ? `تأخير بعد استنفاد مدة الإذن المعتمد (${item.permitMinutes ?? 120} دقيقة)` : undefined}
           >
             <Clock3 className="size-3" aria-hidden="true" />
             {classified.formattedLate}
