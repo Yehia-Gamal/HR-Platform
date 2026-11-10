@@ -129,7 +129,14 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
   const missionPendingList = classified.filter((c) => c.category === 'present_mission_pending' || c.category === 'mission_pending');
   const missionApprovedList = classified.filter((c) => c.category === 'present_mission_approved' || c.category === 'mission_approved');
   const leaveList = classified.filter((c) => c.category === 'leave_approved' || c.category === 'leave_pending');
-  const permitList = classified.filter((c) => c.isPermit || c.category === 'permit_approved' || c.category === 'permit_pending');
+  const permitList = classified.filter(
+    (c) =>
+      c.isPermit ||
+      c.category === 'permit_approved' ||
+      c.category === 'permit_pending' ||
+      c.category === 'present_permit_approved' ||
+      c.category === 'present_permit_pending',
+  );
   const upcomingShiftList = classified.filter((c) => c.category === 'shift_not_started');
   const onTimePresentList = classified.filter((c) => c.category === 'present_on_time');
 
@@ -445,12 +452,19 @@ ${
   permitList.length > 0
     ? `\n⏱️ *أذونات وتصاريح العمل (${permitList.length}):*\n` +
       permitList
-        .map(
-          (p, i) =>
-            `${i + 1}. ${p.item.employeeName} (${p.item.departmentName ?? '—'}) · ${
-              p.category === 'permit_pending' ? 'طلب إذن معلق' : (p.item.permitTitle ?? 'إذن معتمد')
-            }${p.item.permitMinutes ? ` (${p.item.permitMinutes} دقيقة)` : ''}`,
-        )
+        .map((p, i) => {
+          const badge =
+            p.category === 'permit_pending' || p.category === 'present_permit_pending'
+              ? `طلب إذن معلق #${p.item.pendingRequestNumber ?? ''}`
+              : (p.item.permitTitle ?? 'إذن معتمد');
+          const mins = p.item.permitMinutes ? ` (${p.item.permitMinutes} دقيقة)` : '';
+          const punch = p.item.firstCheckIn
+            ? p.trueLateMinutes === 0
+              ? ` · بصمة: ${fmtTime(p.item.firstCheckIn)} (ضمن الإذن ✓)`
+              : ` · بصمة: ${fmtTime(p.item.firstCheckIn)} [تجاوز بـ ${p.formattedLate}]`
+            : ' · لم يبصم بعد';
+          return `${i + 1}. ${p.item.employeeName} (${p.item.departmentName ?? '—'}) · ${badge}${mins}${punch}`;
+        })
         .join('\n')
     : ''
 }
@@ -915,7 +929,7 @@ ${
                                   <td className="p-2 text-slate-300">{c.item.departmentName ?? '—'}</td>
                                   <td className="p-2 text-slate-200">
                                     <bdi dir="ltr" className="font-mono text-xs font-bold text-slate-200">
-                                      {formatShiftBadge(c.item.shiftName)}
+                                      {formatShiftBadge(c.item.shiftName, c.isPartTime)}
                                     </bdi>
                                   </td>
                                   <td className="p-2">
@@ -959,7 +973,7 @@ ${
                                   <td className="p-2 text-slate-300">{c.item.departmentName ?? '—'}</td>
                                   <td className="p-2 text-slate-200">
                                     <bdi dir="ltr" className="font-mono text-xs font-bold text-slate-200">
-                                      {formatShiftBadge(c.item.shiftName)}
+                                      {formatShiftBadge(c.item.shiftName, c.isPartTime)}
                                     </bdi>
                                   </td>
                                   <td className="p-2 font-mono font-black text-amber-400">{fmtTime(c.item.firstCheckIn)}</td>
@@ -1108,28 +1122,49 @@ ${
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-800 font-medium">
-                              {permitList.map((pm, idx) => (
-                                <tr key={pm.item.employeeId} className="bg-slate-950/40">
-                                  <td className="p-2 text-center text-slate-500 font-bold font-mono">{idx + 1}</td>
-                                  <td className="p-2 font-black text-white">{pm.item.employeeName}</td>
-                                  <td className="p-2 text-slate-300">{pm.item.departmentName ?? '—'}</td>
-                                  <td className="p-2">
-                                    <span
-                                      className={`inline-block px-2 py-0.5 rounded font-black text-[10.5px] ${
-                                        pm.category === 'permit_pending'
-                                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                                          : 'bg-violet-500/20 text-violet-300 border border-violet-500/30'
-                                      }`}
-                                    >
-                                      {pm.category === 'permit_pending' ? '⏳ طلب إذن معلّق' : `⏱️ ${pm.item.permitTitle ?? 'إذن معتمد'}`}
-                                    </span>
-                                  </td>
-                                  <td className="p-2 text-slate-300 font-medium">
-                                    {pm.item.permitMinutes ? `${pm.item.permitMinutes} دقيقة — ` : ''}
-                                    {pm.item.permitReason ?? pm.item.leaveReason ?? 'ظرف طارئ'}
-                                  </td>
-                                </tr>
-                              ))}
+                              {permitList.map((pm, idx) => {
+                                const isPending = pm.category === 'permit_pending' || pm.category === 'present_permit_pending';
+                                return (
+                                  <tr key={pm.item.employeeId} className="bg-slate-950/40">
+                                    <td className="p-2 text-center text-slate-500 font-bold font-mono">{idx + 1}</td>
+                                    <td className="p-2 font-black text-white">{pm.item.employeeName}</td>
+                                    <td className="p-2 text-slate-300">{pm.item.departmentName ?? '—'}</td>
+                                    <td className="p-2">
+                                      <span
+                                        className={`inline-block px-2 py-0.5 rounded font-black text-[10.5px] ${
+                                          isPending
+                                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                            : 'bg-violet-500/20 text-violet-300 border border-violet-500/30'
+                                        }`}
+                                      >
+                                        {isPending ? `⏳ طلب إذن معلّق #${pm.item.pendingRequestNumber ?? ''}` : `⏱️ ${pm.item.permitTitle ?? 'إذن معتمد'}`}
+                                      </span>
+                                    </td>
+                                    <td className="p-2 text-slate-300 font-medium">
+                                      <div className="flex flex-col gap-0.5">
+                                        <div>
+                                          {pm.item.permitMinutes ? `${pm.item.permitMinutes} دقيقة — ` : ''}
+                                          {pm.item.permitReason ?? pm.item.leaveReason ?? 'ظرف طارئ'}
+                                        </div>
+                                        {pm.item.firstCheckIn ? (
+                                          <div className="text-[10px] font-mono text-slate-400">
+                                            بصمة الحضور: <span className="text-white font-bold">{fmtTime(pm.item.firstCheckIn)}</span>
+                                            {pm.trueLateMinutes === 0 ? (
+                                              <span className="text-emerald-400 ms-2 font-bold">✓ حضور منضبط ضمن فترة الإذن</span>
+                                            ) : (
+                                              <span className="text-amber-400 ms-2 font-bold">
+                                                ⚠️ تجاوز الإذن بـ {fmtNum(pm.formattedLate)} (مخصوم {pm.item.permitMinutes || 120} د)
+                                              </span>
+                                            )}
+                                          </div>
+                                        ) : (
+                                          <div className="text-[10px] font-mono text-slate-500">لم يسجل بصمة حضور بعد</div>
+                                        )}
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>

@@ -178,12 +178,42 @@ export function isClinicTeamMember(item: AttendanceRosterItem): boolean {
 }
 
 /**
+ * هل الموظف يعمل بنظام الدوام الجزئي أو جدول مرن غير مقيد بمواعيد وردية محددة؟
+ * كوادر الدوام الجزئي (مثل هاني نصير) غير مقيدين بوقت حضور صباحي ملزم،
+ * ولا يُحتسب عليهم تأخير صريح أو غياب دون إذن عند عدم تسجيل البصمة مبكراً.
+ */
+export function isPartTimeEmployee(item: AttendanceRosterItem): boolean {
+  if ((item as { isPartTime?: boolean | null }).isPartTime === true) return true;
+  if ((item as { is_part_time?: boolean | null }).is_part_time === true) return true;
+  if (
+    (item as { employmentType?: string | null }).employmentType?.includes('جزئي') ||
+    (item as { employmentType?: string | null }).employmentType === 'part_time'
+  ) {
+    return true;
+  }
+
+  const name = (item.employeeName ?? '').trim();
+  if (name.includes('هاني') && name.includes('نصير')) return true;
+
+  const shift = (item.shiftName ?? '').trim();
+  if (shift.includes('جزئي') || shift.includes('مرن') || shift.toLowerCase().includes('part_time') || shift.toLowerCase().includes('flexible')) {
+    return true;
+  }
+
+  const job = (item.jobTitle ?? '').trim();
+  if (job.includes('جزئي') || job.includes('مرن')) return true;
+
+  return false;
+}
+
+/**
  * هل الموظف غير مجدول اليوم / راحة أسبوعية أو عطلة رسمية؟
  * في الأيام العادية (الأحد إلى الخميس) يعتبر الموظف مجدولاً على الدوام الأساسي
  * ولا يُعتبر في راحة أسبوعية إلا إذا كانت حالته 'weekend' أو 'holiday' أو نصت ورديته صراحة على ذلك.
  */
 export function isOffOrUnscheduled(item: AttendanceRosterItem): boolean {
   if (item.status === 'exempt') return false;
+  if (isPartTimeEmployee(item)) return false;
   if (item.status === 'weekend' || item.status === 'holiday' || item.status === 'unscheduled') return true;
   const shift = (item.shiftName ?? '').trim();
   if (shift.includes('راحة') || shift.includes('عطلة') || shift.includes('غير مجدول') || shift === 'إجازة أسبوعية') return true;
@@ -204,6 +234,8 @@ export type ExecutiveEmployeeCategory =
   | 'leave_pending'
   | 'permit_approved'
   | 'permit_pending'
+  | 'present_permit_approved'
+  | 'present_permit_pending'
   | 'unexcused_absent'
   | 'shift_not_started'
   | 'unscheduled_rest'
@@ -222,9 +254,11 @@ export interface ClassifiedEmployee {
   isPermit: boolean;
   isPendingPermit: boolean;
   isClinicStaff: boolean;
+  isPartTime: boolean;
 }
 
 export function classifyEmployee(item: AttendanceRosterItem, currentMinutesFromMidnight: number): ClassifiedEmployee {
+  const isPartTime = isPartTimeEmployee(item);
   const shiftWindow = parseShiftWindow(item.shiftName, (item as { shiftStart?: string | null }).shiftStart) ?? DEFAULT_ORGANIZATION_SHIFT;
 
   const isMission = item.status === 'on_mission' || Boolean(item.hasMission) || (Boolean(item.hasPendingRequest) && item.pendingRequestType === 'mission');
@@ -235,16 +269,23 @@ export function classifyEmployee(item: AttendanceRosterItem, currentMinutesFromM
   const isPendingLeave = isLeave && Boolean(item.hasPendingRequest) && !item.hasApprovedLeave;
 
   const isPermit =
-    (item.status === 'on_permit' || Boolean(item.hasApprovedPermit) || (Boolean(item.hasPendingRequest) && item.pendingRequestType === 'permit')) &&
+    (item.status === 'on_permit' ||
+      Boolean(item.hasApprovedPermit) ||
+      Boolean(item.permitType) ||
+      (Boolean(item.hasPendingRequest) && item.pendingRequestType === 'permit')) &&
     !isMission &&
     !isLeave;
   const isPendingPermit = isPermit && Boolean(item.hasPendingRequest) && !item.hasApprovedPermit && item.status !== 'on_permit';
 
   const hasPermitBenefit =
-    Boolean(item.hasApprovedPermit) || (Boolean(item.hasPendingRequest) && item.pendingRequestType === 'permit') || item.status === 'on_permit';
+    Boolean(item.hasApprovedPermit) ||
+    Boolean(item.permitType) ||
+    (Boolean(item.hasPendingRequest) && item.pendingRequestType === 'permit') ||
+    item.status === 'on_permit';
   const effectivePermitMinutes = item.permitMinutes && item.permitMinutes > 0 ? item.permitMinutes : hasPermitBenefit ? 120 : 0;
 
-  const trueLate = calculateTrueLateMinutes(item.firstCheckIn, shiftWindow, item.lateMinutes ?? 0, effectivePermitMinutes, hasPermitBenefit);
+  // الدوام الجزئي غير مقيد بموعد وردية ثابت ولا يُحتسب عليه تأخير صريح
+  const trueLate = isPartTime ? 0 : calculateTrueLateMinutes(item.firstCheckIn, shiftWindow, item.lateMinutes ?? 0, effectivePermitMinutes, hasPermitBenefit);
 
   const hasCheckIn = Boolean(item.firstCheckIn);
 
@@ -252,11 +293,20 @@ export function classifyEmployee(item: AttendanceRosterItem, currentMinutesFromM
 
   if (item.status === 'exempt') {
     category = 'exempt';
+  } else if (isPartTime) {
+    // دوام جزئي غير مقيد بوقت معين: إذا حضر فهو حاضر بالتزام كامل، وإذا لم يحضر لا يُعد غياباً غير مبرر
+    category = hasCheckIn ? 'present_on_time' : 'unscheduled_rest';
   } else if (hasCheckIn) {
     if (isPendingMission) {
       category = 'present_mission_pending';
     } else if (isMission) {
       category = 'present_mission_approved';
+    } else if (isPendingPermit) {
+      // حضر ولديه طلب إذن حضور معلّق
+      category = trueLate <= 15 ? 'present_on_time' : 'present_permit_pending';
+    } else if (isPermit) {
+      // حضر ولديه إذن حضور معتمد
+      category = trueLate <= 15 ? 'present_on_time' : 'present_permit_approved';
     } else if (trueLate > 15) {
       category = 'present_late';
     } else {
@@ -287,6 +337,10 @@ export function classifyEmployee(item: AttendanceRosterItem, currentMinutesFromM
     if (hours === 0) formattedLate = `${mins} دقيقة`;
     else if (mins === 0) formattedLate = `${hours} ساعة`;
     else formattedLate = `${hours} س و ${mins} د (${trueLate} دقيقة)`;
+  } else if (isPartTime) {
+    formattedLate = 'دوام جزئي مرن';
+  } else if (hasPermitBenefit && hasCheckIn) {
+    formattedLate = 'حضور ضمن فترة الإذن';
   }
 
   const isClinicStaff = Boolean(item.isClinicMedicalStaff) || (item.departmentName ?? '').includes('العيادات');
@@ -304,6 +358,7 @@ export function classifyEmployee(item: AttendanceRosterItem, currentMinutesFromM
     isPermit,
     isPendingPermit,
     isClinicStaff,
+    isPartTime,
   };
 }
 
@@ -344,8 +399,10 @@ export function computeExecutiveMetrics(classified: ClassifiedEmployee[]): Execu
   const presentLate = active.filter((c) => c.category === 'present_late').length;
   const presentMissionApproved = active.filter((c) => c.category === 'present_mission_approved').length;
   const presentMissionPending = active.filter((c) => c.category === 'present_mission_pending').length;
+  const presentPermitApproved = active.filter((c) => c.category === 'present_permit_approved').length;
+  const presentPermitPending = active.filter((c) => c.category === 'present_permit_pending').length;
 
-  const presentTotal = presentOnTime + presentLate + presentMissionApproved + presentMissionPending;
+  const presentTotal = presentOnTime + presentLate + presentMissionApproved + presentMissionPending + presentPermitApproved + presentPermitPending;
 
   const missionsApprovedOnly = active.filter((c) => c.category === 'mission_approved').length;
   const missionsPendingOnly = active.filter((c) => c.category === 'mission_pending').length;
@@ -360,8 +417,10 @@ export function computeExecutiveMetrics(classified: ClassifiedEmployee[]): Execu
   const permitsApprovedOnly = active.filter((c) => c.category === 'permit_approved').length;
   const permitsPendingOnly = active.filter((c) => c.category === 'permit_pending').length;
 
-  const permitsApprovedCount = active.filter((c) => c.category === 'permit_approved' || (c.isPermit && !c.isPendingPermit)).length;
-  const permitsPendingCount = active.filter((c) => c.category === 'permit_pending' || c.isPendingPermit).length;
+  const permitsApprovedCount = active.filter(
+    (c) => c.category === 'permit_approved' || c.category === 'present_permit_approved' || (c.isPermit && !c.isPendingPermit),
+  ).length;
+  const permitsPendingCount = active.filter((c) => c.category === 'permit_pending' || c.category === 'present_permit_pending' || c.isPendingPermit).length;
   const permitsTotal = permitsApprovedCount + permitsPendingCount;
 
   const unexcusedAbsent = active.filter((c) => c.category === 'unexcused_absent').length;
@@ -529,8 +588,10 @@ export function sanitizeMissionPurpose(title: string | null | undefined, reason:
  * تنسيق نص الوردية لمنع كسر السطور (الاتجاه RTL و LTR)
  * تحويل "3 ع – 11 م" إلى صيغة موحدة "3 م – 11 م"
  */
-export function formatShiftBadge(shiftName: string | null | undefined): string {
+export function formatShiftBadge(shiftName: string | null | undefined, isPartTime = false): string {
+  if (isPartTime) return 'دوام جزئي مرن (غير مقيد بموعد)';
   if (!shiftName || shiftName === '—') return 'الدوام الأساسي (10 ص – 6 م)';
+  if (shiftName.includes('جزئي') || shiftName.includes('مرن')) return 'دوام جزئي مرن (غير مقيد بموعد)';
   let formatted = shiftName.replace(/(\d+)\s*ع(?=[\s–\-—)]|$)/g, '$1 م');
   // توضيح وسم "عيادات (١)" أو "عيادات (1)" غير المفهوم ليصبح صريحاً للمدير التنفيذي
   formatted = formatted.replace(/عيادات\s*\([١1]\)/g, 'العيادات الطبية (الفترة المسائية 3 م – 11 م)');
