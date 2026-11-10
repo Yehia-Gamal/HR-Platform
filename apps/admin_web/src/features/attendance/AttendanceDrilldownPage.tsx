@@ -841,15 +841,35 @@ function Row({
             <Plane className="size-3 text-sky-400" />
             بصم حضور — في مأمورية
           </span>
-        ) : isWorkingNow && classified.category === 'present_late' ? (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap shrink-0 bg-amber-500/10 text-amber-500 border border-amber-500/25">
-            <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
-            متأخر (في العمل)
-          </span>
-        ) : isWorkingNow && item.hasApprovedPermit ? (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap shrink-0 bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
+        ) : isWorkingNow && item.hasApprovedPermit && classified.trueLateMinutes <= 15 ? (
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap shrink-0 bg-emerald-500/10 text-emerald-400 border border-emerald-500/25"
+            title={`حضر بإذن عمل معتمد: ${item.permitTitle ?? 'إذن تأخير'}${item.permitMinutes ? ` (${item.permitMinutes} دقيقة)` : ''}`}
+          >
             <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
             حاضر (بإذن معتمد)
+          </span>
+        ) : isWorkingNow && (classified.isPendingPermit || item.pendingRequestType === 'permit') && classified.trueLateMinutes <= 15 ? (
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap shrink-0 bg-amber-500/15 text-amber-300 border border-amber-500/30"
+            title={`حضر بطلب إذن تأخير قيد المراجعة: ${item.pendingRequestTitle ?? 'طلب إذن'}`}
+          >
+            <span className="size-2 rounded-full bg-amber-400 animate-pulse" />
+            حاضر (بإذن قيد المراجعة)
+          </span>
+        ) : isWorkingNow && classified.category === 'present_late' ? (
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap shrink-0 bg-amber-500/10 text-amber-500 border border-amber-500/25"
+            title={
+              item.hasApprovedPermit
+                ? `تأخر بعد تجاوز مدة الإذن المعتمد بـ ${classified.trueLateMinutes} دقيقة`
+                : classified.isPendingPermit
+                ? `تأخر مع وجود طلب إذن قيد المراجعة`
+                : undefined
+            }
+          >
+            <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
+            {item.hasApprovedPermit ? 'متأخر (تجاوز الإذن)' : 'متأخر (في العمل)'}
           </span>
         ) : isWorkingNow && classified.category === 'present_on_time' ? (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black whitespace-nowrap shrink-0 bg-emerald-500/10 text-emerald-500 border border-emerald-500/25">
@@ -950,9 +970,27 @@ function Row({
       {/* 4. التأخير المدقق */}
       <td className="min-w-[90px] text-center whitespace-nowrap">
         {classified.trueLateMinutes > 0 ? (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20 font-mono whitespace-nowrap shrink-0">
+          <span
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20 font-mono whitespace-nowrap shrink-0"
+            title={
+              item.hasApprovedPermit
+                ? `تأخير بعد استنفاد مدة الإذن المعتمد (${item.permitMinutes ?? 120} دقيقة)`
+                : undefined
+            }
+          >
             <Clock3 className="size-3" aria-hidden="true" />
             {classified.formattedLate}
+          </span>
+        ) : (item.hasApprovedPermit || classified.isPendingPermit || item.pendingRequestType === 'permit') && item.firstCheckIn ? (
+          <span
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 whitespace-nowrap shrink-0"
+            title={
+              item.hasApprovedPermit
+                ? `مغطى بالكامل بالإذن المعتمد (${item.permitMinutes ?? 120} دقيقة)`
+                : `مغطى بطلب إذن قيد المراجعة (${item.permitMinutes ?? 120} دقيقة)`
+            }
+          >
+            — (مغطى بالإذن)
           </span>
         ) : (
           <span className="text-[var(--text-muted)] text-xs">—</span>

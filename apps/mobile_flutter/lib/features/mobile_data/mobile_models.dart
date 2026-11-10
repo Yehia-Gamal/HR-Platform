@@ -2868,9 +2868,11 @@ class CurrentWorkShift {
         effectiveStartTime: json['effectiveStartTime'] as String?,
         effectiveGraceEndTime: json['effectiveGraceEndTime'] as String?,
         effectiveEndTime: json['effectiveEndTime'] as String?,
-        hasPermitToday: json['hasPermitToday'] as bool? ?? false,
-        todayPermit: json['todayPermit'] != null
-            ? ShiftTodayPermit.fromJson(Map<String, dynamic>.from(json['todayPermit'] as Map))
+        hasPermitToday: (json['hasPermitToday'] as bool?) ??
+            (json['todayPermit'] != null || json['permitToday'] != null),
+        todayPermit: (json['todayPermit'] ?? json['permitToday']) != null
+            ? ShiftTodayPermit.fromJson(
+                Map<String, dynamic>.from((json['todayPermit'] ?? json['permitToday']) as Map))
             : null,
       );
 
@@ -3030,19 +3032,22 @@ class MobileWorkShiftInfo {
   });
 
   factory MobileWorkShiftInfo.fromJson(Map<String, dynamic> json) {
-    final permitJson = json['todayPermit'] != null
-        ? ShiftTodayPermit.fromJson(Map<String, dynamic>.from(json['todayPermit'] as Map))
+    final rawPermit = json['todayPermit'] ??
+        json['permitToday'] ??
+        (json['currentShift'] is Map ? (json['currentShift'] as Map)['todayPermit'] ?? (json['currentShift'] as Map)['permitToday'] : null);
+    final permitJson = rawPermit != null
+        ? ShiftTodayPermit.fromJson(Map<String, dynamic>.from(rawPermit as Map))
         : null;
     var current = CurrentWorkShift.fromJson(
       Map<String, dynamic>.from(json['currentShift'] as Map? ?? {}),
     );
-    if (permitJson != null && current.todayPermit == null) {
+    if (permitJson != null) {
       current = current.copyWith(
         todayPermit: permitJson,
         hasPermitToday: true,
-        effectiveStartTime: permitJson.effectiveStartTime,
-        effectiveGraceEndTime: permitJson.effectiveGraceEndTime,
-        effectiveEndTime: permitJson.effectiveEndTime,
+        effectiveStartTime: current.effectiveStartTime ?? permitJson.effectiveStartTime,
+        effectiveGraceEndTime: current.effectiveGraceEndTime ?? permitJson.effectiveGraceEndTime,
+        effectiveEndTime: current.effectiveEndTime ?? permitJson.effectiveEndTime,
       );
     }
     return MobileWorkShiftInfo(

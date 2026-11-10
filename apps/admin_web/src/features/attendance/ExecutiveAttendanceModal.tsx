@@ -129,7 +129,7 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
   const missionPendingList = classified.filter((c) => c.category === 'present_mission_pending' || c.category === 'mission_pending');
   const missionApprovedList = classified.filter((c) => c.category === 'present_mission_approved' || c.category === 'mission_approved');
   const leaveList = classified.filter((c) => c.category === 'leave_approved' || c.category === 'leave_pending');
-  const permitList = classified.filter((c) => c.category === 'permit_approved' || c.category === 'permit_pending');
+  const permitList = classified.filter((c) => c.isPermit || c.category === 'permit_approved' || c.category === 'permit_pending');
   const upcomingShiftList = classified.filter((c) => c.category === 'shift_not_started');
   const onTimePresentList = classified.filter((c) => c.category === 'present_on_time');
 

@@ -405,4 +405,66 @@ describe('executiveReportLogic', () => {
     expect(metrics.unexcusedAbsent).toBe(1);
     expect(metrics.totalScheduledEmployees).toBe(1);
   });
+
+  it('احتساب إذن التأخير المعتمد والقيد المراجعة: تمديد موعد الحضور وعدم احتساب تأخير إذا حضر ضمن فترة الإذن', () => {
+    const shift = parseShiftWindow('الوردية الصباحية (9 ص – 5 م)');
+    expect(shift).not.toBeNull();
+
+    // 1. عبد الرحمن حسين: وردية 9:00 ص، إذن معتمد 120 دقيقة، حضر 10:08 ص
+    const checkInAbdelrahman = '2026-11-10T10:08:00+02:00';
+    const lateApproved = calculateTrueLateMinutes(checkInAbdelrahman, shift, 0, 120, true);
+    expect(lateApproved).toBe(0); // 0 دقيقة تأخير لأنه حضر قبل 11:00 ص
+
+    const abdelrahmanItem = createMockItem({
+      employeeId: '7785b71e-4cb9-432e-a9ac-4b47eafefba8',
+      employeeName: 'عبد الرحمن حسين مرعي',
+      shiftName: 'الوردية الصباحية (9 ص – 5 م)',
+      firstCheckIn: checkInAbdelrahman,
+      hasApprovedPermit: true,
+      permitMinutes: 120,
+    });
+    const classifiedAbdelrahman = classifyEmployee(abdelrahmanItem, 12 * 60);
+    expect(classifiedAbdelrahman.trueLateMinutes).toBe(0);
+    expect(classifiedAbdelrahman.category).toBe('present_on_time');
+    expect(classifiedAbdelrahman.isPermit).toBe(true);
+    expect(classifiedAbdelrahman.isPendingPermit).toBe(false);
+
+    // 2. يحيى جمال: وردية 10:00 ص، طلب إذن معلق 120 دقيقة، حضر 12:05 م
+    const officialShift = parseShiftWindow('الدوام الأساسي (10 ص – 6 م)');
+    const checkInYehia = '2026-11-09T12:05:00+02:00';
+    const latePending = calculateTrueLateMinutes(checkInYehia, officialShift, 0, 120, true);
+    expect(latePending).toBe(5); // 12:05 - 12:00 = 5 دقائق (أقل من سماح 15 دقيقة)
+
+    const yehiaItem = createMockItem({
+      employeeId: 'b452c987-ae08-4e12-8433-272cc66c85f9',
+      employeeName: 'يحيى جمال السبع',
+      shiftName: 'الدوام الأساسي (10 ص – 6 م)',
+      firstCheckIn: checkInYehia,
+      hasPendingRequest: true,
+      pendingRequestType: 'permit',
+      permitMinutes: 120,
+    });
+    const classifiedYehia = classifyEmployee(yehiaItem, 13 * 60);
+    expect(classifiedYehia.trueLateMinutes).toBe(5);
+    expect(classifiedYehia.category).toBe('present_on_time'); // 5 <= 15 دقيقة سماح
+    expect(classifiedYehia.isPermit).toBe(true);
+    expect(classifiedYehia.isPendingPermit).toBe(true);
+
+    // 3. موظف تجاوز مدة الإذن بأكثر من فترة السماح: وردية 9:00 ص + إذن 60 دقيقة = موعد 10:00 ص، وحضر 10:45 ص (تأخير 45 د)
+    const checkInLate = '2026-11-10T10:45:00+02:00';
+    const lateExcess = calculateTrueLateMinutes(checkInLate, shift, 0, 60, true);
+    expect(lateExcess).toBe(45);
+
+    const lateEmp = createMockItem({
+      employeeId: 'excess1',
+      employeeName: 'موظف تجاوز الإذن',
+      shiftName: 'الوردية الصباحية (9 ص – 5 م)',
+      firstCheckIn: checkInLate,
+      hasApprovedPermit: true,
+      permitMinutes: 60,
+    });
+    const classifiedLate = classifyEmployee(lateEmp, 12 * 60);
+    expect(classifiedLate.trueLateMinutes).toBe(45);
+    expect(classifiedLate.category).toBe('present_late');
+  });
 });

@@ -3691,7 +3691,13 @@ _ShiftDisciplineMetric _computeShiftDisciplineMetric({
   final startM = startParts.length >= 2 ? (int.tryParse(startParts[1]) ?? 0) : 0;
 
   final referenceDate = todayCheckInAt?.toLocal() ?? current;
-  final todayStart = DateTime(referenceDate.year, referenceDate.month, referenceDate.day, startH, startM);
+  var todayStart = DateTime(referenceDate.year, referenceDate.month, referenceDate.day, startH, startM);
+
+  // إذا كان الموظف لديه إذن معتمد/قيد المراجعة ولم يكن توقيت البداية قد عُدّل بالفعل، يتم إضافة دقائق الإذن
+  if (hasPermit && permitMinutes != null && permitMinutes > 0 && originalStartTime != null && startTime == originalStartTime) {
+    todayStart = todayStart.add(Duration(minutes: permitMinutes));
+  }
+
   final todayGraceEnd = todayStart.add(Duration(minutes: graceInMinutes));
 
   if (todayCheckInAt != null) {

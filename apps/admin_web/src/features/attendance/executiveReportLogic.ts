@@ -135,11 +135,19 @@ export function isShiftUpcoming(shift: ShiftTimeWindow | null, currentMinutesFro
 
 /**
  * حساب التأخير الحقيقي بالدقائق:
- * الفرق الصريح بين وقت أول بصمة ووقت بداية وردية الموظف الفعلية.
- * إذا حضر 12:34 م لوردية 10:00 ص -> التأخير = 154 دقيقة (ساعتان و34 دقيقة).
- * إذا حضر 2:22 م لوردية 3:00 م -> التأخير = 0 (حضر مبكراً).
+ * الفرق الصريح بين وقت أول بصمة ووقت بداية وردية الموظف الفعلية مع احتساب الأذونات وتصاريح العمل المعتمدة.
+ * إذا كان الموظف لديه إذن معتمد أو قيد المراجعة:
+ * يتم تمديد موعد الحضور المصرح به بمقدار دقائق الإذن (مثال: وردية 9:00 ص + إذن 120 د = 11:00 ص).
+ * إذا حضر 10:08 ص -> التأخير = 0 دقيقة (ضمن نطاق الإذن).
+ * إذا حضر 11:30 ص -> التأخير = 30 دقيقة فقط (التأخير بعد انقضاء الإذن).
  */
-export function calculateTrueLateMinutes(checkInIsoOrTime: string | null | undefined, shift: ShiftTimeWindow | null, fallbackBackendLate = 0): number {
+export function calculateTrueLateMinutes(
+  checkInIsoOrTime: string | null | undefined,
+  shift: ShiftTimeWindow | null,
+  fallbackBackendLate = 0,
+  permitMinutes = 0,
+  hasPermit = false,
+): number {
   if (!checkInIsoOrTime) return 0;
   if (!shift) return fallbackBackendLate > 0 ? fallbackBackendLate : 0;
 
@@ -147,9 +155,12 @@ export function calculateTrueLateMinutes(checkInIsoOrTime: string | null | undef
   if (checkInMin == null) return fallbackBackendLate;
 
   const shiftStartMin = shift.startHour * 60 + shift.startMinute;
-  const diff = checkInMin - shiftStartMin;
+  const effectivePermitMinutes = hasPermit ? (permitMinutes > 0 ? permitMinutes : 120) : 0;
+  const effectiveStartMin = shiftStartMin + effectivePermitMinutes;
 
-  if (diff <= 0) return 0; // حضر في الموعد أو مبكراً
+  const diff = checkInMin - effectiveStartMin;
+
+  if (diff <= 0) return 0; // حضر في الموعد أو ضمن فترة الإذن
   return diff;
 }
 
@@ -215,7 +226,6 @@ export interface ClassifiedEmployee {
 
 export function classifyEmployee(item: AttendanceRosterItem, currentMinutesFromMidnight: number): ClassifiedEmployee {
   const shiftWindow = parseShiftWindow(item.shiftName, (item as { shiftStart?: string | null }).shiftStart) ?? DEFAULT_ORGANIZATION_SHIFT;
-  const trueLate = calculateTrueLateMinutes(item.firstCheckIn, shiftWindow, item.lateMinutes ?? 0);
 
   const isMission = item.status === 'on_mission' || Boolean(item.hasMission) || (Boolean(item.hasPendingRequest) && item.pendingRequestType === 'mission');
   const isPendingMission = isMission && Boolean(item.hasPendingRequest) && !item.hasApprovedLeave && !item.hasMission;
@@ -229,6 +239,11 @@ export function classifyEmployee(item: AttendanceRosterItem, currentMinutesFromM
     !isMission &&
     !isLeave;
   const isPendingPermit = isPermit && Boolean(item.hasPendingRequest) && !item.hasApprovedPermit && item.status !== 'on_permit';
+
+  const hasPermitBenefit = Boolean(item.hasApprovedPermit) || (Boolean(item.hasPendingRequest) && item.pendingRequestType === 'permit') || item.status === 'on_permit';
+  const effectivePermitMinutes = item.permitMinutes && item.permitMinutes > 0 ? item.permitMinutes : (hasPermitBenefit ? 120 : 0);
+
+  const trueLate = calculateTrueLateMinutes(item.firstCheckIn, shiftWindow, item.lateMinutes ?? 0, effectivePermitMinutes, hasPermitBenefit);
 
   const hasCheckIn = Boolean(item.firstCheckIn);
 
@@ -341,8 +356,11 @@ export function computeExecutiveMetrics(classified: ClassifiedEmployee[]): Execu
   const leavesPendingCount = active.filter((c) => c.category === 'leave_pending').length;
   const leavesTotal = leavesApprovedCount + leavesPendingCount;
 
-  const permitsApprovedCount = active.filter((c) => c.category === 'permit_approved').length;
-  const permitsPendingCount = active.filter((c) => c.category === 'permit_pending').length;
+  const permitsApprovedOnly = active.filter((c) => c.category === 'permit_approved').length;
+  const permitsPendingOnly = active.filter((c) => c.category === 'permit_pending').length;
+
+  const permitsApprovedCount = active.filter((c) => c.category === 'permit_approved' || (c.isPermit && !c.isPendingPermit)).length;
+  const permitsPendingCount = active.filter((c) => c.category === 'permit_pending' || c.isPendingPermit).length;
   const permitsTotal = permitsApprovedCount + permitsPendingCount;
 
   const unexcusedAbsent = active.filter((c) => c.category === 'unexcused_absent').length;
@@ -350,14 +368,14 @@ export function computeExecutiveMetrics(classified: ClassifiedEmployee[]): Execu
   const unscheduledRest = active.filter((c) => c.category === 'unscheduled_rest').length;
 
   // قوة العمل المجدولة المطالبة بالحضور حتى الآن:
-  // الحاضرون + الغائبون بدون إذن + المأموريات (معتمدة ومعلقة) + الإجازات + الأذونات
-  const denominator = presentTotal + unexcusedAbsent + missionsApprovedOnly + missionsPendingOnly + leavesTotal + permitsTotal;
+  // الحاضرون (بما فيهم الحاضر بإذن أو بمأمورية) + الغائبون بدون إذن + المأموريات لمن لم يحضر + الإجازات + الأذونات لمن لم يحضر بعد
+  const denominator = presentTotal + unexcusedAbsent + missionsApprovedOnly + missionsPendingOnly + leavesTotal + permitsApprovedOnly + permitsPendingOnly;
 
   // 1. نسبة الحضور الفعلي البحتة بالمقر
   const actualPresenceRate = denominator > 0 ? Math.round((presentTotal / denominator) * 100) : 100;
 
-  // 2. نسبة الالتزام الشاملة (حضور + مأموريات رسمية معتمدة + أذونات معتمدة)
-  const overallComplianceRate = denominator > 0 ? Math.round(((presentTotal + missionsApprovedOnly + permitsApprovedCount) / denominator) * 100) : 100;
+  // 2. نسبة الالتزام الشاملة (حضور + مأموريات رسمية معتمدة + أذونات معتمدة لمن لم يحضر بعد)
+  const overallComplianceRate = denominator > 0 ? Math.round(((presentTotal + missionsApprovedOnly + permitsApprovedOnly) / denominator) * 100) : 100;
   const attendancePercentage = overallComplianceRate;
 
   // عناصر تحتاج قرار فوري من المدير التنفيذي:
