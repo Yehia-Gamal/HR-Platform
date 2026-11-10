@@ -945,7 +945,7 @@ ${
                       )}
 
                       {/* ب) جدول المتأخرين عن موعد الوردية */}
-                      {lateList.length > 0 && (
+                      {lateList.length > 0 ? (
                         <div className="rounded-xl border border-amber-500/40 overflow-hidden bg-amber-950/20">
                           <div className="bg-amber-900/80 border-b border-amber-500/30 text-white px-4 py-2 flex items-center justify-between text-xs font-black">
                             <div className="flex items-center gap-2">
@@ -986,6 +986,16 @@ ${
                               ))}
                             </tbody>
                           </table>
+                        </div>
+                      ) : (
+                        <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/20 px-4 py-3 flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2 text-emerald-300 font-bold">
+                            <CheckCircle2 className="size-4 text-emerald-400 shrink-0" />
+                            <span>المتأخرون عن موعد الوردية الرسمية: لا يوجد أي متأخرين بدون عذر مسبق لهذا اليوم (انضباط كامل)</span>
+                          </div>
+                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono font-black text-[11px]">
+                            0 متأخر
+                          </span>
                         </div>
                       )}
 
