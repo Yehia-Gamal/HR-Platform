@@ -165,27 +165,49 @@ export function calculateTrueLateMinutes(
 }
 
 /**
- * هل الموظف ينتمي إلى طاقم وردية العيادات الطبية المسائية (3:00 عصراً)؟
- * لا يشمل المشرفين والمديرين الذين تبدأ ورديتهم في الصباح أو الظهيرة (10 ص أو 11 ص مثل مصطفى كمال)
+ * هل الموظف ينتمي إلى طاقم العيادات الطبية المعزول والمحجوب عن التقرير العام؟
+ * يشمل طاقم التمريض والمعمل والاستقبال الطبي (البنات) المحجوبين عن التقرير التنفيذي العام،
+ * مع استثناء المديرين والمشرفين (مثل مصطفى أحمد كمال الدين ويوسف رسمي شعبان).
  */
 export function isClinicTeamMember(item: AttendanceRosterItem): boolean {
-  const shift = (item.shiftName ?? '').trim();
-  // إذا كانت وردية الموظف صباحية أو عادية (10 ص أو 11 ص أو 9 ص)، فهو ليس من طاقم الوردية المسائية 3 م
+  const name = (item.employeeName ?? '').trim();
+
+  // مدراء ومشرفو العيادات والمجمعات لا يُحجبون أبداً عن التقرير العام
   if (
-    shift.includes('10 ص') ||
-    shift.includes('11 ص') ||
-    shift.includes('9 ص') ||
-    shift.includes('الأساسي') ||
-    shift.includes('الصباحية')
+    name.includes('مصطفي أحمد') ||
+    name.includes('مصطفى أحمد') ||
+    name.includes('يوسف رسمي')
   ) {
     return false;
   }
 
+  // طاقم العيادات الطبية المعزول (البنات: تمريض، معمل، استقبال)
   if (item.isClinicMedicalStaff) return true;
-  if (shift.includes('3 ع') || shift.includes('15:00') || shift.includes('العيادات المسائية')) return true;
 
-  const dept = (item.departmentName ?? '').trim();
-  if (dept.includes('عياد') || dept.includes('العيادات') || dept.includes('تمريض')) return true;
+  const job = (item.jobTitle ?? '').trim();
+  if (job.includes('تمريض') || job.includes('معمل') || job.includes('دكتورة المعمل')) {
+    return true;
+  }
+
+  const shift = (item.shiftName ?? '').trim();
+  if (shift.includes('العيادات المسائية') || shift.includes('3 ع')) {
+    return true;
+  }
+
+  if (
+    name.includes('ساميه') ||
+    name.includes('سامية') ||
+    name.includes('رحاب مجدي') ||
+    name.includes('سمر احمد') ||
+    name.includes('سمر أحمد') ||
+    name.includes('سميرة سعيد') ||
+    name.includes('سميره سعيد') ||
+    name.includes('شروق عبد العليم') ||
+    name.includes('نجلاء عادل')
+  ) {
+    return true;
+  }
+
   return false;
 }
 
