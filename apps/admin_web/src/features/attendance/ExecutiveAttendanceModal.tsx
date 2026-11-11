@@ -28,7 +28,6 @@ import { ASSOCIATION_LOGO_WHITE_DATA_URL } from './brandAssets';
 import { cairoTodayIso } from '../../core/cairoTime';
 import {
   classifyEmployee,
-  computeDepartmentSummaries,
   computeEndOfDayMetrics,
   computeExecutiveMetrics,
   formatShiftBadge,
@@ -119,7 +118,6 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
 
   // حساب المؤشرات والنسب التنفيذية
   const metrics = computeExecutiveMetrics(classified);
-  const departmentSummaries = computeDepartmentSummaries(classified);
   const endOfDayMetrics = computeEndOfDayMetrics(classified, currentMinutesFromMidnight);
   const comparativeAudit = generateComparativeAudit(metrics);
 
@@ -842,64 +840,7 @@ ${
                     {/* 4. الشارت البياني التوضيحي (Donut Chart) لتوزيع قوى العمل */}
                     <ExecutiveWorkforceChart metrics={metrics} isLight={false} numberSystem={numberSystem} />
 
-                    {/* 5. مصفوفة ملخص انضباط الإدارات والأقسام (Department Matrix) */}
-                    <div className="rounded-xl border border-slate-800 overflow-hidden bg-slate-900/50">
-                      <div className="bg-slate-950 px-4 py-2.5 border-b border-slate-800 flex items-center justify-between text-xs font-black">
-                        <div className="flex items-center gap-2 text-slate-200">
-                          <Users className="size-4 text-sky-400" />
-                          <span>مصفوفة الانضباط وتوزيع القوى حسب الإدارات والأقسام</span>
-                        </div>
-                        <span className="text-slate-400 font-normal text-[11px]">{departmentSummaries.length} إدارات تشغيلية</span>
-                      </div>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-[11px] border-collapse text-start">
-                          <thead>
-                            <tr className="bg-slate-900/80 text-slate-300 border-b border-slate-800 font-black">
-                              <th className="p-2.5">الإدارة / القسم</th>
-                              <th className="p-2.5 text-center">المجدولون</th>
-                              <th className="p-2.5 text-center">حاضر</th>
-                              <th className="p-2.5 text-center">غائب</th>
-                              <th className="p-2.5 text-center">مأمورية</th>
-                              <th className="p-2.5 text-center">إجازة</th>
-                              <th className="p-2.5 text-center">نسبة الالتزام</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-800/80 font-medium">
-                            {departmentSummaries.map((dept, i) => (
-                              <tr key={dept.departmentName} className={i % 2 === 0 ? 'bg-slate-950/30' : 'bg-slate-900/30'}>
-                                <td className="p-2.5 font-bold text-white">{dept.departmentName}</td>
-                                <td className="p-2.5 text-center font-mono font-bold text-slate-300">{dept.total}</td>
-                                <td className="p-2.5 text-center font-mono font-black text-emerald-400">{dept.present}</td>
-                                <td className="p-2.5 text-center font-mono font-black text-rose-400">
-                                  {dept.absent > 0 ? dept.absent : <span className="text-slate-600">—</span>}
-                                </td>
-                                <td className="p-2.5 text-center font-mono text-sky-400">
-                                  {dept.mission > 0 ? dept.mission : <span className="text-slate-600">—</span>}
-                                </td>
-                                <td className="p-2.5 text-center font-mono text-teal-400">
-                                  {dept.leave > 0 ? dept.leave : <span className="text-slate-600">—</span>}
-                                </td>
-                                <td className="p-2.5 text-center">
-                                  <div className="inline-flex items-center gap-2">
-                                    <span className="font-mono font-black text-xs text-slate-200">{dept.commitmentRate}%</span>
-                                    <div className="w-16 h-1.5 rounded-full bg-slate-800 overflow-hidden shrink-0">
-                                      <div
-                                        className={`h-full rounded-full ${
-                                          dept.commitmentRate >= 90 ? 'bg-emerald-400' : dept.commitmentRate >= 75 ? 'bg-amber-400' : 'bg-rose-500'
-                                        }`}
-                                        style={{ width: `${dept.commitmentRate}%` }}
-                                      />
-                                    </div>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-
-                    {/* 6. الجداول التنفيذية المخصصة (الاستثناءات أولاً) */}
+                    {/* 5. الجداول التنفيذية المخصصة (الاستثناءات أولاً) */}
                     <div className="space-y-6">
                       {/* أ) جدول الغياب غير المبرر (الغياب الحقيقي فقط) */}
                       {unexcusedAbsentList.length > 0 && (
