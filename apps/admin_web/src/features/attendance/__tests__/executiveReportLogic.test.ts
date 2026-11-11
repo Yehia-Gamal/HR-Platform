@@ -465,6 +465,7 @@ describe('executiveReportLogic', () => {
     });
     const classifiedLate = classifyEmployee(lateEmp, 12 * 60);
     expect(classifiedLate.trueLateMinutes).toBe(45);
-    expect(classifiedLate.category).toBe('present_late');
+    expect(classifiedLate.category).toBe('present_permit_approved');
+    expect(classifiedLate.isPermit).toBe(true);
   });
 });
