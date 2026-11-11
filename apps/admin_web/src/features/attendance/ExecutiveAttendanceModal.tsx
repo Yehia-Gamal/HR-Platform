@@ -58,7 +58,7 @@ interface Props {
 export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
   const [activeReportTab, setActiveReportTab] = useState<'live' | 'end_of_day' | 'comparison'>('live');
   const [numberSystem, setNumberSystem] = useState<'latn' | 'arab'>('latn');
-  const [excludeClinics, setExcludeClinics] = useState(true); // استبعاد تيم العيادات افتراضياً لأن ورديتهم تبدأ 3:00 م والتقرير يصدر ظهراً
+  const [excludeClinics, setExcludeClinics] = useState(false); // الافتراضي: شمول كافة موظفي المؤسسة في التقرير (33 موظف) لعدم حجب أي موظف
   const [isCapturing, setIsCapturing] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [copiedType, setCopiedType] = useState<'image' | 'text' | 'print' | null>(null);
@@ -570,13 +570,13 @@ ${
                 onClick={() => setExcludeClinics((prev) => !prev)}
                 className={`btn-secondary btn-sm h-9 px-3 text-xs font-bold rounded-xl inline-flex items-center gap-1.5 transition-all ${
                   excludeClinics
-                    ? 'bg-sky-950 border-sky-500/50 text-sky-300 hover:bg-sky-900/60'
-                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
+                    ? 'bg-amber-950/80 border-amber-500/50 text-amber-300 hover:bg-amber-900/60'
+                    : 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300 hover:bg-emerald-900/60'
                 }`}
-                title="استبعاد طاقم العيادات الطبية المسائي (3:00 عصراً) لضبط تقرير فترة الصباح والظهيرة"
+                title="التبديل بين شمول كافة موظفي المؤسسة أو استبعاد وردية العيادات المسائية (3:00 عصراً)"
               >
                 <span>🏥</span>
-                <span>{excludeClinics ? 'تيم العيادات: مستبعد (دوام 3 م)' : 'تيم العيادات: مشمول'}</span>
+                <span>{excludeClinics ? 'تيم العيادات المسائية: مستبعد (دوام 3 م)' : 'جميع الموظفين: مشمولون بالكامل'}</span>
               </button>
 
               {/* زر الإغلاق */}

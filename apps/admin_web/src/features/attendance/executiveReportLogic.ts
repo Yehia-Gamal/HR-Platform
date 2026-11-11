@@ -165,15 +165,27 @@ export function calculateTrueLateMinutes(
 }
 
 /**
- * هل الموظف ينتمي إلى طاقم العيادات الطبية؟
- * يشمل إدارة العيادات الطبية، والمهن الطبية والتمريض، وورديات العيادات المسائية (3:00 عصراً)
+ * هل الموظف ينتمي إلى طاقم وردية العيادات الطبية المسائية (3:00 عصراً)؟
+ * لا يشمل المشرفين والمديرين الذين تبدأ ورديتهم في الصباح أو الظهيرة (10 ص أو 11 ص مثل مصطفى كمال)
  */
 export function isClinicTeamMember(item: AttendanceRosterItem): boolean {
+  const shift = (item.shiftName ?? '').trim();
+  // إذا كانت وردية الموظف صباحية أو عادية (10 ص أو 11 ص أو 9 ص)، فهو ليس من طاقم الوردية المسائية 3 م
+  if (
+    shift.includes('10 ص') ||
+    shift.includes('11 ص') ||
+    shift.includes('9 ص') ||
+    shift.includes('الأساسي') ||
+    shift.includes('الصباحية')
+  ) {
+    return false;
+  }
+
   if (item.isClinicMedicalStaff) return true;
+  if (shift.includes('3 ع') || shift.includes('15:00') || shift.includes('العيادات المسائية')) return true;
+
   const dept = (item.departmentName ?? '').trim();
   if (dept.includes('عياد') || dept.includes('العيادات') || dept.includes('تمريض')) return true;
-  const shift = (item.shiftName ?? '').trim();
-  if (shift.includes('عياد') || shift.includes('العيادات')) return true;
   return false;
 }
 
