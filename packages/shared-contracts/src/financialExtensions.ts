@@ -157,7 +157,7 @@ export const instantPenaltySchema = z
     currentAmount: z.number(),
     currency: z.string(),
     status: z.enum(['pending_payment', 'paid', 'doubled', 'suspended', 'cancelled']),
-    escalationLevel: z.enum(['initial', 'doubled', 'suspended']),
+    escalationLevel: z.enum(['initial', 'doubled', 'suspended', 'reverted']),
     paidAt: isoDate,
     confirmedBy: uuid.nullable(),
     suspendedAt: isoDate,

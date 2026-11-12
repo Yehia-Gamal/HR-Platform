@@ -273,4 +273,28 @@ describe('financialExtensions contracts', () => {
     });
     expect(penalty.status).toBe('cancelled');
   });
+
+  it('instantPenaltySchema يقبل مستوى التصعيد reverted (مستردة للأصل)', () => {
+    const penalty = instantPenaltySchema.parse({
+      id: '11111111-1111-4111-8111-111111111111',
+      employeeId: '22222222-2222-4222-8222-222222222222',
+      employeeName: 'حسام الدين مصطفى',
+      employeeCode: 'E-002',
+      departmentName: 'إدارة',
+      workDate: '2026-11-11',
+      lateMinutes: 120,
+      originalAmount: 150,
+      currentAmount: 150,
+      currency: 'EGP',
+      status: 'pending_payment',
+      escalationLevel: 'reverted',
+      paidAt: null,
+      confirmedBy: null,
+      suspendedAt: null,
+      suspensionLiftedAt: null,
+      notes: 'رفع الإيقاف إدارياً وإرجاع الغرامة للأصل',
+      createdAt: '2026-11-11T10:25:00.000Z',
+    });
+    expect(penalty.escalationLevel).toBe('reverted');
+  });
 });
