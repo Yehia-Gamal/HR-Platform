@@ -328,3 +328,16 @@
 | 0723 | `0723_bulk_lift_suspension_and_push_notification.sql` | زر رفع إيقاف جميع الموظفين الموقوفين دفعة واحدة (lift_all_suspended_employees_admin) بدون شاشات إدخال ملاحظات مع إرسال إشعار صوتي فوري عالي الأولوية وتحديث رفع الإيقاف الفردي. |
 | 0724 | `0724_fix_decide_request_and_auto_cancel_funday_penalties.sql` | إصلاح خطأ دالة decide_request وتصحيح حقل assignee_employee_id المعطل للفحص الصحي اليومي، وإضافة الإلغاء والإسقاط التلقائي لغرامات الحضور عند اعتماد طلبات الفاندي الترفيهي والمأموريات والإجازات مع إلغاء غرامات يوم الثلاثاء 3 نوفمبر 2026 بأثر رجعي. |
 | 0725 | `0725_exempt_specified_staff_from_clinic_restrictions.sql` | استثناء إسماعيل وعبدالله وحسام ويوسف رسمي ومصطفى أحمد من قيود العيادات وتمكينهم من طلب الفاندي الترفيهي والقوافل والمأموريات، وقصر الحظر الميداني حصراً على طاقم العيادات (فريق الـ 6 بنات: تمريض، معمل، استقبال). |
+
+| 0726 | `0726_auto_cancel_correction_penalties_and_shift_rules.sql` | الإلغاء التلقائي لغرامات التأخير عند اعتماد تصحيح البصمة أو استيفاء 8 ساعات عمل، وتجميد تصعيد الغرامات المستردة للأصل إدارياً. |
+| 0727 | `0727_business_hours_sla_and_complete_shift_coverage.sql` | احتساب مهلة SLA للمديرين المباشرين ضمن ساعات العمل الرسمية فقط، وتغطية كامل الورديات. |
+| 0728 | `0728_fix_request_submission_schema_and_restore_direct_approvals.sql` | تصحيح مخطط إرسال الطلبات واستعادة مسار الاعتماد المباشر للمدير. |
+| 0729 | `0729_overload_grace_checkout_and_align_workflow_sla.sql` | فترة سماح الانصراف ومواءمة مهلة سير الاعتمادات. |
+| 0730 | `0730_fix_shift_info_today_permit_key_and_embed.sql` | تصحيح مفتاح إذن اليوم في معلومات الوردية وتضمين بيانات الإذن النشط. |
+| 0731 | `0731_auto_cancel_penalties_on_permit_and_excuse_approval.sql` | إلغاء الغرامات الفورية فور اعتماد الأذونات أو قبول الأعذار. |
+| 0732 | `0732_tighten_request_decision_sla.sql` | تدقيق مهل اتخاذ القرار في الطلبات وسير العمل. |
+| 0733 | `0733_restore_two_hour_sla_and_direct_manager_decision.sql` | استعادة مهلة الساعتين للمدير المباشر مع استثناء طلبات تصحيح البصمة من مهلة الساعتين. |
+| 0734 | `0734_pending_permit_protection_and_net_lateness.sql` | حماية أصحاب أذونات التأخير المعلقة من الغرامات واحتساب صافي دقائق التأخير بعد خصم مدة الإذن. |
+| 0735 | `0735_fix_leave_mission_penalty_exemption_and_cancel_erroneous.sql` | حماية طلبات الإجازات والمأموريات المعتمدة من غرامات الحضور وإلغاء الغرامات الخاطئة. |
+| 0736 | `0736_fix_daily_health_check_functions_and_regressions.sql` | تصحيح دوال الفحص الصحي اليومي وتحديث التبعات المحجوبة والروابط المرجعية. |
+| 0737 | `0737_allow_reverted_escalation_level.sql` | توسيع قيد التحقق من مستوى التصعيد escalation_level ليشمل 'reverted' لمنع خطأ 23514 / القيمة المدخلة غير مقبولة عند إرجاع الغرامة للأصل، مع تفعيل إشعار الموظف الفوري. |

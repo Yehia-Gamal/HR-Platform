@@ -53,6 +53,7 @@ export const INSTANT_PENALTY_ESCALATION_LABELS: Record<string, string> = {
   initial: 'أولية',
   doubled: 'مضاعفة',
   suspended: 'تعليق',
+  reverted: 'مُستردة للأصل',
 };
 
 export const EXCUSE_STATUS_LABELS: Record<string, string> = {
