@@ -43,6 +43,22 @@ export function ExecutiveWorkforceChart({ metrics, isLight = false, numberSystem
       glowColor: 'rgba(245, 158, 11, 0.4)',
     },
     {
+      key: 'approved_permit',
+      label: 'إذن / تصريح عمل معتمد',
+      count: metrics.permitsApprovedCount,
+      pct: Math.round((metrics.permitsApprovedCount / total) * 1000) / 10,
+      color: '#06b6d4', // cyan-500
+      glowColor: 'rgba(6, 182, 212, 0.4)',
+    },
+    {
+      key: 'pending_permit',
+      label: 'طلب إذن / تصريح معلّق',
+      count: metrics.permitsPendingCount,
+      pct: Math.round((metrics.permitsPendingCount / total) * 1000) / 10,
+      color: '#8b5cf6', // violet-500
+      glowColor: 'rgba(139, 92, 246, 0.4)',
+    },
+    {
       key: 'approved_mission',
       label: 'مأمورية رسمية معتمدة',
       count: metrics.missionsApproved,

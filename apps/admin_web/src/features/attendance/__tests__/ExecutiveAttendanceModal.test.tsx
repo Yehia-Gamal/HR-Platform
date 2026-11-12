@@ -66,14 +66,14 @@ describe('ExecutiveAttendanceModal', () => {
 
     // Stats and KPIs
     expect(screen.getByText(/قوة العمل/)).toBeDefined();
-    expect(screen.getByText('الحضور الفعلي')).toBeDefined();
+    expect(screen.getByText(/الحضور الفعلي/)).toBeDefined();
 
     // Donut Chart
     expect(screen.getByText('توزيع قوى العمل اليوم')).toBeDefined();
     expect(screen.getByText(/نظرة بصرية/)).toBeDefined();
 
-    // Department matrix
-    expect(screen.getByText(/مصفوفة الانضباط وتوزيع القوى/)).toBeDefined();
+    // Department matrix was removed per executive direction
+    expect(screen.queryByText(/مصفوفة الانضباط وتوزيع القوى/)).toBeNull();
 
     // Table rows
     expect(screen.getByText('أحمد علي')).toBeDefined();
@@ -120,7 +120,7 @@ describe('ExecutiveAttendanceModal', () => {
     expect(screen.getByText('حاتم محمد سالم')).toBeDefined();
 
     // Badge showing pending mission with request number
-    expect(screen.getByText(/طلب معلّق \(خرج قبل الاعتماد\) #594/)).toBeDefined();
+    expect(screen.getByText(/مأمورية.*قيد الاعتماد.*#594|طلب معلّق.*#594/)).toBeDefined();
 
     // Destination and purpose
     expect(screen.getByText(/📍 كورنيش المعادي/)).toBeDefined();

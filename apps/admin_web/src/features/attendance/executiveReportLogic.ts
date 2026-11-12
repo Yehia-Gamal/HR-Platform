@@ -184,13 +184,18 @@ export function isClinicTeamMember(item: AttendanceRosterItem): boolean {
   // طاقم العيادات الطبية المعزول (البنات: تمريض، معمل، استقبال)
   if (item.isClinicMedicalStaff) return true;
 
+  const dept = (item.departmentName ?? '').trim();
+  if (dept.includes('عيادات') || dept.includes('العيادات')) {
+    return true;
+  }
+
   const job = (item.jobTitle ?? '').trim();
   if (job.includes('تمريض') || job.includes('معمل') || job.includes('دكتورة المعمل')) {
     return true;
   }
 
   const shift = (item.shiftName ?? '').trim();
-  if (shift.includes('العيادات المسائية') || shift.includes('3 ع')) {
+  if (shift.includes('عيادات') || shift.includes('العيادات') || shift.includes('3 ع')) {
     return true;
   }
 
@@ -613,6 +618,14 @@ export function sanitizeMissionPurpose(title: string | null | undefined, reason:
   // إذا كان الغرض مجرد "مهمة" فقط دون توضيح
   if (purpose === 'مهمة' || purpose === 'مأمورية') {
     purpose = 'تكليف ومتابعة إدارية ميدانية رسمية';
+  }
+
+  // تهذيب النصوص الطويلة المفرطة لتظل مريحة للقراءة في الجدول التنفيذي
+  if (purpose.length > 120) {
+    purpose = purpose.slice(0, 115).trim() + '…';
+  }
+  if (destination.length > 80) {
+    destination = destination.slice(0, 75).trim() + '…';
   }
 
   return { destination, purpose };

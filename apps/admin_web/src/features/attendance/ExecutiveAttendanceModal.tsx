@@ -416,7 +416,7 @@ ${
         .join('\n')
 }
 
-⚠️ *خرجوا في مأموريات قبل الاعتماد (طلبات معلقة) (${missionPendingList.length}):*
+⚠️ *مأموريات معلقة بانتظار الاعتماد (${missionPendingList.length}):*
 ${
   missionPendingList.length === 0
     ? '✓ لا توجد مأموريات معلقة'
@@ -756,12 +756,17 @@ ${
                             <div className="flex items-center gap-3 text-[11px] font-bold text-amber-300/90 mt-0.5 flex-wrap">
                               {metrics.missionsPendingLeft > 0 && (
                                 <span className="bg-amber-500/20 px-2 py-0.5 rounded-full border border-amber-500/30">
-                                  ⚠️ {metrics.missionsPendingLeft} خرجوا لمأمورية قبل الاعتماد (طلب معلق)
+                                  ⚠️ {metrics.missionsPendingLeft} مأمورية معلقة بانتظار الاعتماد
                                 </span>
                               )}
                               {metrics.leavesPendingCount > 0 && (
                                 <span className="bg-purple-500/20 text-purple-200 px-2 py-0.5 rounded-full border border-purple-500/30">
                                   🏖️ {metrics.leavesPendingCount} طلبات إجازة معلقة تنتظر الاعتماد
+                                </span>
+                              )}
+                              {metrics.permitsPendingCount > 0 && (
+                                <span className="bg-cyan-500/20 text-cyan-200 px-2 py-0.5 rounded-full border border-cyan-500/30">
+                                  ⏱️ {metrics.permitsPendingCount} طلبات إذن وتصريح معلقة
                                 </span>
                               )}
                               {metrics.unexcusedAbsent > 0 && (
@@ -787,7 +792,7 @@ ${
                     )}
 
                     {/* 3. شريط المؤشرات الرقمية المدققة رياضياً (KPI Strip) */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2.5 sm:gap-3">
                       <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-center">
                         <span className="block text-[11px] font-bold text-slate-400 mb-1">قوة العمل المجدولة</span>
                         <span className="text-2xl font-black text-white font-mono">{fmtNum(metrics.totalScheduledEmployees)}</span>
@@ -795,7 +800,7 @@ ${
                       </div>
 
                       <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-center">
-                        <span className="block text-[11px] font-bold text-emerald-300 mb-1">الحضور الفعلي</span>
+                        <span className="block text-[11px] font-bold text-emerald-300 mb-1">الحضور الفعلي بالمقر</span>
                         <span className="text-2xl font-black text-emerald-400 font-mono">{fmtNum(metrics.presentTotal)}</span>
                         <span className="text-[10px] font-bold text-emerald-400/90 block mt-0.5 font-mono">
                           حضور: {fmtNum(metrics.actualPresenceRate)}% · التزام: {fmtNum(metrics.overallComplianceRate)}%
@@ -833,6 +838,16 @@ ${
                           {metrics.leavesPendingCount > 0
                             ? `${fmtNum(metrics.leavesApprovedCount)} معتمدة · ${fmtNum(metrics.leavesPendingCount)} معلقة`
                             : 'رسمية معتمدة'}
+                        </span>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-purple-950/40 border border-purple-500/30 text-center">
+                        <span className="block text-[11px] font-bold text-purple-300 mb-1">الأذونات والتصاريح</span>
+                        <span className="text-2xl font-black text-purple-400 font-mono">{fmtNum(metrics.permitsTotal)}</span>
+                        <span className="text-[10px] text-purple-400/80 block mt-0.5 font-mono">
+                          {metrics.permitsPendingCount > 0
+                            ? `${fmtNum(metrics.permitsApprovedCount)} معتمدة · ${fmtNum(metrics.permitsPendingCount)} معلقة`
+                            : 'أذونات رسمية'}
                         </span>
                       </div>
                     </div>
@@ -973,7 +988,7 @@ ${
                                     <td className="p-2 text-slate-300">{m.item.departmentName ?? '—'}</td>
                                     <td className="p-2">
                                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/25 text-amber-300 border border-amber-500/50 font-black text-[10.5px]">
-                                        ⏳ طلب معلّق (خرج قبل الاعتماد) #{m.item.pendingRequestNumber ?? ''}
+                                        {m.item.firstCheckIn ? '⏳ خرج لمأمورية قبل الاعتماد' : '⏳ مأمورية ميدانية قيد الاعتماد'} #{m.item.pendingRequestNumber ?? ''}
                                       </span>
                                     </td>
                                     <td className="p-2 text-slate-200">
