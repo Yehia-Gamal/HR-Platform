@@ -601,11 +601,11 @@ function TreeNode({
   return (
     <div>
       <div
-        className={`flex items-center gap-2 rounded-lg px-3 py-2.5 transition-colors hover:bg-[var(--surface-muted)] ${depth === 0 ? 'font-black' : ''}`}
-        style={{ paddingInlineStart: `${depth * 28 + 12}px` }}
+        className={`flex min-w-0 items-center gap-2 rounded-lg px-3 py-2.5 transition-colors hover:bg-[var(--surface-muted)] ${depth === 0 ? 'font-black' : ''}`}
+        style={{ paddingInlineStart: `${Math.min(depth, 4) * 16 + 12}px` }}
       >
         <button
-          className="flex size-5 shrink-0 items-center justify-center rounded text-[var(--text-muted)]"
+          className="flex size-9 shrink-0 items-center justify-center rounded text-[var(--text-muted)] hover:bg-[var(--surface-muted)]"
           onClick={() => setExpanded(!expanded)}
           aria-label={expanded ? 'طي' : 'وسع'}
           disabled={!hasChildren && deptPositions.length === 0}
@@ -622,13 +622,15 @@ function TreeNode({
         </button>
         <Building2 className="size-4 shrink-0 text-[var(--text-muted)]" />
         <span className="min-w-0 flex-1 truncate">{node.name}</span>
-        <span className="font-mono text-xs text-[var(--text-muted)]">{node.code}</span>
+        <span className="hidden shrink-0 font-mono text-xs text-[var(--text-muted)] sm:inline">{node.code}</span>
         {branch ? <span className="hidden rounded bg-[var(--surface-muted)] px-2 py-0.5 text-xs text-[var(--text-muted)] sm:inline">{branch.name}</span> : null}
-        <span className="flex items-center gap-1 text-xs text-[var(--text-muted)]">
+        <span className="flex shrink-0 items-center gap-1 text-xs text-[var(--text-muted)]">
           <UsersRound className="size-3" />
           {node.employeeCount}
         </span>
-        <StatusBadge value={node.active ? 'active' : 'inactive'} />
+        <span className="hidden shrink-0 sm:inline-flex">
+          <StatusBadge value={node.active ? 'active' : 'inactive'} />
+        </span>
         <button className="icon-button" aria-label={'تعديل الإدارة'} onClick={() => onEdit(node)}>
           <Edit3 className="size-3.5" />
         </button>
@@ -637,7 +639,7 @@ function TreeNode({
       {expanded && (
         <>
           {deptPositions.length > 0 && (
-            <div className="space-y-0.5" style={{ paddingInlineStart: `${(depth + 1) * 28 + 12}px` }}>
+            <div className="space-y-0.5" style={{ paddingInlineStart: `${Math.min(depth + 1, 5) * 16 + 12}px` }}>
               {deptPositions.map((position) => (
                 <div key={position.id} className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-[var(--text-muted)]">
                   <BriefcaseBusiness className="size-3.5 shrink-0" />
@@ -654,7 +656,7 @@ function TreeNode({
             </div>
           )}
           {manager && (
-            <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]" style={{ paddingInlineStart: `${(depth + 1) * 28 + 24}px` }}>
+            <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]" style={{ paddingInlineStart: `${Math.min(depth + 1, 5) * 16 + 24}px` }}>
               <span>{'المدير:'}</span>
               <span className="font-bold">{manager.name}</span>
             </div>

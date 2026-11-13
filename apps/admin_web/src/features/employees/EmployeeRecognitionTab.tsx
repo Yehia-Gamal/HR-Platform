@@ -212,8 +212,8 @@ export function EmployeeRecognitionTab({ employeeId }: { employeeId: string }) {
 
       {/* نافذة إدراج موظف في لوحة الشرف */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="card w-full max-w-md p-6 border border-[var(--border)] shadow-xl animate-in fade-in">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 sm:items-center">
+          <div className="card max-h-[calc(100dvh-2rem)] w-full max-w-md space-y-3 overflow-y-auto border border-[var(--border)] p-6 shadow-xl animate-in fade-in">
             <div className="flex items-center gap-3 mb-2">
               <div className="size-9 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center">
                 <Trophy className="size-5" />
@@ -225,7 +225,7 @@ export function EmployeeRecognitionTab({ employeeId }: { employeeId: string }) {
             </div>
 
             <form onSubmit={handleAddHonor} className="space-y-4 mt-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <label className="text-xs font-bold block mb-1">نوع التكريم</label>
                   <select value={newType} onChange={(e) => setNewType(e.target.value as 'month' | 'week')} className="input w-full">

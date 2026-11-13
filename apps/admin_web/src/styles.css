@@ -1318,6 +1318,19 @@ a.no-underline:hover .metric-card--linked {
 }
 
 @media (max-width: 640px) {
+  /* iOS Safari يعمل تكبيراً تلقائياً عند التركيز على أي حقل أصغر من 16px،
+     فيقفز التخطيط ويخرج زر الإرسال عن الشاشة. نثبّت حجم الحقول على الموبايل. */
+  body input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']),
+  body select,
+  body textarea {
+    font-size: 16px;
+  }
+  /* أزرار الإجراءات الثانوية كانت 36/29.6px — أقل من حد اللمس 44px. */
+  .btn-sm,
+  .btn-xs {
+    min-height: 44px;
+    padding-block: 0.6rem;
+  }
   .dashboard-hero-grid {
     grid-template-columns: 1fr;
   }

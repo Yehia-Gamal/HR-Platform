@@ -566,36 +566,38 @@ export function ExecutiveDailyReportPage() {
       {d?.missions && d.missions.length > 0 && (
         <section className="card p-4">
           <h2 className="font-black mb-4">المأموريات ({d.missions.length})</h2>
-          <table className="data-table w-full">
-            <thead>
-              <tr>
-                <th>الكود</th>
-                <th>الاسم</th>
-                <th>النوع</th>
-                <th>الوجهة</th>
-                <th>البداية</th>
-                <th>النهاية</th>
-                <th>الحالة</th>
-                <th>الغرض</th>
-              </tr>
-            </thead>
-            <tbody>
-              {d.missions.map((m) => (
-                <tr key={m.id}>
-                  <td>{m.employeeCode ?? '—'}</td>
-                  <td>{m.employeeName}</td>
-                  <td>{m.missionType}</td>
-                  <td>{m.destination}</td>
-                  <td>{fmtTime12(m.startAt)}</td>
-                  <td>{fmtTime12(m.endAt)}</td>
-                  <td>
-                    <StatusBadge status={m.status ?? undefined} />
-                  </td>
-                  <td>{m.purpose ?? '—'}</td>
+          <div className="overflow-x-auto">
+            <table className="data-table w-full">
+              <thead>
+                <tr>
+                  <th>الكود</th>
+                  <th>الاسم</th>
+                  <th>النوع</th>
+                  <th>الوجهة</th>
+                  <th>البداية</th>
+                  <th>النهاية</th>
+                  <th>الحالة</th>
+                  <th>الغرض</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {d.missions.map((m) => (
+                  <tr key={m.id}>
+                    <td>{m.employeeCode ?? '—'}</td>
+                    <td>{m.employeeName}</td>
+                    <td>{m.missionType}</td>
+                    <td>{m.destination}</td>
+                    <td>{fmtTime12(m.startAt)}</td>
+                    <td>{fmtTime12(m.endAt)}</td>
+                    <td>
+                      <StatusBadge status={m.status ?? undefined} />
+                    </td>
+                    <td>{m.purpose ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
       )}
 
@@ -603,34 +605,36 @@ export function ExecutiveDailyReportPage() {
       {d?.convoys && d.convoys.length > 0 && (
         <section className="card p-4">
           <h2 className="font-black mb-4">القوافل ({d.convoys.length})</h2>
-          <table className="data-table w-full">
-            <thead>
-              <tr>
-                <th>الكود</th>
-                <th>العنوان</th>
-                <th>النوع</th>
-                <th>المشاركون</th>
-                <th>البداية</th>
-                <th>النهاية</th>
-                <th>الحالة</th>
-              </tr>
-            </thead>
-            <tbody>
-              {d.convoys.map((c) => (
-                <tr key={c.id}>
-                  <td>{c.code}</td>
-                  <td>{c.title}</td>
-                  <td>{c.type}</td>
-                  <td>{c.participantsCount}</td>
-                  <td>{fmtTime12(c.startAt)}</td>
-                  <td>{fmtTime12(c.endAt)}</td>
-                  <td>
-                    <StatusBadge status={c.status ?? undefined} />
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="data-table w-full">
+              <thead>
+                <tr>
+                  <th>الكود</th>
+                  <th>العنوان</th>
+                  <th>النوع</th>
+                  <th>المشاركون</th>
+                  <th>البداية</th>
+                  <th>النهاية</th>
+                  <th>الحالة</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {d.convoys.map((c) => (
+                  <tr key={c.id}>
+                    <td>{c.code}</td>
+                    <td>{c.title}</td>
+                    <td>{c.type}</td>
+                    <td>{c.participantsCount}</td>
+                    <td>{fmtTime12(c.startAt)}</td>
+                    <td>{fmtTime12(c.endAt)}</td>
+                    <td>
+                      <StatusBadge status={c.status ?? undefined} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
       )}
 
@@ -638,34 +642,36 @@ export function ExecutiveDailyReportPage() {
       {d?.leaves && d.leaves.length > 0 && (
         <section className="card p-4">
           <h2 className="font-black mb-4">الإجازات ({d.leaves.length})</h2>
-          <table className="data-table w-full">
-            <thead>
-              <tr>
-                <th>الكود</th>
-                <th>الاسم</th>
-                <th>النوع</th>
-                <th>البداية</th>
-                <th>النهاية</th>
-                <th>الأيام</th>
-                <th>الحالة</th>
-              </tr>
-            </thead>
-            <tbody>
-              {d.leaves.map((l) => (
-                <tr key={l.id}>
-                  <td>{l.employeeCode ?? '—'}</td>
-                  <td>{l.employeeName}</td>
-                  <td>{l.leaveType}</td>
-                  <td>{fmtTime12(l.startAt)}</td>
-                  <td>{fmtTime12(l.endAt)}</td>
-                  <td>{l.daysCount}</td>
-                  <td>
-                    <StatusBadge status={l.status ?? undefined} />
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="data-table w-full">
+              <thead>
+                <tr>
+                  <th>الكود</th>
+                  <th>الاسم</th>
+                  <th>النوع</th>
+                  <th>البداية</th>
+                  <th>النهاية</th>
+                  <th>الأيام</th>
+                  <th>الحالة</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {d.leaves.map((l) => (
+                  <tr key={l.id}>
+                    <td>{l.employeeCode ?? '—'}</td>
+                    <td>{l.employeeName}</td>
+                    <td>{l.leaveType}</td>
+                    <td>{fmtTime12(l.startAt)}</td>
+                    <td>{fmtTime12(l.endAt)}</td>
+                    <td>{l.daysCount}</td>
+                    <td>
+                      <StatusBadge status={l.status ?? undefined} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
       )}
 
@@ -673,32 +679,34 @@ export function ExecutiveDailyReportPage() {
       {d?.locationRequests && d.locationRequests.length > 0 && (
         <section className="card p-4">
           <h2 className="font-black mb-4">طلبات الموقع ({d.locationRequests.length})</h2>
-          <table className="data-table w-full">
-            <thead>
-              <tr>
-                <th>الكود</th>
-                <th>الاسم</th>
-                <th>النوع</th>
-                <th>الموقع</th>
-                <th>وقت الطلب</th>
-                <th>الحالة</th>
-              </tr>
-            </thead>
-            <tbody>
-              {d.locationRequests.map((lr) => (
-                <tr key={lr.id}>
-                  <td>{lr.employeeCode ?? '—'}</td>
-                  <td>{lr.employeeName}</td>
-                  <td>{lr.requestType}</td>
-                  <td>{lr.locationName}</td>
-                  <td>{fmtTime12(lr.requestedAt)}</td>
-                  <td>
-                    <StatusBadge status={lr.status ?? undefined} />
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="data-table w-full">
+              <thead>
+                <tr>
+                  <th>الكود</th>
+                  <th>الاسم</th>
+                  <th>النوع</th>
+                  <th>الموقع</th>
+                  <th>وقت الطلب</th>
+                  <th>الحالة</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {d.locationRequests.map((lr) => (
+                  <tr key={lr.id}>
+                    <td>{lr.employeeCode ?? '—'}</td>
+                    <td>{lr.employeeName}</td>
+                    <td>{lr.requestType}</td>
+                    <td>{lr.locationName}</td>
+                    <td>{fmtTime12(lr.requestedAt)}</td>
+                    <td>
+                      <StatusBadge status={lr.status ?? undefined} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
       )}
 
@@ -706,32 +714,34 @@ export function ExecutiveDailyReportPage() {
       {d?.disputes && d.disputes.length > 0 && (
         <section className="card p-4">
           <h2 className="font-black mb-4">الخلافات ({d.disputes.length})</h2>
-          <table className="data-table w-full">
-            <thead>
-              <tr>
-                <th>الرقم</th>
-                <th>العنوان</th>
-                <th>النوع</th>
-                <th>الحالة</th>
-                <th>الأولوية</th>
-                <th>مقدم الطلب</th>
-              </tr>
-            </thead>
-            <tbody>
-              {d.disputes.map((dsp) => (
-                <tr key={dsp.id}>
-                  <td>{dsp.caseNumber}</td>
-                  <td>{dsp.title}</td>
-                  <td>{dsp.caseType}</td>
-                  <td>
-                    <StatusBadge status={dsp.status ?? undefined} />
-                  </td>
-                  <td>{dsp.priority}</td>
-                  <td>{dsp.actorName ?? '—'}</td>
+          <div className="overflow-x-auto">
+            <table className="data-table w-full">
+              <thead>
+                <tr>
+                  <th>الرقم</th>
+                  <th>العنوان</th>
+                  <th>النوع</th>
+                  <th>الحالة</th>
+                  <th>الأولوية</th>
+                  <th>مقدم الطلب</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {d.disputes.map((dsp) => (
+                  <tr key={dsp.id}>
+                    <td>{dsp.caseNumber}</td>
+                    <td>{dsp.title}</td>
+                    <td>{dsp.caseType}</td>
+                    <td>
+                      <StatusBadge status={dsp.status ?? undefined} />
+                    </td>
+                    <td>{dsp.priority}</td>
+                    <td>{dsp.actorName ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
       )}
 

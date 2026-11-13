@@ -106,20 +106,22 @@ export function BroadcastAlertBanner(): ReactNode {
     <div
       role="alert"
       aria-live="assertive"
-      className={`fixed inset-0 z-[120] flex flex-col items-center justify-center gap-6 p-8 text-center transition-colors duration-150 ${
+      className={`fixed inset-0 z-[120] overflow-y-auto text-center transition-colors duration-150 ${
         phase ? 'bg-red-800 text-white' : 'bg-white text-red-700'
       }`}
     >
-      <BellRing className="size-20 animate-bounce" aria-hidden="true" />
-      <h2 className="text-3xl font-black">تنبيه عاجل</h2>
-      <p className="max-w-xl text-xl font-bold leading-relaxed">{alert.message}</p>
-      <button
-        type="button"
-        onClick={() => setDismissedId(alert.id)}
-        className={`rounded-xl px-6 py-2.5 font-black shadow-lg ${phase ? 'bg-white text-red-700' : 'bg-red-700 text-white'}`}
-      >
-        حسنًا، تم الاطلاع
-      </button>
+      <div className="flex min-h-full flex-col items-center justify-center gap-6 p-8">
+        <BellRing className="size-20 shrink-0 animate-bounce" aria-hidden="true" />
+        <h2 className="text-3xl font-black">تنبيه عاجل</h2>
+        <p className="max-w-xl text-xl font-bold leading-relaxed">{alert.message}</p>
+        <button
+          type="button"
+          onClick={() => setDismissedId(alert.id)}
+          className={`mt-2 shrink-0 rounded-xl px-6 py-2.5 font-black shadow-lg ${phase ? 'bg-white text-red-700' : 'bg-red-700 text-white'}`}
+        >
+          حسنًا، تم الاطلاع
+        </button>
+      </div>
     </div>
   );
 }

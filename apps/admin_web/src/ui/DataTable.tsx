@@ -53,7 +53,7 @@ export function DataTable<T>({
   ariaLabel = 'جدول بيانات',
   focusedKey = null,
   rowClassName,
-  pinFirstColumn = false,
+  pinFirstColumn = true,
   pinLastColumn = false,
 }: DataTableProps<T>) {
   const [sortKey, setSortKey] = useState<string | null>(null);

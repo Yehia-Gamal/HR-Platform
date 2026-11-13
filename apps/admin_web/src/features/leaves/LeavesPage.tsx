@@ -145,10 +145,10 @@ function LeaveDetailDialog({ row, onClose, onDecided }: { row: LeaveAdminRow; on
       role="dialog"
       aria-modal="true"
       aria-label="تفاصيل طلب الإجازة"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 sm:items-center"
       onClick={onClose}
     >
-      <div className="card w-full max-w-lg space-y-4 p-6" onClick={(e) => e.stopPropagation()}>
+      <div className="card max-h-[calc(100dvh-2rem)] w-full max-w-lg space-y-4 overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3">
           <h2 className="text-lg font-bold">تفاصيل طلب الإجازة #{row.requestNumber}</h2>
           <button type="button" onClick={onClose} aria-label="إغلاق" className="rounded-lg p-1 hover:bg-[var(--surface-raised)]">

@@ -360,6 +360,25 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
             );
           })}
         </nav>
+
+        {/* تذييل الشريط الجانبي: الحساب وتسجيل الخروج.
+            على الموبايل (≤420px) تُخفى قائمة الحساب في الرأس، فيبقى هذا هو
+            المنفذ الوحيد لتسجيل الخروج — ولذلك يظهر دائماً في الدرج. */}
+        <footer className="sidebar-footer">
+          {!collapsed ? (
+            <div className="sidebar-user">
+              <UserAvatar displayName={access.displayName} photoUrl={profilePhotoUrl} size="sm" eager announceName={false} />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-black">{getShortName(access.displayName)}</p>
+                <p className="truncate text-[11px] text-[var(--text-muted)]">{access.employeeCode ?? currentWorkspaceLabel}</p>
+              </div>
+            </div>
+          ) : null}
+          <button type="button" className="sidebar-logout" onClick={() => void auth.signOut()} aria-label="تسجيل الخروج" title="تسجيل الخروج">
+            <LogOut className="size-4 shrink-0" aria-hidden="true" />
+            {!collapsed ? <span>تسجيل الخروج</span> : null}
+          </button>
+        </footer>
       </aside>
 
       <div className="app-content">
