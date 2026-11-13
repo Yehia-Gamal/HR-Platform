@@ -6,6 +6,7 @@ import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/penalties_providers.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/penalty_disputes_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' show DateFormat;
@@ -17,7 +18,11 @@ import 'package:url_launcher/url_launcher.dart';
 /// (الخادم يقصر المدير على فريقه — 0642)، و«صندوق الزمالة» برصيده وحركاته.
 /// السداد نقدًا لدى مسؤول الصندوق وتؤكده الإدارة (أُزيل السداد عبر إنستاباي).
 class MyInstantPenaltiesPage extends ConsumerWidget {
-  const MyInstantPenaltiesPage({this.highlightId, this.initialIndex, super.key});
+  const MyInstantPenaltiesPage({
+    this.highlightId,
+    this.initialIndex,
+    super.key,
+  });
 
   /// معرّف الغرامة القادمة من إشعار — تُبرز بطاقتها عند الفتح.
   final String? highlightId;
@@ -38,10 +43,17 @@ class MyInstantPenaltiesPage extends ConsumerWidget {
       if (showTeam)
         ('غرامات الموظفين', Icons.groups_outlined, const _TeamPenaltiesTab()),
       if (manage)
-        ('الموقوفون عن العمل', Icons.person_off_rounded, const _SuspendedEmployeesTab()),
+        (
+          'الموقوفون عن العمل',
+          Icons.person_off_rounded,
+          const _SuspendedEmployeesTab(),
+        ),
       ('صندوق الزمالة', Icons.volunteer_activism_outlined, const _FundTab()),
     ];
-    final activeInitial = (initialIndex != null && initialIndex! >= 0 && initialIndex! < tabs.length)
+    final activeInitial =
+        (initialIndex != null &&
+            initialIndex! >= 0 &&
+            initialIndex! < tabs.length)
         ? initialIndex!
         : 0;
     return DefaultTabController(
@@ -93,11 +105,17 @@ class _MyPenaltiesTab extends ConsumerWidget {
         data: (items) {
           final unpaid = items.where((p) => _isUnpaid(p.status)).toList();
           final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
-          final unpaidToday =
-              unpaid.where((p) => p.workDate == todayStr).firstOrNull;
+          final unpaidToday = unpaid
+              .where((p) => p.workDate == todayStr)
+              .firstOrNull;
           return ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.paddingOf(context).bottom + 24),
+            padding: EdgeInsets.fromLTRB(
+              16,
+              16,
+              16,
+              MediaQuery.paddingOf(context).bottom + 24,
+            ),
             children: [
               _MySummaryCard(items: items),
               if (unpaidToday != null) ...[
@@ -106,6 +124,21 @@ class _MyPenaltiesTab extends ConsumerWidget {
               ],
               const SizedBox(height: 10),
               const _PolicyCard(),
+              const SizedBox(height: 10),
+              // منفذ طعون الغرامات — الصفحة كانت موجودة لكن غير قابلة للوصول.
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: OutlinedButton.icon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const PenaltyDisputesPage(),
+                    ),
+                  ),
+                  icon: const Icon(Icons.gavel_rounded, size: 18),
+                  label: const Text('طعون الغرامات'),
+                ),
+              ),
               if (unpaid.isNotEmpty) ...[
                 const SizedBox(height: 10),
                 _PayReminderCard(unpaid: unpaid),
@@ -800,7 +833,8 @@ class _PenaltyCard extends ConsumerWidget {
                   if (active)
                     OutlinedButton.icon(
                       onPressed: () async {
-                        final name = item.employeeName?.trim().isNotEmpty ?? false
+                        final name =
+                            item.employeeName?.trim().isNotEmpty ?? false
                             ? item.employeeName!.trim()
                             : 'الزميل العزيز';
                         final work = DateTime.tryParse(item.workDate);
@@ -812,7 +846,8 @@ class _PenaltyCard extends ConsumerWidget {
                             : '${item.lateMinutes} دقيقة';
                         final String text;
                         if (item.status == 'suspended') {
-                          text = '*إشعار هام وعاجل من إدارة الموارد البشرية (جمعية أحلى شباب)* ⚠️\n\n'
+                          text =
+                              '*إشعار هام وعاجل من إدارة الموارد البشرية (جمعية أحلى شباب)* ⚠️\n\n'
                               'السلام عليكم ورحمة الله، أستاذ *$name* 🌸\n\n'
                               'نود إحاطتكم بأنه قد تم *تعليق حسابكم مؤقتاً على السيستم* لتجاوز مهلة سداد غرامة الحضور المضاعفة (500 ج.م) ليوم *$dayDate*.\n\n'
                               '📌 *بيانات الغرامة:*\n'
@@ -824,7 +859,8 @@ class _PenaltyCard extends ConsumerWidget {
                               '🤝 *تنويه هام:* جميع الغرامات المحصلة تُودع بالكامل في *صندوق الزمالة والتكافل* لدعم الزملاء والمساعدات الاجتماعية.\n\n'
                               'مع خالص التقدير والاحترام 🌺';
                         } else if (item.status == 'doubled') {
-                          text = '*تنبيه عاجل: غرامة حضور مضاعفة (500 ج.م)* ⚠️\n\n'
+                          text =
+                              '*تنبيه عاجل: غرامة حضور مضاعفة (500 ج.م)* ⚠️\n\n'
                               'السلام عليكم ورحمة الله، أستاذ *$name* 🌸\n\n'
                               'نود تذكيركم بأنه نظراً لانقضاء مهلة الـ 24 ساعة، تضاعفت غرامة الحضور ليوم *$dayDate* لتصبح *500 ج.م*.\n\n'
                               '📌 *تفاصيل الغرامة:*\n'
@@ -836,7 +872,8 @@ class _PenaltyCard extends ConsumerWidget {
                               '🤝 *نحيطكم علماً بأن 100% من حصيلة الغرامات تذهب لصالح صندوق الزمالة والتكافل لدعم الزملاء.*\n\n'
                               'مع تمنياتنا لكم بالتوفيق 🌺';
                         } else {
-                          text = '*إشعار تسجيل غرامة حضور وتأخير — جمعية أحلى شباب* ⏰\n\n'
+                          text =
+                              '*إشعار تسجيل غرامة حضور وتأخير — جمعية أحلى شباب* ⏰\n\n'
                               'السلام عليكم ورحمة الله، أستاذ *$name* 🌸\n\n'
                               'نحيطكم علماً بأنه تم تسجيل غرامة حضور وتأخير ليوم *$dayDate*:\n'
                               '• مدة التأخير: *$lateFormatted*\n'
@@ -860,11 +897,18 @@ class _PenaltyCard extends ConsumerWidget {
                       icon: const Icon(Icons.chat_outlined, size: 18),
                       label: const Text('إشعار واتساب'),
                     ),
-                  if (manage && active && (item.currentAmount > item.originalAmount || item.status == 'doubled' || item.status == 'suspended'))
+                  if (manage &&
+                      active &&
+                      (item.currentAmount > item.originalAmount ||
+                          item.status == 'doubled' ||
+                          item.status == 'suspended'))
                     OutlinedButton.icon(
-                      onPressed: () => _revertDoubledPenalty(context, ref, item),
+                      onPressed: () =>
+                          _revertDoubledPenalty(context, ref, item),
                       icon: const Icon(Icons.undo_rounded, size: 18),
-                      label: Text('إرجاع للأصل ()'),
+                      label: Text(
+                        'إرجاع للأصل (${_money(item.originalAmount)})',
+                      ),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: const Color(0xFF4F46E5),
                       ),
@@ -1272,10 +1316,17 @@ Future<void> _liftEmployeeSuspensionAdmin(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       title: const Row(
         children: [
-          Icon(Icons.lock_open_rounded, color: AppColors.statusSuccess, size: 24),
+          Icon(
+            Icons.lock_open_rounded,
+            color: AppColors.statusSuccess,
+            size: 24,
+          ),
           SizedBox(width: 8),
           Expanded(
-            child: Text('رفع الإيقاف عن العمل', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+            child: Text(
+              'رفع الإيقاف عن العمل',
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+            ),
           ),
         ],
       ),
@@ -1305,18 +1356,20 @@ Future<void> _liftEmployeeSuspensionAdmin(
 
   final messenger = ScaffoldMessenger.of(context);
   try {
-    await ref.read(supabaseProvider).rpc<dynamic>(
+    await ref
+        .read(supabaseProvider)
+        .rpc<dynamic>(
       'lift_employee_suspension_admin',
-      params: {
-        'p_employee_id': emp.employeeId,
-      },
+          params: {'p_employee_id': emp.employeeId},
     );
     ref
       ..invalidate(suspendedEmployeesProvider)
       ..invalidate(teamInstantPenaltiesProvider);
     messenger.showSnackBar(
       SnackBar(
-        content: Text('تم رفع الإيقاف عن الزميل ${emp.employeeName} بنجاح وإرسال الإشعار الفوري 🟢'),
+        content: Text(
+          'تم رفع الإيقاف عن الزميل ${emp.employeeName} بنجاح وإرسال الإشعار الفوري 🟢',
+        ),
         backgroundColor: AppColors.statusSuccess,
       ),
     );
@@ -1338,10 +1391,17 @@ Future<void> _liftAllEmployeesSuspensionAdmin(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       title: const Row(
         children: [
-          Icon(Icons.people_outline_rounded, color: AppColors.statusSuccess, size: 24),
+          Icon(
+            Icons.people_outline_rounded,
+            color: AppColors.statusSuccess,
+            size: 24,
+          ),
           SizedBox(width: 8),
           Expanded(
-            child: Text('رفع إيقاف جميع الموظفين', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+            child: Text(
+              'رفع إيقاف جميع الموظفين',
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+            ),
           ),
         ],
       ),
@@ -1371,15 +1431,17 @@ Future<void> _liftAllEmployeesSuspensionAdmin(
 
   final messenger = ScaffoldMessenger.of(context);
   try {
-    await ref.read(supabaseProvider).rpc<dynamic>(
-      'lift_all_suspended_employees_admin',
-    );
+    await ref
+        .read(supabaseProvider)
+        .rpc<dynamic>('lift_all_suspended_employees_admin');
     ref
       ..invalidate(suspendedEmployeesProvider)
       ..invalidate(teamInstantPenaltiesProvider);
     messenger.showSnackBar(
       SnackBar(
-        content: Text('تم رفع إيقاف جميع الموظفين ($employeeCount) وإعادة تفعيل حساباتهم بنجاح 🟢'),
+        content: Text(
+          'تم رفع إيقاف جميع الموظفين ($employeeCount) وإعادة تفعيل حساباتهم بنجاح 🟢',
+        ),
         backgroundColor: AppColors.statusSuccess,
       ),
     );
@@ -1724,7 +1786,12 @@ class _TeamPenaltiesTabState extends ConsumerState<_TeamPenaltiesTab> {
 
           return ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.fromLTRB(16, 14, 16, MediaQuery.paddingOf(context).bottom + 24),
+            padding: EdgeInsets.fromLTRB(
+              16,
+              14,
+              16,
+              MediaQuery.paddingOf(context).bottom + 24,
+            ),
             children: [
               Card(
                 child: Padding(
@@ -1764,10 +1831,17 @@ class _TeamPenaltiesTabState extends ConsumerState<_TeamPenaltiesTab> {
                   ),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   child: Row(
                     children: [
-                      Icon(Icons.visibility_rounded, color: theme.colorScheme.primary, size: 20),
+                      Icon(
+                        Icons.visibility_rounded,
+                        color: theme.colorScheme.primary,
+                        size: 20,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -1917,12 +1991,20 @@ class _EmployeeGroupCard extends StatelessWidget {
                           spacing: 6,
                           runSpacing: 4,
                           children: [
-                            if (penalties.any((p) => p.status == 'suspended' || p.escalationLevel == 'suspended'))
+                            if (penalties.any(
+                              (p) =>
+                                  p.status == 'suspended' ||
+                                  p.escalationLevel == 'suspended',
+                            ))
                               const _Pill(
                                 text: 'موقوف عن العمل',
                                 color: AppColors.statusDanger,
                               )
-                            else if (penalties.any((p) => p.currentAmount >= 500 || p.escalationLevel == 'doubled'))
+                            else if (penalties.any(
+                              (p) =>
+                                  p.currentAmount >= 500 ||
+                                  p.escalationLevel == 'doubled',
+                            ))
                               const _Pill(
                                 text: 'مضاعفة 500 ج.م',
                                 color: AppColors.statusWarning,
@@ -2051,7 +2133,12 @@ class _SuspendedEmployeesTab extends ConsumerWidget {
 
           return ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.fromLTRB(16, 14, 16, MediaQuery.paddingOf(context).bottom + 24),
+            padding: EdgeInsets.fromLTRB(
+              16,
+              14,
+              16,
+              MediaQuery.paddingOf(context).bottom + 24,
+            ),
             children: [
               Card(
                 color: AppColors.statusDanger.withValues(alpha: .08),
@@ -2129,7 +2216,10 @@ class _SuspendedEmployeesTab extends ConsumerWidget {
                     backgroundColor: AppColors.statusSuccess,
                     foregroundColor: Colors.white,
                     elevation: 1,
-                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 14,
+                      horizontal: 16,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -2174,7 +2264,11 @@ class _SuspendedEmployeeCard extends ConsumerWidget {
           children: [
             Row(
               children: [
-                AppAvatar(name: emp.employeeName, photoUrl: emp.photoUrl, radius: 22),
+                AppAvatar(
+                  name: emp.employeeName,
+                  photoUrl: emp.photoUrl,
+                  radius: 22,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
@@ -2212,7 +2306,9 @@ class _SuspendedEmployeeCard extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: .35),
+                color: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: .35,
+                ),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -2268,7 +2364,10 @@ class _SuspendedEmployeeCard extends ConsumerWidget {
                       ),
                       Text(
                         '${emp.unpaidCount}',
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ],
                   ),
@@ -2285,22 +2384,34 @@ class _SuspendedEmployeeCard extends ConsumerWidget {
               for (final pen in emp.penalties) ...[
                 Container(
                   margin: const EdgeInsets.only(bottom: 6),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.surface,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: theme.colorScheme.outlineVariant.withValues(alpha: .4),
+                      color: theme.colorScheme.outlineVariant.withValues(
+                        alpha: .4,
+                      ),
                     ),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.warning_amber_rounded, size: 16, color: AppColors.statusWarning),
+                      const Icon(
+                        Icons.warning_amber_rounded,
+                        size: 16,
+                        color: AppColors.statusWarning,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'يوم ${pen["workDate"]} · تأخير ${_minutes((pen["lateMinutes"] as num?)?.toInt() ?? 0)}',
-                          style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                       Text(
@@ -2312,22 +2423,34 @@ class _SuspendedEmployeeCard extends ConsumerWidget {
                         ),
                       ),
                       // زر إرجاع هذه الغرامة الفردية لأصلها
-                      if (((pen["currentAmount"] as num?)?.toDouble() ?? 0) > ((pen["originalAmount"] as num?)?.toDouble() ?? 0))
+                      if (((pen["currentAmount"] as num?)?.toDouble() ?? 0) >
+                          ((pen["originalAmount"] as num?)?.toDouble() ?? 0))
                         IconButton(
                           padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(minWidth: 26, minHeight: 26),
-                          icon: const Icon(Icons.undo_rounded, size: 15, color: Color(0xFF4F46E5)),
-                          tooltip: 'إرجاع هذه الغرامة لأصلها (${_money((pen["originalAmount"] as num?)?.toDouble() ?? 0)})',
+                          constraints: const BoxConstraints(
+                            minWidth: 26,
+                            minHeight: 26,
+                          ),
+                          icon: const Icon(
+                            Icons.undo_rounded,
+                            size: 15,
+                            color: Color(0xFF4F46E5),
+                          ),
+                          tooltip:
+                              'إرجاع هذه الغرامة لأصلها (${_money((pen["originalAmount"] as num?)?.toDouble() ?? 0)})',
                           onPressed: () => _runPenaltyAction(
                             context,
                             ref,
                             title: 'إرجاع الغرامة للأصل',
-                            message: 'إرجاع غرامة يوم ${pen["workDate"]} إلى أصلها (${_money((pen["originalAmount"] as num?)?.toDouble() ?? 0)}) بدون مضاعفة لتمكين الموظف من السداد.',
+                            message:
+                                'إرجاع غرامة يوم ${pen["workDate"]} إلى أصلها (${_money((pen["originalAmount"] as num?)?.toDouble() ?? 0)}) بدون مضاعفة لتمكين الموظف من السداد.',
                             confirmLabel: 'إرجاع للأصل',
                             inputLabel: 'ملاحظة (اختياري)',
                             inputRequired: false,
                             success: 'تم إرجاع الغرامة إلى أصلها بنجاح',
-                            action: (note) => ref.read(supabaseProvider).rpc<dynamic>(
+                            action: (note) => ref
+                                .read(supabaseProvider)
+                                .rpc<dynamic>(
                               'revert_doubled_instant_penalty',
                               params: {
                                 'p_penalty_id': pen["id"],
@@ -2352,17 +2475,22 @@ class _SuspendedEmployeeCard extends ConsumerWidget {
                     onPressed: () {
                       final firstPen = emp.penalties.first;
                       final penId = firstPen["id"] as String;
-                      final currentAmt = (firstPen["currentAmount"] as num?)?.toDouble() ?? 0;
+                      final currentAmt =
+                          (firstPen["currentAmount"] as num?)?.toDouble() ?? 0;
                       _runPenaltyAction(
                         context,
                         ref,
                         title: 'سداد الغرامة ورفع الإيقاف',
-                        message: 'تأكيد استلام ${_money(currentAmt)} نقداً من الزميل ${emp.employeeName} وإيداعها في صندوق الزمالة.\nسيتم رفع الإيقاف عن الزميل فوراً.',
+                        message:
+                            'تأكيد استلام ${_money(currentAmt)} نقداً من الزميل ${emp.employeeName} وإيداعها في صندوق الزمالة.\nسيتم رفع الإيقاف عن الزميل فوراً.',
                         confirmLabel: 'تأكيد السداد ورفع الإيقاف',
                         inputLabel: 'ملاحظة (اختياري)',
                         inputRequired: false,
-                        success: 'تم السداد وإيداع المبلغ بالصندوق ورفع الإيقاف بنجاح',
-                        action: (note) => ref.read(supabaseProvider).rpc<dynamic>(
+                        success:
+                            'تم السداد وإيداع المبلغ بالصندوق ورفع الإيقاف بنجاح',
+                        action: (note) => ref
+                            .read(supabaseProvider)
+                            .rpc<dynamic>(
                           'confirm_instant_penalty_payment',
                           params: {
                             'p_penalty_id': penId,
@@ -2380,14 +2508,19 @@ class _SuspendedEmployeeCard extends ConsumerWidget {
                   OutlinedButton.icon(
                     onPressed: () async {
                       for (final pen in emp.penalties) {
-                        final penAmt = (pen["currentAmount"] as num?)?.toDouble() ?? 0;
-                        final origAmt = (pen["originalAmount"] as num?)?.toDouble() ?? 0;
+                        final penAmt =
+                            (pen["currentAmount"] as num?)?.toDouble() ?? 0;
+                        final origAmt =
+                            (pen["originalAmount"] as num?)?.toDouble() ?? 0;
                         if (penAmt > origAmt) {
-                          await ref.read(supabaseProvider).rpc<dynamic>(
+                          await ref
+                              .read(supabaseProvider)
+                              .rpc<dynamic>(
                             'revert_doubled_instant_penalty',
                             params: {
                               'p_penalty_id': pen["id"],
-                              'p_reason': 'إرجاع إداري جماعي للموظف الموقوف',
+                                  'p_reason':
+                                      'إرجاع إداري جماعي للموظف الموقوف',
                             },
                           );
                         }
@@ -2398,14 +2531,18 @@ class _SuspendedEmployeeCard extends ConsumerWidget {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('تم إرجاع غرامات ${emp.employeeName} إلى قيمتها الأصلية (${_money(emp.totalOriginalDue)}) بنجاح.'),
+                            content: Text(
+                              'تم إرجاع غرامات ${emp.employeeName} إلى قيمتها الأصلية (${_money(emp.totalOriginalDue)}) بنجاح.',
+                            ),
                             backgroundColor: AppColors.statusSuccess,
                           ),
                         );
                       }
                     },
                     icon: const Icon(Icons.undo_rounded, size: 18),
-                    label: Text('إرجاع الغرامات للأصل (${_money(emp.totalOriginalDue)})'),
+                    label: Text(
+                      'إرجاع الغرامات للأصل (${_money(emp.totalOriginalDue)})',
+                    ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFF4F46E5),
                     ),
@@ -2413,7 +2550,8 @@ class _SuspendedEmployeeCard extends ConsumerWidget {
 
                 // 3) رفع الإيقاف إدارياً
                 OutlinedButton.icon(
-                  onPressed: () => _liftEmployeeSuspensionAdmin(context, ref, emp),
+                  onPressed: () =>
+                      _liftEmployeeSuspensionAdmin(context, ref, emp),
                   icon: const Icon(Icons.lock_open_rounded, size: 18),
                   label: const Text('رفع الإيقاف إدارياً'),
                   style: OutlinedButton.styleFrom(
@@ -2425,15 +2563,21 @@ class _SuspendedEmployeeCard extends ConsumerWidget {
                 if (emp.phone != null && emp.phone!.isNotEmpty)
                   OutlinedButton.icon(
                     onPressed: () async {
-                      final text = '*إشعار هام وعاجل من إدارة الموارد البشرية (جمعية أحلى شباب)* ⚠️\n\n'
+                      final text =
+                          '*إشعار هام وعاجل من إدارة الموارد البشرية (جمعية أحلى شباب)* ⚠️\n\n'
                           'السلام عليكم ورحمة الله، أستاذ *${emp.employeeName}* 🌸\n\n'
                           'نود إحاطتكم بأنه قد تم *تعليق حسابكم مؤقتاً على السيستم* لتجاوز مهلة سداد غرامات الحضور والانصراف.\n\n'
                           '📌 *إجمالي المبلغ المطلوب لسداد الغرامات ورفع الإيقاف:* *${_money(emp.totalCurrentDue)}* (أصل الغرامات: *${_money(emp.totalOriginalDue)}*).\n\n'
                           'يرجى سرعة التوجه للـ HR أو التواصل مع الإدارة للسداد ورفع الإيقاف لمباشرة العمل.\n\n'
                           'مع خالص التقدير والاحترام 🌺';
-                      final uri = Uri.parse('https://wa.me/${emp.phone}?text=${Uri.encodeComponent(text)}');
+                      final uri = Uri.parse(
+                        'https://wa.me/${emp.phone}?text=${Uri.encodeComponent(text)}',
+                      );
                       if (await canLaunchUrl(uri)) {
-                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        await launchUrl(
+                          uri,
+                          mode: LaunchMode.externalApplication,
+                        );
                       }
                     },
                     icon: const Icon(Icons.chat_outlined, size: 18),
@@ -2474,7 +2618,12 @@ class _FundTab extends ConsumerWidget {
         ),
         data: (s) => ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.paddingOf(context).bottom + 24),
+          padding: EdgeInsets.fromLTRB(
+            16,
+            16,
+            16,
+            MediaQuery.paddingOf(context).bottom + 24,
+          ),
           children: [
             Card(
               color: AppColors.statusSuccess.withValues(alpha: .08),
@@ -2607,10 +2756,7 @@ class _FundTab extends ConsumerWidget {
                   'https://wa.me/?text=${Uri.encodeComponent(text)}',
                 );
                 if (await canLaunchUrl(uri)) {
-                  await launchUrl(
-                    uri,
-                    mode: LaunchMode.externalApplication,
-                  );
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
                 }
               },
               icon: const Icon(Icons.share_outlined, size: 18),
@@ -2883,11 +3029,16 @@ class _TodayCompensationProposalBanner extends ConsumerWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final state = ref.watch(attendanceStateProvider).asData?.value;
-    final checkInStr = state?.todayCheckInTime ??
+    final checkInStr =
+        state?.todayCheckInTime ??
         (state?.todayCheckInAt != null
-            ? DateFormat('h:mm a', 'ar').format(state!.todayCheckInAt!.toLocal())
+            ? DateFormat(
+                'h:mm a',
+                'ar',
+              ).format(state!.todayCheckInAt!.toLocal())
             : null);
-    final targetStr = state?.targetCheckoutTime ??
+    final targetStr =
+        state?.targetCheckoutTime ??
         (state?.todayCheckInAt != null
             ? DateFormat('h:mm a', 'ar').format(
                 state!.todayCheckInAt!.add(const Duration(hours: 8)).toLocal(),
@@ -2905,18 +3056,14 @@ class _TodayCompensationProposalBanner extends ConsumerWidget {
             ? (isDark
                 ? const Color(0xFF064E3B).withValues(alpha: 0.35)
                 : AppColors.statusSuccess.withValues(alpha: 0.12))
-            : (isDark
-                ? const Color(0xFF2E1708)
-                : const Color(0xFFFFF7ED)),
+            : (isDark ? const Color(0xFF2E1708) : const Color(0xFFFFF7ED)),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: reached
               ? (isDark
                   ? const Color(0xFF059669)
                   : AppColors.statusSuccess.withValues(alpha: 0.4))
-              : (isDark
-                  ? const Color(0xFF9A3412)
-                  : const Color(0xFFFDBA74)),
+              : (isDark ? const Color(0xFF9A3412) : const Color(0xFFFDBA74)),
           width: 1.2,
         ),
       ),
@@ -2926,12 +3073,14 @@ class _TodayCompensationProposalBanner extends ConsumerWidget {
           Row(
             children: [
               Icon(
-                reached
-                    ? Icons.verified_user_rounded
-                    : Icons.lightbulb_rounded,
+                reached ? Icons.verified_user_rounded : Icons.lightbulb_rounded,
                 color: reached
-                    ? (isDark ? const Color(0xFF34D399) : AppColors.statusSuccess)
-                    : (isDark ? const Color(0xFFFB923C) : const Color(0xFFEA580C)),
+                    ? (isDark
+                          ? const Color(0xFF34D399)
+                          : AppColors.statusSuccess)
+                    : (isDark
+                          ? const Color(0xFFFB923C)
+                          : const Color(0xFFEA580C)),
                 size: compact ? 18 : 22,
               ),
               const SizedBox(width: 8),
@@ -2944,8 +3093,12 @@ class _TodayCompensationProposalBanner extends ConsumerWidget {
                     fontSize: compact ? 13 : 14,
                     fontWeight: FontWeight.bold,
                     color: reached
-                        ? (isDark ? const Color(0xFF34D399) : AppColors.statusSuccess)
-                        : (isDark ? const Color(0xFFFB923C) : const Color(0xFFC2410C)),
+                        ? (isDark
+                              ? const Color(0xFF34D399)
+                              : AppColors.statusSuccess)
+                        : (isDark
+                              ? const Color(0xFFFB923C)
+                              : const Color(0xFFC2410C)),
                   ),
                 ),
               ),
@@ -2963,7 +3116,9 @@ class _TodayCompensationProposalBanner extends ConsumerWidget {
               height: 1.4,
               color: reached
                   ? (isDark ? const Color(0xFFA7F3D0) : const Color(0xFF166534))
-                  : (isDark ? const Color(0xFFFFEDD5) : const Color(0xFF7C2D12)),
+                  : (isDark
+                        ? const Color(0xFFFFEDD5)
+                        : const Color(0xFF7C2D12)),
             ),
           ),
           if (!reached && targetStr != null) ...[
@@ -2971,10 +3126,14 @@ class _TodayCompensationProposalBanner extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF261205) : const Color(0xFFFFEDD5),
+                color: isDark
+                    ? const Color(0xFF261205)
+                    : const Color(0xFFFFEDD5),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: isDark ? const Color(0xFF7C2D12) : const Color(0xFFFED7AA),
+                  color: isDark
+                      ? const Color(0xFF7C2D12)
+                      : const Color(0xFFFED7AA),
                 ),
               ),
               child: Wrap(
@@ -2997,7 +3156,9 @@ class _TodayCompensationProposalBanner extends ConsumerWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? const Color(0xFFFDBA74) : const Color(0xFF9A3412),
+                          color: isDark
+                              ? const Color(0xFFFDBA74)
+                              : const Color(0xFF9A3412),
                         ),
                       ),
                     ],
@@ -3008,7 +3169,9 @@ class _TodayCompensationProposalBanner extends ConsumerWidget {
                       style: TextStyle(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w600,
-                        color: isDark ? const Color(0xFFFB923C) : const Color(0xFFC2410C),
+                        color: isDark
+                            ? const Color(0xFFFB923C)
+                            : const Color(0xFFC2410C),
                       ),
                     ),
                 ],
@@ -3189,8 +3352,7 @@ String _paymentLabel(String? method) => switch (method) {
 ) {
   if (item.status == 'cancelled') {
     final hay = '${item.cancelledReason ?? ''} ${item.notes ?? ''}';
-    final isEightHours =
-        hay.contains('8 ساعات') || hay.contains('ثماني ساعات');
+    final isEightHours = hay.contains('8 ساعات') || hay.contains('ثماني ساعات');
     if (isEightHours) {
       return (
         label: 'معفاة (8 ساعات عمل)',
@@ -3200,7 +3362,9 @@ String _paymentLabel(String? method) => switch (method) {
       );
     }
     final isShiftChange =
-        hay.contains('وردية') || hay.contains('فترة العمل') || hay.contains('فترة عمل');
+        hay.contains('وردية') ||
+        hay.contains('فترة العمل') ||
+        hay.contains('فترة عمل');
     if (isShiftChange) {
       return (
         label: 'ملغاة (اعتماد الوردية)',

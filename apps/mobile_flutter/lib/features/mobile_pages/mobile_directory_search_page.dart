@@ -8,6 +8,6 @@ class MobileDirectorySearchPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const PeopleHubPage(initialTab: 0);
+    return const PeopleHubPage();
   }
 }

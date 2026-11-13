@@ -13,8 +13,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // الشهور بالعربية
 const _months = [
-  'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-  'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
+  'يناير',
+  'فبراير',
+  'مارس',
+  'أبريل',
+  'مايو',
+  'يونيو',
+  'يوليو',
+  'أغسطس',
+  'سبتمبر',
+  'أكتوبر',
+  'نوفمبر',
+  'ديسمبر',
 ];
 
 /// كشف المستخدم نفسه؟ الطلبات الذاتية (إجازة/إذن/تصحيح بصمة/تعديل حالة يوم)
@@ -23,7 +33,6 @@ bool _isOwnStatement(WidgetRef ref, MonthlyAttendanceStatement statement) {
   final me = ref.watch(accessContextProvider).value?.employeeId;
   return statement.employeeId.isEmpty || statement.employeeId == me;
 }
-
 
 /// كشف الحضور والانصراف الشهري — للموظف عن نفسه (V12 §18)،
 /// وعند تمرير [employeeId] يُعرض كشف موظف محدد (مدير مباشر/HR) (V22).
@@ -67,9 +76,7 @@ class _MonthlyAttendanceStatementPageState
       widget.employeeId == null
           ? ref.watch(myMonthlyStatementProvider((_year, _month)))
           : ref.watch(
-              employeeMonthlyStatementProvider(
-                (widget.employeeId!, _year, _month),
-              ),
+          employeeMonthlyStatementProvider((widget.employeeId!, _year, _month)),
             );
 
   void _reload(WidgetRef ref) => widget.employeeId == null
@@ -97,9 +104,14 @@ class _MonthlyAttendanceStatementPageState
                       const SnackBar(
                         content: Row(
                           children: [
-                            Icon(Icons.check_circle_outline, color: Colors.white),
+                            Icon(
+                              Icons.check_circle_outline,
+                              color: Colors.white,
+                            ),
                             SizedBox(width: 8),
-                            Expanded(child: Text('تم تصدير كشف الحضور PDF بنجاح')),
+                            Expanded(
+                              child: Text('تم تصدير كشف الحضور PDF بنجاح'),
+                            ),
                           ],
                         ),
                         backgroundColor: Color(0xFF0F9F6E),
@@ -126,9 +138,20 @@ class _MonthlyAttendanceStatementPageState
                 Expanded(
                   child: DropdownButtonFormField<int>(
                     value: _month,
-                    decoration:
-                        const InputDecoration(isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
-                    items: List.generate(12, (i) => DropdownMenuItem(value: i + 1, child: Text(_months[i]))),
+                    decoration: const InputDecoration(
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                    ),
+                    items: List.generate(
+                      12,
+                      (i) => DropdownMenuItem(
+                        value: i + 1,
+                        child: Text(_months[i]),
+                      ),
+                    ),
                     onChanged: (v) => setState(() => _month = v!),
                   ),
                 ),
@@ -136,10 +159,17 @@ class _MonthlyAttendanceStatementPageState
                 Expanded(
                   child: DropdownButtonFormField<int>(
                     value: _year,
-                    decoration:
-                        const InputDecoration(isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                    decoration: const InputDecoration(
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                    ),
                     items: [_now.year, _now.year - 1, _now.year - 2]
-                        .map((y) => DropdownMenuItem(value: y, child: Text('$y')))
+                        .map(
+                          (y) => DropdownMenuItem(value: y, child: Text('$y')),
+                        )
                         .toList(),
                     onChanged: (v) => setState(() => _year = v!),
                   ),
@@ -158,7 +188,11 @@ class _MonthlyAttendanceStatementPageState
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.error_outline, size: 40, color: Theme.of(context).colorScheme.error),
+                  Icon(
+                    Icons.error_outline,
+                    size: 40,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
                   const SizedBox(height: 8),
                   Text(humanizeError(error), textAlign: TextAlign.center),
                   TextButton(
@@ -200,7 +234,8 @@ class _StatementBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = statement.summary;
     final scheme = Theme.of(context).colorScheme;
-    final isExecutive = statement.employeeId == '7b0740fa-66ba-4616-8674-3dbd8e14109e' ||
+    final isExecutive =
+        statement.employeeId == '7b0740fa-66ba-4616-8674-3dbd8e14109e' ||
         statement.employeeNameAr.contains('محمد يوسف') ||
         statement.jobTitle.contains('المدير التنفيذي');
 
@@ -265,10 +300,110 @@ class _StatementBody extends StatelessWidget {
       );
     }
 
-    final convoyDays = statement.days.where((d) => (d.status.contains('قافلة') || d.hasConvoyFundi) && !d.status.contains('فاندي')).length;
-    final fundiDays = statement.days.where((d) => d.status.contains('فاندي')).length;
+    final convoyDays = statement.days
+        .where(
+          (d) =>
+              (d.status.contains('قافلة') || d.hasConvoyFundi) &&
+              !d.status.contains('فاندي'),
+        )
+        .length;
+    final fundiDays = statement.days
+        .where((d) => d.status.contains('فاندي'))
+        .length;
     final cDays = statement.days.isNotEmpty ? convoyDays : s.convoyFundiDays;
     final fDays = statement.days.isNotEmpty ? fundiDays : 0;
+    // أربع بطاقات في صف واحد على هاتف 360–420dp تُضغط التسميات في عمود ضيق
+    // جدًا. نستخدم عمودين حتى 420dp ونربط الارتفاع بحجم الخط.
+    final narrowScreen = MediaQuery.sizeOf(context).width < 420;
+    final metricColumns = narrowScreen ? 2 : 4;
+    final metricExtent = MediaQuery.textScalerOf(
+      context,
+    ).scale(100).clamp(100.0, 150.0).toDouble();
+    final summaryExtent = MediaQuery.textScalerOf(
+      context,
+    ).scale(66).clamp(66.0, 108.0).toDouble();
+    final metricTiles = <Widget>[
+      _MetricTile(
+        icon: Icons.check_circle_outline,
+        label: 'حضور',
+        value: '${s.presentDays}',
+        color: const Color(0xFF0F9F6E),
+      ),
+      _MetricTile(
+        icon: Icons.cancel_outlined,
+        label: 'غياب',
+        value: '${s.absentDays}',
+        color: scheme.error,
+      ),
+      _MetricTile(
+        icon: Icons.beach_access_outlined,
+        label: 'إجازات',
+        value: '${s.leaveDays}',
+        color: const Color(0xFF4F46E5),
+      ),
+      _MetricTile(
+        icon: Icons.directions_car_outlined,
+        label: 'مأموريات',
+        value: '${s.missionDays}',
+        color: const Color(0xFF0284C7),
+      ),
+      _MetricTile(
+        icon: Icons.assignment_outlined,
+        label: 'أذونات',
+        value: '${s.permitCount}',
+        color: const Color(0xFFD97706),
+      ),
+      _MetricTile(
+        icon: Icons.volunteer_activism_outlined,
+        label: 'قوافل',
+        value: '$cDays',
+        color: const Color(0xFF7C3AED),
+      ),
+      _MetricTile(
+        icon: Icons.attractions_outlined,
+        label: 'فاندي (ترفيهي)',
+        value: '$fDays',
+        color: const Color(0xFFDB2777),
+      ),
+      _MetricTile(
+        icon: Icons.bed_outlined,
+        label: 'عطلات',
+        value: '${s.restDays + s.holidayDays}',
+        color: const Color(0xFF64748B),
+      ),
+    ];
+    final summaryTiles = <Widget>[
+      _SummaryTile(
+        label: 'إجمالي الساعات',
+        value: s.totalWorkHours.toStringAsFixed(1),
+        unit: 'ساعة',
+      ),
+      _SummaryTile(
+        label: 'متوسط يومي',
+        value: s.averageWorkHours.toStringAsFixed(1),
+        unit: 'ساعة/يوم',
+      ),
+      _SummaryTile(
+        label: 'إجمالي التأخير',
+        value: '${s.totalLateMinutes}',
+        unit: 'دقيقة',
+      ),
+      _SummaryTile(
+        label: 'خروج مبكر',
+        value: '${s.totalEarlyLeaveMinutes}',
+        unit: 'دقيقة',
+      ),
+      _SummaryTile(
+        label: 'ساعات إضافية',
+        value: _formatOvertimeValue(s.totalOvertimeMinutes),
+        unit: _formatOvertimeUnit(s.totalOvertimeMinutes),
+      ),
+      _SummaryTile(
+        label: 'تصحيحات معتمدة',
+        value: '${s.correctionCount}',
+        unit: '',
+      ),
+    ];
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
@@ -282,26 +417,24 @@ class _StatementBody extends StatelessWidget {
         const SizedBox(height: 16),
 
         // ───── بطاقات الملخص الرئيسية ─────
-        Text('ملخص الشهر',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+        Text(
+          'ملخص الشهر',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+        ),
         const SizedBox(height: 8),
-        GridView.count(
-          crossAxisCount: 4,
+        GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio: 0.88,
+          itemCount: metricTiles.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: metricColumns,
           crossAxisSpacing: 6,
           mainAxisSpacing: 6,
-          children: [
-            _MetricTile(icon: Icons.check_circle_outline, label: 'حضور', value: '${s.presentDays}', color: const Color(0xFF0F9F6E)),
-            _MetricTile(icon: Icons.cancel_outlined, label: 'غياب', value: '${s.absentDays}', color: scheme.error),
-            _MetricTile(icon: Icons.beach_access_outlined, label: 'إجازات', value: '${s.leaveDays}', color: const Color(0xFF4F46E5)),
-            _MetricTile(icon: Icons.directions_car_outlined, label: 'مأموريات', value: '${s.missionDays}', color: const Color(0xFF0284C7)),
-            _MetricTile(icon: Icons.assignment_outlined, label: 'أذونات', value: '${s.permitCount}', color: const Color(0xFFD97706)),
-            _MetricTile(icon: Icons.volunteer_activism_outlined, label: 'قوافل', value: '$cDays', color: const Color(0xFF7C3AED)),
-            _MetricTile(icon: Icons.attractions_outlined, label: 'فاندي (ترفيهي)', value: '$fDays', color: const Color(0xFFDB2777)),
-            _MetricTile(icon: Icons.bed_outlined, label: 'عطلات', value: '${s.restDays + s.holidayDays}', color: const Color(0xFF64748B)),
-          ],
+            mainAxisExtent: metricExtent,
+          ),
+          itemBuilder: (context, index) => metricTiles[index],
         ),
         const SizedBox(height: 16),
 
@@ -310,28 +443,24 @@ class _StatementBody extends StatelessWidget {
         const SizedBox(height: 16),
 
         // ───── بطاقات الساعات والتأخيرات ─────
-        Text('الساعات والمخالفات',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+        Text(
+          'الساعات والمخالفات',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+        ),
         const SizedBox(height: 8),
-        GridView.count(
-          crossAxisCount: 2,
+        GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio: 2.2,
+          itemCount: summaryTiles.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
           crossAxisSpacing: 8,
           mainAxisSpacing: 8,
-          children: [
-            _SummaryTile(label: 'إجمالي الساعات', value: s.totalWorkHours.toStringAsFixed(1), unit: 'ساعة'),
-            _SummaryTile(label: 'متوسط يومي', value: s.averageWorkHours.toStringAsFixed(1), unit: 'ساعة/يوم'),
-            _SummaryTile(label: 'إجمالي التأخير', value: '${s.totalLateMinutes}', unit: 'دقيقة'),
-            _SummaryTile(label: 'خروج مبكر', value: '${s.totalEarlyLeaveMinutes}', unit: 'دقيقة'),
-            _SummaryTile(
-              label: 'ساعات إضافية',
-              value: _formatOvertimeValue(s.totalOvertimeMinutes),
-              unit: _formatOvertimeUnit(s.totalOvertimeMinutes),
+            mainAxisExtent: summaryExtent,
             ),
-            _SummaryTile(label: 'تصحيحات معتمدة', value: '${s.correctionCount}', unit: ''),
-          ],
+          itemBuilder: (context, index) => summaryTiles[index],
         ),
         const SizedBox(height: 16),
 
@@ -347,12 +476,19 @@ class _StatementBody extends StatelessWidget {
         const SizedBox(height: 20),
 
         // ───── التقويم الشهري ─────
-        Text('التقويم الشهري',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+        Text(
+          'التقويم الشهري',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+        ),
         const SizedBox(height: 4),
-        Text('اضغط على أي يوم لعرض التفاصيل والإجراءات المتاحة.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: scheme.onSurfaceVariant)),
+        Text(
+          'اضغط على أي يوم لعرض التفاصيل والإجراءات المتاحة.',
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+        ),
         const SizedBox(height: 10),
         _MonthlyCalendarGrid(
           statement: statement,
@@ -406,7 +542,9 @@ class _EmployeeHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final muted = Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant);
+    final muted = Theme.of(
+      context,
+    ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant);
 
     final job = statement.jobTitle.trim();
     final dept = statement.department.trim();
@@ -428,7 +566,11 @@ class _EmployeeHeader extends StatelessWidget {
             // الاسم والكود/الهاتف مع الصورة الرمزية الرسمية
             Row(
               children: [
-                AppAvatar(name: statement.employeeNameAr, photoUrl: statement.photoUrl, radius: 24),
+                AppAvatar(
+                  name: statement.employeeNameAr,
+                  photoUrl: statement.photoUrl,
+                  radius: 24,
+                ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
@@ -436,7 +578,10 @@ class _EmployeeHeader extends StatelessWidget {
                     children: [
                       Text(
                         statement.employeeNameAr,
-                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                        ),
                       ),
                       if (codeOrPhone.isNotEmpty) ...[
                         const SizedBox(height: 2),
@@ -452,13 +597,33 @@ class _EmployeeHeader extends StatelessWidget {
             const SizedBox(height: 10),
             // تفاصيل وظيفية — إزالة التكرار
             if (isSameJobAndDept)
-              _InfoRow(icon: Icons.work_outline, label: 'القسم والمسمى', value: job)
+              _InfoRow(
+                icon: Icons.work_outline,
+                label: 'القسم والمسمى',
+                value: job,
+              )
             else ...[
-              _InfoRow(icon: Icons.work_outline, label: 'المسمى الوظيفي', value: job),
-              _InfoRow(icon: Icons.business_outlined, label: 'القسم', value: dept),
+              _InfoRow(
+                icon: Icons.work_outline,
+                label: 'المسمى الوظيفي',
+                value: job,
+              ),
+              _InfoRow(
+                icon: Icons.business_outlined,
+                label: 'القسم',
+                value: dept,
+              ),
             ],
-            _InfoRow(icon: Icons.location_city_outlined, label: 'الفرع', value: statement.branch),
-            _InfoRow(icon: Icons.supervisor_account_outlined, label: 'المدير المباشر', value: managerName),
+            _InfoRow(
+              icon: Icons.location_city_outlined,
+              label: 'الفرع',
+              value: statement.branch,
+            ),
+            _InfoRow(
+              icon: Icons.supervisor_account_outlined,
+              label: 'المدير المباشر',
+              value: managerName,
+            ),
             _InfoRow(
               icon: Icons.calendar_month_outlined,
               label: 'الفترة',
@@ -472,7 +637,11 @@ class _EmployeeHeader extends StatelessWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.icon, required this.label, required this.value});
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
   final IconData icon;
   final String label;
   final String value;
@@ -481,15 +650,25 @@ class _InfoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     if (value.isEmpty) return const SizedBox.shrink();
     final muted = Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: Theme.of(context).colorScheme.onSurfaceVariant);
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+    );
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          Icon(
+            icon,
+            size: 16,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
           const SizedBox(width: 8),
           Text('$label: ', style: muted),
-          Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            ),
+          ),
         ],
       ),
     );
@@ -507,7 +686,8 @@ class _AttendancePercentageCard extends StatelessWidget {
     final s = statement.summary;
     final scheme = Theme.of(context).colorScheme;
     final now = DateTime.now();
-    final isCurrentMonth = statement.year == now.year && statement.month == now.month;
+    final isCurrentMonth =
+        statement.year == now.year && statement.month == now.month;
 
     // تفصيل أيام الشهر للعرض فقط — النسبة نفسها من الخادم
     int presentInOffice = 0;
@@ -523,8 +703,14 @@ class _AttendancePercentageCard extends StatelessWidget {
     if (statement.days.isNotEmpty) {
       for (final d in statement.days) {
         final date = DateTime.tryParse(d.date);
-        final isFutureDay = isCurrentMonth && date != null && date.isAfter(DateTime(now.year, now.month, now.day));
-        final isRest = d.status == 'راحة' || d.status == 'راحة أسبوعية' || d.status == 'عطلة رسمية';
+        final isFutureDay =
+            isCurrentMonth &&
+            date != null &&
+            date.isAfter(DateTime(now.year, now.month, now.day));
+        final isRest =
+            d.status == 'راحة' ||
+            d.status == 'راحة أسبوعية' ||
+            d.status == 'عطلة رسمية';
 
         if (isRest) continue;
 
@@ -542,7 +728,12 @@ class _AttendancePercentageCard extends StatelessWidget {
           } else if (d.hasMission) {
             missionsCount++;
           } else if (d.status == 'غائب دون إذن') {
-            final isTodayDay = isCurrentMonth && date != null && date.year == now.year && date.month == now.month && date.day == now.day;
+            final isTodayDay =
+                isCurrentMonth &&
+                date != null &&
+                date.year == now.year &&
+                date.month == now.month &&
+                date.day == now.day;
             if (!isTodayDay) {
               unexcusedAbsences++;
             }
@@ -565,7 +756,9 @@ class _AttendancePercentageCard extends StatelessWidget {
     final isExempt = s.isAttendanceExempt;
     final dueDays = s.attendanceRateDueDays;
     final rateAvailable = !isExempt && dueDays > 0;
-    final double displayPct = rateAvailable ? statement.attendancePercentage.clamp(0.0, 100.0) : 0;
+    final double displayPct = rateAvailable
+        ? statement.attendancePercentage.clamp(0.0, 100.0)
+        : 0;
     final pctText = isExempt
         ? 'معفى'
         : rateAvailable
@@ -573,7 +766,9 @@ class _AttendancePercentageCard extends StatelessWidget {
             : '—';
     final excludedLeave = s.attendanceRateExcludedLeaveDays;
 
-    final purePresenceRate = rateAvailable ? ((presentInOffice / dueDays) * 100).clamp(0.0, 100.0) : 0.0;
+    final purePresenceRate = rateAvailable
+        ? ((presentInOffice / dueDays) * 100).clamp(0.0, 100.0)
+        : 0.0;
 
     final pctColor = !rateAvailable
         ? scheme.onSurfaceVariant
@@ -627,7 +822,8 @@ class _AttendancePercentageCard extends StatelessWidget {
                           ),
                           Text(
                             'نسبة الحضور',
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(
                                   fontWeight: FontWeight.w700,
                                   color: scheme.onSurfaceVariant,
                                   fontSize: 10,
@@ -649,15 +845,17 @@ class _AttendancePercentageCard extends StatelessWidget {
                           Flexible(
                             child: Text(
                               'نسبة الحضور الشهرية',
-                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.w900,
-                                  ),
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.w900),
                             ),
                           ),
                           if (isCurrentMonth) ...[
                             const SizedBox(width: 6),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: scheme.primaryContainer,
                                 borderRadius: BorderRadius.circular(6),
@@ -689,7 +887,10 @@ class _AttendancePercentageCard extends StatelessWidget {
                           label: 'مستبعد من النسبة',
                           value: '${arDays(excludedLeave)} إجازة',
                         ),
-                      _PctDetailRow(label: 'حضور بالجمعية', value: arDays(presentInOffice)),
+                      _PctDetailRow(
+                        label: 'حضور بالجمعية',
+                        value: arDays(presentInOffice),
+                      ),
                       if (convoysCount > 0)
                         _PctDetailRow(
                           label: 'قوافل خارجية',
@@ -706,7 +907,10 @@ class _AttendancePercentageCard extends StatelessWidget {
                           value: arDays(missionsCount),
                         ),
                       if (leavesCount > 0)
-                        _PctDetailRow(label: 'إجازات', value: arDays(leavesCount)),
+                        _PctDetailRow(
+                          label: 'إجازات',
+                          value: arDays(leavesCount),
+                        ),
                       if (unexcusedAbsences > 0)
                         _PctDetailRow(
                           label: 'غياب غير مبرر',
@@ -714,7 +918,10 @@ class _AttendancePercentageCard extends StatelessWidget {
                           color: scheme.error,
                         ),
                       if (upcomingWorkDays > 0)
-                        _PctDetailRow(label: 'أيام عمل قادمة', value: arDays(upcomingWorkDays)),
+                        _PctDetailRow(
+                          label: 'أيام عمل قادمة',
+                          value: arDays(upcomingWorkDays),
+                        ),
                     ],
                   ),
                 ),
@@ -740,7 +947,9 @@ class _AttendancePercentageCard extends StatelessWidget {
                 ),
                 _StatBadge(
                   label: 'حضور الجمعية فقط',
-                  value: rateAvailable ? '${purePresenceRate.toStringAsFixed(0)}%' : '—',
+                  value: rateAvailable
+                      ? '${purePresenceRate.toStringAsFixed(0)}%'
+                      : '—',
                   icon: Icons.business_outlined,
                 ),
               ],
@@ -773,7 +982,9 @@ class _StatBadge extends StatelessWidget {
         const SizedBox(width: 4),
         Text(
           '$label: ',
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant),
+          style: Theme.of(
+            context,
+          ).textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant),
         ),
         Text(
           value,
@@ -785,11 +996,7 @@ class _StatBadge extends StatelessWidget {
 }
 
 class _PctDetailRow extends StatelessWidget {
-  const _PctDetailRow({
-    required this.label,
-    required this.value,
-    this.color,
-  });
+  const _PctDetailRow({required this.label, required this.value, this.color});
   final String label;
   final String value;
   final Color? color;
@@ -803,8 +1010,12 @@ class _PctDetailRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant)),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -837,7 +1048,9 @@ class _WorkingHoursGoalCard extends StatelessWidget {
         ? s.totalRequiredHours
         : (s.scheduledDays > 0 ? s.scheduledDays * 8.0 : 192.0);
     final workedHours = s.totalWorkHours;
-    final pct = targetHours > 0 ? (workedHours / targetHours * 100).clamp(0.0, 150.0) : 0.0;
+    final pct = targetHours > 0
+        ? (workedHours / targetHours * 100).clamp(0.0, 150.0)
+        : 0.0;
     final isGood = pct >= 80;
     final barColor = isGood ? const Color(0xFF0F9F6E) : const Color(0xFFF59E0B);
 
@@ -864,17 +1077,26 @@ class _WorkingHoursGoalCard extends StatelessWidget {
                         color: scheme.primaryContainer.withValues(alpha: 0.4),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Icon(Icons.speed_rounded, size: 20, color: scheme.primary),
+                      child: Icon(
+                        Icons.speed_rounded,
+                        size: 20,
+                        color: scheme.primary,
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       'مؤشر ساعات العمل المستهدفة',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ],
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: barColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),
@@ -896,11 +1118,16 @@ class _WorkingHoursGoalCard extends StatelessWidget {
               children: [
                 Text(
                   '${workedHours.toStringAsFixed(1)} ساعة منجزة',
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 Text(
                   'مستهدف: ${targetHours.toStringAsFixed(0)} ساعة',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -931,7 +1158,9 @@ class _WorkingHoursGoalCard extends StatelessWidget {
                         ? '${(s.totalOvertimeMinutes / 60).toStringAsFixed(1)} س'
                         : '0',
                     icon: Icons.more_time_rounded,
-                    valueColor: s.totalOvertimeMinutes > 0 ? const Color(0xFF0F9F6E) : null,
+                    valueColor: s.totalOvertimeMinutes > 0
+                        ? const Color(0xFF0F9F6E)
+                        : null,
                   ),
                 ),
                 Expanded(
@@ -939,7 +1168,9 @@ class _WorkingHoursGoalCard extends StatelessWidget {
                     label: 'إجمالي التأخير',
                     value: '${s.totalLateMinutes} د',
                     icon: Icons.history_toggle_off_rounded,
-                    valueColor: s.totalLateMinutes > 0 ? const Color(0xFFD97706) : null,
+                    valueColor: s.totalLateMinutes > 0
+                        ? const Color(0xFFD97706)
+                        : null,
                   ),
                 ),
               ],
@@ -970,7 +1201,8 @@ class _MonthlySmartInsights extends StatelessWidget {
           icon: Icons.notification_important_rounded,
           color: const Color(0xFFD97706),
           title: 'تنبيه بصمات معلقة',
-          desc: 'لديك ${s.missingCheckInCount + s.missingCheckOutCount} بصمات تحتاج لتصحيح لتفادي احتساب عجز بالساعات.',
+          desc:
+              'لديك ${s.missingCheckInCount + s.missingCheckOutCount} بصمات تحتاج لتصحيح لتفادي احتساب عجز بالساعات.',
         ),
       );
     }
@@ -981,7 +1213,8 @@ class _MonthlySmartInsights extends StatelessWidget {
           icon: Icons.celebration_rounded,
           color: const Color(0xFF7C3AED),
           title: 'أنشطة خارجية وميدانية معتمدة',
-          desc: 'سجلت ${s.convoyFundiDays} أيام في قوافل المساعدات الإنسانية والأنشطة الترفيهية (فاندي).',
+          desc:
+              'سجلت ${s.convoyFundiDays} أيام في قوافل المساعدات الإنسانية والأنشطة الترفيهية (فاندي).',
         ),
       );
     }
@@ -993,7 +1226,8 @@ class _MonthlySmartInsights extends StatelessWidget {
           icon: Icons.trending_up_rounded,
           color: const Color(0xFF0F9F6E),
           title: 'ساعات عمل إضافية',
-          desc: 'حققت $hours ساعة إضافية معتمدة تُضاف إلى رصيدك وسجل أدائك الشهري.',
+          desc:
+              'حققت $hours ساعة إضافية معتمدة تُضاف إلى رصيدك وسجل أدائك الشهري.',
         ),
       );
     }
@@ -1020,12 +1254,15 @@ class _MonthlySmartInsights extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               'رؤى وإشارات الأداء للشهر',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
             ),
           ],
         ),
         const SizedBox(height: 8),
-        ...insights.map((item) => Padding(
+        ...insights.map(
+          (item) => Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: Container(
             padding: const EdgeInsets.all(12),
@@ -1043,11 +1280,19 @@ class _MonthlySmartInsights extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(item.title, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: item.color)),
+                        Text(
+                          item.title,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13,
+                            color: item.color,
+                          ),
+                        ),
                       const SizedBox(height: 2),
                       Text(
                         item.desc,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
                           color: Theme.of(context).colorScheme.onSurface,
                           height: 1.3,
                         ),
@@ -1058,7 +1303,8 @@ class _MonthlySmartInsights extends StatelessWidget {
               ],
             ),
           ),
-        )),
+          ),
+        ),
         const SizedBox(height: 12),
       ],
     );
@@ -1100,13 +1346,23 @@ class _MiniMetric extends StatelessWidget {
           children: [
             Icon(icon, size: 14, color: scheme.onSurfaceVariant),
             const SizedBox(width: 4),
-            Text(label, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant, fontSize: 11)),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+                fontSize: 11,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 2),
         Text(
           value,
-          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: valueColor ?? scheme.onSurface),
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 13,
+            color: valueColor ?? scheme.onSurface,
+          ),
         ),
       ],
     );
@@ -1134,7 +1390,11 @@ class _MetricTile extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
+        side: BorderSide(
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
@@ -1143,16 +1403,25 @@ class _MetricTile extends StatelessWidget {
           children: [
             Icon(icon, size: 22, color: color),
             const SizedBox(height: 3),
-            Text(value, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 19, color: color)),
+            Text(
+              value,
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 19,
+                color: color,
+              ),
+            ),
             const SizedBox(height: 2),
-            Text(label,
+            Text(
+              label,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 11,
                     ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),
@@ -1163,7 +1432,11 @@ class _MetricTile extends StatelessWidget {
 // ─── بطاقة ملخص (قيمة + وحدة) ────────────────────────────────────
 
 class _SummaryTile extends StatelessWidget {
-  const _SummaryTile({required this.label, required this.value, required this.unit});
+  const _SummaryTile({
+    required this.label,
+    required this.value,
+    required this.unit,
+  });
   final String label;
   final String value;
   final String unit;
@@ -1184,14 +1457,24 @@ class _SummaryTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(label,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
+            Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+            ),
             const SizedBox(height: 2),
             Row(
               crossAxisAlignment: CrossAxisAlignment.baseline,
               textBaseline: TextBaseline.alphabetic,
               children: [
-                Text(value, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17)),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 17,
+                  ),
+                ),
                 if (unit.isNotEmpty) ...[
                   const SizedBox(width: 4),
                   Flexible(
@@ -1225,12 +1508,16 @@ class _MissingPunchesBanner extends ConsumerWidget {
     final s = statement.summary;
     // معالجة البصمات المنسية = طلب تصحيح باسم المستخدم — على كشفه هو فقط.
     final missingDays = _isOwnStatement(ref, statement)
-        ? statement.days.where((d) => d.missingCheckIn || d.missingCheckOut).toList()
+        ? statement.days
+              .where((d) => d.missingCheckIn || d.missingCheckOut)
+              .toList()
         : const <AttendanceStatementDay>[];
 
     final parts = <String>[];
-    if (s.missingCheckInCount > 0) parts.add('نسيان حضور: ${s.missingCheckInCount}');
-    if (s.missingCheckOutCount > 0) parts.add('نسيان انصراف: ${s.missingCheckOutCount}');
+    if (s.missingCheckInCount > 0)
+      parts.add('نسيان حضور: ${s.missingCheckInCount}');
+    if (s.missingCheckOutCount > 0)
+      parts.add('نسيان انصراف: ${s.missingCheckOutCount}');
     final desc = parts.join(' · ');
 
     return Card(
@@ -1248,7 +1535,11 @@ class _MissingPunchesBanner extends ConsumerWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.warning_amber_rounded, size: 22, color: Color(0xFFDC2626)),
+                const Icon(
+                  Icons.warning_amber_rounded,
+                  size: 22,
+                  color: Color(0xFFDC2626),
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
@@ -1264,8 +1555,13 @@ class _MissingPunchesBanner extends ConsumerWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        desc.isNotEmpty ? desc : 'يوجد بصمات غير مكتملة تؤثر على احتساب ساعاتك الشهرية.',
-                        style: const TextStyle(fontSize: 12, color: Color(0xFFB91C1C)),
+                        desc.isNotEmpty
+                            ? desc
+                            : 'يوجد بصمات غير مكتملة تؤثر على احتساب ساعاتك الشهرية.',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFFB91C1C),
+                        ),
                       ),
                     ],
                   ),
@@ -1280,14 +1576,21 @@ class _MissingPunchesBanner extends ConsumerWidget {
                   style: FilledButton.styleFrom(
                     backgroundColor: const Color(0xFFFEE2E2),
                     foregroundColor: const Color(0xFF991B1B),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
                   ),
                   icon: const Icon(Icons.fingerprint, size: 18),
                   label: const Text(
                     'معالجة البصمات المنسية',
                     style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
                   ),
-                  onPressed: () => _openMissingPunchesResolver(context, statement, missingDays),
+                  onPressed: () => _openMissingPunchesResolver(
+                    context,
+                    statement,
+                    missingDays,
+                  ),
                 ),
               ),
             ],
@@ -1309,10 +1612,8 @@ class _MissingPunchesBanner extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => _MissingPunchesSheet(
-        statement: statement,
-        missingDays: missingDays,
-      ),
+      builder: (_) =>
+          _MissingPunchesSheet(statement: statement, missingDays: missingDays),
     );
   }
 }
@@ -1360,7 +1661,11 @@ class _MissingPunchesSheet extends ConsumerWidget {
                     color: const Color(0xFFDC2626).withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.fingerprint, color: Color(0xFFDC2626), size: 24),
+                  child: const Icon(
+                    Icons.fingerprint,
+                    color: Color(0xFFDC2626),
+                    size: 24,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -1369,11 +1674,17 @@ class _MissingPunchesSheet extends ConsumerWidget {
                     children: [
                       const Text(
                         'الأيام ذات البصمات غير المكتملة',
-                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                       Text(
                         'اختر اليوم لتقديم طلب تصحيح بصمة الحضور أو الانصراف',
-                        style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: scheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
@@ -1393,41 +1704,64 @@ class _MissingPunchesSheet extends ConsumerWidget {
                 margin: const EdgeInsets.only(bottom: 8),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+                  side: BorderSide(
+                    color: scheme.outlineVariant.withValues(alpha: 0.5),
+                  ),
                 ),
                 child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 4,
+                  ),
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFEE2E2),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 20),
+                    child: const Icon(
+                      Icons.warning_amber_rounded,
+                      color: Color(0xFFDC2626),
+                      size: 20,
+                    ),
                   ),
                   title: Text(
                     day.date,
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
+                    ),
                   ),
                   subtitle: Text(
                     typeText,
-                    style: const TextStyle(color: Color(0xFFDC2626), fontSize: 12, fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                      color: Color(0xFFDC2626),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   trailing: FilledButton.tonal(
                     style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                     ),
                     child: const Text('تصحيح', style: TextStyle(fontSize: 12)),
                     onPressed: () async {
                       Navigator.pop(context);
-                      final preselect = (day.missingCheckOut && !day.missingCheckIn)
+                      final preselect =
+                          (day.missingCheckOut && !day.missingCheckIn)
                           ? 'missing_check_out'
                           : 'missing_check_in';
-                      final result = await showModalBottomSheet<Map<String, dynamic>>(
+                      final result =
+                          await showModalBottomSheet<Map<String, dynamic>>(
                         context: context,
                         isScrollControlled: true,
                         shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(20),
+                              ),
                         ),
                         builder: (_) => _QuickCorrectionSheet(
                           dateStr: day.date,
@@ -1436,18 +1770,27 @@ class _MissingPunchesSheet extends ConsumerWidget {
                       );
                       if (result != null && context.mounted) {
                         try {
-                          await ref.read(mobileCommandsProvider).requestAttendanceCorrection(
+                          await ref
+                              .read(mobileCommandsProvider)
+                              .requestAttendanceCorrection(
                                 workDate: DateTime.parse(day.date),
                                 type: result['type'] as String,
                                 reason: result['reason'] as String,
                                 checkIn: result['checkIn'] as DateTime?,
                                 checkOut: result['checkOut'] as DateTime?,
                               );
-                          ref.invalidate(myMonthlyStatementProvider((statement.year, statement.month)));
+                          ref.invalidate(
+                            myMonthlyStatementProvider((
+                              statement.year,
+                              statement.month,
+                            )),
+                          );
                           ref.invalidate(mobileRequestsProvider);
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('تم إرسال طلب التصحيح بنجاح.')),
+                              const SnackBar(
+                                content: Text('تم إرسال طلب التصحيح بنجاح.'),
+                              ),
                             );
                           }
                         } catch (error) {
@@ -1473,10 +1816,7 @@ class _MissingPunchesSheet extends ConsumerWidget {
 // ─── شريحة توضيح الألوان (Legend Chip) ─────────────────────────────────
 
 class _LegendChip extends StatelessWidget {
-  const _LegendChip({
-    required this.color,
-    required this.label,
-  });
+  const _LegendChip({required this.color, required this.label});
 
   final Color color;
   final String label;
@@ -1495,10 +1835,7 @@ class _LegendChip extends StatelessWidget {
           Container(
             width: 7,
             height: 7,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: color,
-            ),
+            decoration: BoxDecoration(shape: BoxShape.circle, color: color),
           ),
           const SizedBox(width: 5),
           Text(
@@ -1540,7 +1877,9 @@ class _FilterChipButton extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(left: 6),
       child: Material(
-        color: isSelected ? activeColor.withValues(alpha: 0.15) : scheme.surfaceContainerLow,
+        color: isSelected
+            ? activeColor.withValues(alpha: 0.15)
+            : scheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(10),
         child: InkWell(
           onTap: onTap,
@@ -1550,7 +1889,9 @@ class _FilterChipButton extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: isSelected ? activeColor : scheme.outlineVariant.withValues(alpha: 0.5),
+                color: isSelected
+                    ? activeColor
+                    : scheme.outlineVariant.withValues(alpha: 0.5),
                 width: isSelected ? 1.5 : 1,
               ),
             ),
@@ -1579,9 +1920,14 @@ class _FilterChipButton extends StatelessWidget {
                 if (count > 0) ...[
                   const SizedBox(width: 4),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 5,
+                      vertical: 1,
+                    ),
                     decoration: BoxDecoration(
-                      color: isSelected ? activeColor : scheme.surfaceContainerHighest,
+                      color: isSelected
+                          ? activeColor
+                          : scheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -1589,7 +1935,9 @@ class _FilterChipButton extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w800,
-                        color: isSelected ? Colors.white : scheme.onSurfaceVariant,
+                        color: isSelected
+                            ? Colors.white
+                            : scheme.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -1624,7 +1972,15 @@ class _MonthlyCalendarGrid extends StatefulWidget {
 class _MonthlyCalendarGridState extends State<_MonthlyCalendarGrid> {
   String _activeFilter = 'all';
 
-  static const _weekDayHeaders = ['سبت', 'أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة'];
+  static const _weekDayHeaders = [
+    'سبت',
+    'أحد',
+    'إثنين',
+    'ثلاثاء',
+    'أربعاء',
+    'خميس',
+    'جمعة',
+  ];
 
   bool _matchesFilter(AttendanceStatementDay? d, String filter) {
     if (filter == 'all') return true;
@@ -1635,7 +1991,8 @@ class _MonthlyCalendarGridState extends State<_MonthlyCalendarGrid> {
       case 'absent':
         return d.status == 'غائب دون إذن' || d.isAbsent;
       case 'convoy':
-        return (d.status.contains('قافلة') || d.hasConvoyFundi) && !d.status.contains('فاندي');
+        return (d.status.contains('قافلة') || d.hasConvoyFundi) &&
+            !d.status.contains('فاندي');
       case 'fundi':
         return d.status.contains('فاندي');
       case 'mission':
@@ -1653,7 +2010,8 @@ class _MonthlyCalendarGridState extends State<_MonthlyCalendarGrid> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final today = DateTime.now();
-    final isCurrentMonth = today.year == widget.year && today.month == widget.month;
+    final isCurrentMonth =
+        today.year == widget.year && today.month == widget.month;
 
     // بناء خريطة الأيام (رقم اليوم → بيانات اليوم)
     final dayMap = <int, AttendanceStatementDay>{};
@@ -1670,8 +2028,16 @@ class _MonthlyCalendarGridState extends State<_MonthlyCalendarGrid> {
 
     final s = widget.statement.summary;
     final missingPunches = s.missingCheckInCount + s.missingCheckOutCount;
-    final convoyCount = widget.days.where((d) => (d.status.contains('قافلة') || d.hasConvoyFundi) && !d.status.contains('فاندي')).length;
-    final fundiCount = widget.days.where((d) => d.status.contains('فاندي')).length;
+    final convoyCount = widget.days
+        .where(
+          (d) =>
+              (d.status.contains('قافلة') || d.hasConvoyFundi) &&
+              !d.status.contains('فاندي'),
+        )
+        .length;
+    final fundiCount = widget.days
+        .where((d) => d.status.contains('فاندي'))
+        .length;
     final cCount = widget.days.isNotEmpty ? convoyCount : s.convoyFundiDays;
     final fCount = widget.days.isNotEmpty ? fundiCount : 0;
 
@@ -1752,22 +2118,33 @@ class _MonthlyCalendarGridState extends State<_MonthlyCalendarGrid> {
               children: [
                 // ─ رأس الأسبوع ─
                 Row(
-                  children: _weekDayHeaders.map((h) => Expanded(
+                  children: _weekDayHeaders
+                      .map(
+                        (h) => Expanded(
                     child: Center(
                       child: Padding(
                         padding: const EdgeInsets.only(bottom: 8),
-                        child: Text(h, style: TextStyle(
+                              child: Text(
+                                h,
+                                style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
                           color: scheme.onSurfaceVariant,
-                        )),
                       ),
                     ),
-                  )).toList(),
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
                 ),
                 // ─ صفوف الأيام ─
                 ...List.generate(rows, (row) {
-                  final prevMonthDays = DateTime(widget.year, widget.month, 0).day;
+                  final prevMonthDays = DateTime(
+                    widget.year,
+                    widget.month,
+                    0,
+                  ).day;
                   return Row(
                     children: List.generate(7, (col) {
                       final cellIndex = row * 7 + col;
@@ -1781,7 +2158,9 @@ class _MonthlyCalendarGridState extends State<_MonthlyCalendarGrid> {
                             height: 56,
                             margin: const EdgeInsets.all(1.5),
                             decoration: BoxDecoration(
-                              color: scheme.surfaceContainerLowest.withValues(alpha: 0.25),
+                              color: scheme.surfaceContainerLowest.withValues(
+                                alpha: 0.25,
+                              ),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             alignment: Alignment.center,
@@ -1798,7 +2177,11 @@ class _MonthlyCalendarGridState extends State<_MonthlyCalendarGrid> {
                       }
                       final dayData = dayMap[dayNum];
                       final isToday = isCurrentMonth && today.day == dayNum;
-                      final dayDate = DateTime(widget.year, widget.month, dayNum);
+                      final dayDate = DateTime(
+                        widget.year,
+                        widget.month,
+                        dayNum,
+                      );
                       final isFuture = dayDate.isAfter(
                         DateTime(today.year, today.month, today.day),
                       );
@@ -1874,7 +2257,8 @@ class _CalendarDayCell extends StatelessWidget {
 
     return Semantics(
       button: true,
-      label: 'يوم $dayNum${dayData?.status != null ? " - ${dayData!.status}" : ""}',
+      label:
+          'يوم $dayNum${dayData?.status != null ? " - ${dayData!.status}" : ""}',
       child: GestureDetector(
         onTap: () => _showDayDetail(context),
         child: AnimatedOpacity(
@@ -1958,7 +2342,8 @@ class _CalendarDayCell extends StatelessWidget {
 
   /// هوية لونية موحّدة لكل حالة: خلفية فاتحة + نص داكن + لون مميّز (حدود/دائرة اليوم) + نقطة صغيرة
   ({Color bg, Color fg, Color accent, Color? dot}) _resolveStyle(
-      ColorScheme scheme) {
+    ColorScheme scheme,
+  ) {
     // أيام مستقبلية — مظلّلة بهدوء بدون أي حالة
     if (isFuture) {
       return (
@@ -2202,7 +2587,8 @@ class _DayDetailSheet extends ConsumerWidget {
             // ─ المقبض ─
             Center(
               child: Container(
-                width: 40, height: 4,
+                width: 40,
+                height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
                   color: scheme.onSurfaceVariant.withValues(alpha: .3),
@@ -2216,21 +2602,31 @@ class _DayDetailSheet extends ConsumerWidget {
               children: [
                 if (isToday)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     margin: const EdgeInsets.only(left: 8),
                     decoration: BoxDecoration(
                       color: scheme.primary,
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: Text('اليوم', style: TextStyle(
-                      fontSize: 11, fontWeight: FontWeight.w700,
+                    child: Text(
+                      'اليوم',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
                       color: scheme.onPrimary,
-                    )),
+                      ),
+                    ),
                   ),
                 Expanded(
                   child: Text(
                     '${day?.dayNameAr ?? _dayNameFull} $_dateStr',
-                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
                 MobileStatusPill(isFuture ? 'scheduled' : _statusPillKey),
@@ -2241,15 +2637,24 @@ class _DayDetailSheet extends ConsumerWidget {
 
             if (day?.hasAdminOverride == true) ...[
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFEEF0FB),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFF6366F1).withValues(alpha: 0.3)),
+                  border: Border.all(
+                    color: const Color(0xFF6366F1).withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.verified_user_outlined, size: 18, color: Color(0xFF6366F1)),
+                    const Icon(
+                      Icons.verified_user_outlined,
+                      size: 18,
+                      color: Color(0xFF6366F1),
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Column(
@@ -2257,12 +2662,22 @@ class _DayDetailSheet extends ConsumerWidget {
                         children: [
                           Text(
                             'الحالة المعتمدة: ${day?.adminOverride?['dayType'] ?? ''}',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF3D4FA8)),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: Color(0xFF3D4FA8),
                           ),
-                          if (cleanAttendanceNote(day?.adminOverride?['reason'] as String?) != null)
+                          ),
+                          if (cleanAttendanceNote(
+                                day?.adminOverride?['reason'] as String?,
+                              ) !=
+                              null)
                             Text(
                               'السبب: ${cleanAttendanceNote(day!.adminOverride!['reason'] as String?)}',
-                              style: const TextStyle(fontSize: 11, color: Color(0xFF475569)),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFF475569),
+                              ),
                             ),
                         ],
                       ),
@@ -2287,28 +2702,60 @@ class _DayDetailSheet extends ConsumerWidget {
                         Expanded(
                           child: Column(
                             children: [
-                              const Icon(Icons.login, size: 20, color: Color(0xFF0F9F6E)),
+                              const Icon(
+                                Icons.login,
+                                size: 20,
+                                color: Color(0xFF0F9F6E),
+                              ),
                               const SizedBox(height: 4),
-                              Text('حضور', style: TextStyle(
-                                fontSize: 11, color: scheme.onSurfaceVariant),
-                                textDirection: TextDirection.rtl),
-                              Text(fmt(day!.checkIn), style: const TextStyle(
-                                fontWeight: FontWeight.w700, fontSize: 16)),
+                              Text(
+                                'حضور',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                                textDirection: TextDirection.rtl,
+                              ),
+                              Text(
+                                fmt(day!.checkIn),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                        Icon(Icons.arrow_forward, size: 16, color: scheme.onSurfaceVariant),
+                        Icon(
+                          Icons.arrow_forward,
+                          size: 16,
+                          color: scheme.onSurfaceVariant,
+                        ),
                         // انصراف
                         Expanded(
                           child: Column(
                             children: [
-                              Icon(Icons.logout, size: 20, color: scheme.onSurfaceVariant),
+                              Icon(
+                                Icons.logout,
+                                size: 20,
+                                color: scheme.onSurfaceVariant,
+                              ),
                               const SizedBox(height: 4),
-                              Text('انصراف', style: TextStyle(
-                                fontSize: 11, color: scheme.onSurfaceVariant),
-                                textDirection: TextDirection.rtl),
-                              Text(fmt(day!.checkOut), style: const TextStyle(
-                                fontWeight: FontWeight.w700, fontSize: 16)),
+                              Text(
+                                'انصراف',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                                textDirection: TextDirection.rtl,
+                              ),
+                              Text(
+                                fmt(day!.checkOut),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -2316,19 +2763,32 @@ class _DayDetailSheet extends ConsumerWidget {
                         if (day!.workHours > 0) ...[
                           const SizedBox(width: 12),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 8,
+                            ),
                             decoration: BoxDecoration(
                               color: scheme.primaryContainer,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Column(
                               children: [
-                                Text(day!.workHours.toStringAsFixed(1),
-                                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16,
-                                        color: scheme.onPrimaryContainer)),
-                                Text('ساعة', style: TextStyle(fontSize: 10,
-                                    color: scheme.onPrimaryContainer),
-                                    textDirection: TextDirection.rtl),
+                                Text(
+                                  day!.workHours.toStringAsFixed(1),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 16,
+                                    color: scheme.onPrimaryContainer,
+                                  ),
+                                ),
+                                Text(
+                                  'ساعة',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: scheme.onPrimaryContainer,
+                                  ),
+                                  textDirection: TextDirection.rtl,
+                                ),
                               ],
                             ),
                           ),
@@ -2348,30 +2808,67 @@ class _DayDetailSheet extends ConsumerWidget {
                 runSpacing: 6,
                 children: [
                   if (day!.lateMinutes > 0)
-                    _DetailChip(icon: Icons.schedule, label: 'تأخير ${day!.lateMinutes} د',
-                        color: _warn.contains(day!.status) ? scheme.error : const Color(0xFFF59E0B)),
+                    _DetailChip(
+                      icon: Icons.schedule,
+                      label: 'تأخير ${day!.lateMinutes} د',
+                      color: _warn.contains(day!.status)
+                          ? scheme.error
+                          : const Color(0xFFF59E0B),
+                    ),
                   if (day!.earlyLeaveMinutes > 0)
-                    _DetailChip(icon: Icons.exit_to_app, label: 'خروج مبكر ${day!.earlyLeaveMinutes} د',
-                        color: const Color(0xFFF59E0B)),
+                    _DetailChip(
+                      icon: Icons.exit_to_app,
+                      label: 'خروج مبكر ${day!.earlyLeaveMinutes} د',
+                      color: const Color(0xFFF59E0B),
+                    ),
                   if (day!.overtimeMinutes > 0)
-                    _DetailChip(icon: Icons.more_time, label: 'إضافي ${day!.overtimeMinutes} د',
-                        color: const Color(0xFF0F9F6E)),
+                    _DetailChip(
+                      icon: Icons.more_time,
+                      label: 'إضافي ${day!.overtimeMinutes} د',
+                      color: const Color(0xFF0F9F6E),
+                    ),
                   if (day!.hasLeave)
-                    _DetailChip(icon: Icons.beach_access, label: 'إجازة', color: const Color(0xFF6366F1)),
+                    _DetailChip(
+                      icon: Icons.beach_access,
+                      label: 'إجازة',
+                      color: const Color(0xFF6366F1),
+                    ),
                   if (day!.hasPermit)
-                    _DetailChip(icon: Icons.assignment_turned_in, label: 'إذن', color: const Color(0xFFF59E0B)),
+                    _DetailChip(
+                      icon: Icons.assignment_turned_in,
+                      label: 'إذن',
+                      color: const Color(0xFFF59E0B),
+                    ),
                   if (day!.hasMission)
-                    _DetailChip(icon: Icons.directions_car, label: 'مأمورية', color: const Color(0xFF0EA5E9)),
+                    _DetailChip(
+                      icon: Icons.directions_car,
+                      label: 'مأمورية',
+                      color: const Color(0xFF0EA5E9),
+                    ),
                   if (day!.hasConvoyFundi)
                     _DetailChip(
-                      icon: day!.status.contains('فاندي') ? Icons.celebration : Icons.volunteer_activism,
-                      label: day!.status.contains('فاندي') ? 'فاندي (يوم ترفيهي)' : 'قافلة مساعدات (كامب)',
-                      color: day!.status.contains('فاندي') ? const Color(0xFFDB2777) : const Color(0xFF7C3AED),
+                      icon: day!.status.contains('فاندي')
+                          ? Icons.celebration
+                          : Icons.volunteer_activism,
+                      label: day!.status.contains('فاندي')
+                          ? 'فاندي (يوم ترفيهي)'
+                          : 'قافلة مساعدات (كامب)',
+                      color: day!.status.contains('فاندي')
+                          ? const Color(0xFFDB2777)
+                          : const Color(0xFF7C3AED),
                     ),
                   if (day!.missingCheckIn)
-                    _DetailChip(icon: Icons.warning_amber, label: 'لم يسجل حضور', color: scheme.error),
+                    _DetailChip(
+                      icon: Icons.warning_amber,
+                      label: 'لم يسجل حضور',
+                      color: scheme.error,
+                    ),
                   if (day!.missingCheckOut)
-                    _DetailChip(icon: Icons.warning_amber, label: 'لم يسجل انصراف', color: scheme.error),
+                    _DetailChip(
+                      icon: Icons.warning_amber,
+                      label: 'لم يسجل انصراف',
+                      color: scheme.error,
+                    ),
                 ],
               ),
               const SizedBox(height: 8),
@@ -2379,15 +2876,23 @@ class _DayDetailSheet extends ConsumerWidget {
 
             // ─ ملاحظة التصحيح ─
             if (cleanAttendanceNote(day?.correctionNote) != null) ...[
-              Text('📝 ${cleanAttendanceNote(day!.correctionNote)!}',
-                  style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant)),
+              Text(
+                '📝 ${cleanAttendanceNote(day!.correctionNote)!}',
+                style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
+              ),
               const SizedBox(height: 8),
             ],
 
             // ─ الإجراءات المتاحة ─
             const Divider(height: 24),
-            Text('الإجراءات المتاحة',
-                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: scheme.primary)),
+            Text(
+              'الإجراءات المتاحة',
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 15,
+                color: scheme.primary,
+              ),
+            ),
             const SizedBox(height: 10),
             ..._buildActions(context, ref, scheme),
           ],
@@ -2427,25 +2932,42 @@ class _DayDetailSheet extends ConsumerWidget {
     final fromServer = day?.dayNameAr.trim() ?? '';
     if (fromServer.isNotEmpty) return fromServer;
     const names = {
-      1: 'الاثنين', 2: 'الثلاثاء', 3: 'الأربعاء', 4: 'الخميس',
-      5: 'الجمعة', 6: 'السبت', 7: 'الأحد',
+      1: 'الاثنين',
+      2: 'الثلاثاء',
+      3: 'الأربعاء',
+      4: 'الخميس',
+      5: 'الجمعة',
+      6: 'السبت',
+      7: 'الأحد',
     };
     return names[DateTime(year, month, dayNum).weekday] ?? '';
   }
 
-  bool get _hasDetails => day != null && (
-      day!.lateMinutes > 0 || day!.earlyLeaveMinutes > 0 || day!.overtimeMinutes > 0 ||
-      day!.hasLeave || day!.hasPermit || day!.hasMission || day!.hasConvoyFundi ||
-      day!.missingCheckIn || day!.missingCheckOut);
+  bool get _hasDetails =>
+      day != null &&
+      (day!.lateMinutes > 0 ||
+          day!.earlyLeaveMinutes > 0 ||
+          day!.overtimeMinutes > 0 ||
+          day!.hasLeave ||
+          day!.hasPermit ||
+          day!.hasMission ||
+          day!.hasConvoyFundi ||
+          day!.missingCheckIn ||
+          day!.missingCheckOut);
 
-  List<Widget> _buildActions(BuildContext context, WidgetRef ref, ColorScheme scheme) {
+  List<Widget> _buildActions(
+    BuildContext context,
+    WidgetRef ref,
+    ColorScheme scheme,
+  ) {
     final actions = <Widget>[];
 
     final now = DateTime.now();
     final isSameMonth = year == now.year && month == now.month;
     final canModifyDay = !isFuture && isSameMonth;
 
-    final isClinicStaff = ref.watch(accessContextProvider).value?.isClinicStaff == true;
+    final isClinicStaff =
+        ref.watch(accessContextProvider).value?.isClinicStaff == true;
     // طلبات الإجازة والأذونات والتصحيح وتعديل حالة اليوم تُقدَّم باسم من يستخدم
     // التطبيق، فلا تظهر على كشف موظف آخر (كان المدير يراها على كشف مرؤوسه فيقدّمها
     // باسمه هو). هناك يظهر التعديل الإداري وحده، بقرار الخادم (canEditDays).
@@ -2453,7 +2975,8 @@ class _DayDetailSheet extends ConsumerWidget {
 
     // ── تعديل حالة اليوم بأثر رجعي في نفس الشهر (إجازة/مأمورية/قافلة مساعدات/فاندي) ──
     if (isOwn && canModifyDay) {
-      actions.add(_ActionTile(
+      actions.add(
+        _ActionTile(
         icon: Icons.published_with_changes_rounded,
         label: 'تعديل حالة هذا اليوم',
         subtitle: isClinicStaff
@@ -2461,109 +2984,148 @@ class _DayDetailSheet extends ConsumerWidget {
             : 'طلب تحويل اليوم إلى إجازة، مأمورية عمل، قافلة مساعدات، أو يوم ترفيهي (فاندي).',
         color: const Color(0xFF4F46E5),
         onTap: () => _openRetroactiveDayChange(context, ref),
-      ));
+        ),
+      );
     }
 
     // ── اليوم الحالي الجاري الذي لم تُسجل بصمته بعد ──
     if (isOwn && isToday && (day == null || day!.status == 'غائب دون إذن')) {
-      actions.add(_ActionTile(
+      actions.add(
+        _ActionTile(
         icon: Icons.fingerprint,
         label: 'تسجيل بصمة اليوم',
         subtitle: 'تسجيل بصمة الحضور أو إثبات التواجد لليوم الحالي.',
         color: scheme.primary,
         onTap: () => _openCorrectionRequest(context, ref),
-      ));
+        ),
+      );
     }
 
     // ── يوم ماضٍ غائب → طلب إجازة أو نسيان بصمة ──
-    if (isOwn && !isFuture && !isToday && day != null && day!.status == 'غائب دون إذن') {
-      actions.add(_ActionTile(
+    if (isOwn &&
+        !isFuture &&
+        !isToday &&
+        day != null &&
+        day!.status == 'غائب دون إذن') {
+      actions.add(
+        _ActionTile(
         icon: Icons.beach_access_outlined,
         label: 'طلب إجازة لتغطية هذا اليوم',
         subtitle: 'تقديم طلب إجازة بأثر رجعي يعتمده المدير المباشر.',
         color: const Color(0xFF6366F1),
         onTap: () => _openLeaveRequest(context, ref),
-      ));
-      actions.add(_ActionTile(
+        ),
+      );
+      actions.add(
+        _ActionTile(
         icon: Icons.fingerprint,
         label: 'نسيان بصمة',
         subtitle: 'طلب تصحيح حضور — يُراجَع ويُعتمَد من المدير.',
         color: const Color(0xFFDC3D4B),
         onTap: () => _openCorrectionRequest(context, ref),
-      ));
+        ),
+      );
     }
 
     // ── نسيان بصمة (حضور أو انصراف) وليس غائباً بالكامل ──
-    if (isOwn && !isFuture && day != null && day!.status != 'غائب دون إذن' &&
+    if (isOwn &&
+        !isFuture &&
+        day != null &&
+        day!.status != 'غائب دون إذن' &&
         (day!.missingCheckIn || day!.missingCheckOut)) {
-      actions.add(_ActionTile(
+      actions.add(
+        _ActionTile(
         icon: Icons.fingerprint,
         label: 'تسجيل بصمة منسية',
-        subtitle: day!.missingCheckIn ? 'نسيان بصمة الحضور.' : 'نسيان بصمة الانصراف.',
+          subtitle: day!.missingCheckIn
+              ? 'نسيان بصمة الحضور.'
+              : 'نسيان بصمة الانصراف.',
         color: const Color(0xFFDC3D4B),
         onTap: () => _openCorrectionRequest(context, ref),
-      ));
+        ),
+      );
     }
 
     // ── تأخير → إذن حضور ──
-    if (isOwn && !isFuture && day != null && day!.lateMinutes > 0 && !day!.hasPermit) {
-      actions.add(_ActionTile(
+    if (isOwn &&
+        !isFuture &&
+        day != null &&
+        day!.lateMinutes > 0 &&
+        !day!.hasPermit) {
+      actions.add(
+        _ActionTile(
         icon: Icons.schedule,
         label: 'طلب إذن حضور',
         subtitle: 'تغطية ${day!.lateMinutes} دقيقة تأخير بإذن مُعتمَد.',
         color: const Color(0xFFF59E0B),
         onTap: () => _openPermitRequest(context, ref, 'late_arrival'),
-      ));
+        ),
+      );
     }
 
     // ── خروج مبكر → إذن انصراف ──
-    if (isOwn && !isFuture && day != null && day!.earlyLeaveMinutes > 0 && !day!.hasPermit) {
-      actions.add(_ActionTile(
+    if (isOwn &&
+        !isFuture &&
+        day != null &&
+        day!.earlyLeaveMinutes > 0 &&
+        !day!.hasPermit) {
+      actions.add(
+        _ActionTile(
         icon: Icons.exit_to_app,
         label: 'طلب إذن انصراف',
         subtitle: 'تغطية ${day!.earlyLeaveMinutes} دقيقة خروج مبكر.',
         color: const Color(0xFFF59E0B),
         onTap: () => _openPermitRequest(context, ref, 'early_departure'),
-      ));
+        ),
+      );
     }
 
     // ── يوم قادم → طلب إجازة مسبقة ──
     if (isOwn && isFuture) {
-      actions.add(_ActionTile(
+      actions.add(
+        _ActionTile(
         icon: Icons.beach_access_outlined,
         label: 'طلب إجازة مسبقة',
         subtitle: 'تقديم طلب إجازة لهذا اليوم — يعتمده المدير المباشر.',
         color: const Color(0xFF6366F1),
         onTap: () => _openLeaveRequest(context, ref),
-      ));
+        ),
+      );
     }
 
     final access = ref.watch(accessContextProvider).value;
-    final canEditDaysAdmin = statement.canEditDays && (access?.canAdminEditAttendanceDays ?? false);
+    final canEditDaysAdmin =
+        statement.canEditDays && (access?.canAdminEditAttendanceDays ?? false);
 
     // ── التعديل الإداري لليوم أو إلغاؤه — الموارد البشرية والسكرتير التنفيذي حصراً ──
     if (canEditDaysAdmin) {
-      actions.add(_ActionTile(
+      actions.add(
+        _ActionTile(
         icon: Icons.edit_calendar_rounded,
         label: 'تعديل اليوم إدارياً (حالة اليوم وساعات العمل)',
-        subtitle: 'تعديل نوع اليوم إلى عمل أو إجازة أو مأمورية أو ضبط الساعات.',
+          subtitle:
+              'تعديل نوع اليوم إلى عمل أو إجازة أو مأمورية أو ضبط الساعات.',
         color: scheme.primary,
         onTap: () => _openAdminEditDaySheet(context, ref),
-      ));
+        ),
+      );
     }
 
     if (day?.hasAdminOverride == true && canEditDaysAdmin) {
-      actions.add(_ActionTile(
+      actions.add(
+        _ActionTile(
         icon: Icons.restart_alt_rounded,
         label: 'إلغاء التعديل الإداري والعودة لاحتساب النظام',
         subtitle: 'حذف الاستثناء الإداري واستعادة الاحتساب التلقائي للبصمات.',
         color: scheme.error,
         onTap: () => _revertAdminOverride(context, ref),
-      ));
+        ),
+      );
     }
 
     if (actions.isEmpty) {
-      actions.add(Padding(
+      actions.add(
+        Padding(
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Center(
           child: Text(
@@ -2571,9 +3133,11 @@ class _DayDetailSheet extends ConsumerWidget {
                   ? 'لا توجد إجراءات متاحة لهذا اليوم.'
                   : 'للاطلاع فقط — الطلبات يقدّمها الموظف من حسابه، والتعديل الإداري للموارد البشرية.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: scheme.onSurfaceVariant)),
+              style: TextStyle(color: scheme.onSurfaceVariant),
+            ),
         ),
-      ));
+        ),
+      );
     }
 
     return actions;
@@ -2607,27 +3171,31 @@ class _DayDetailSheet extends ConsumerWidget {
     Navigator.pop(context);
     try {
       final empId = statement.employeeId;
-      await ref.read(mobileCommandsProvider).clearAttendanceDayAdmin(
-            employeeId: empId,
-            date: _dateStr,
-          );
+      await ref
+          .read(mobileCommandsProvider)
+          .clearAttendanceDayAdmin(employeeId: empId, date: _dateStr);
       _invalidateProviders(ref);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم إلغاء التعديل الإداري واستعادة احتساب النظام.')),
+          const SnackBar(
+            content: Text('تم إلغاء التعديل الإداري واستعادة احتساب النظام.'),
+          ),
         );
       }
     } catch (error) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(humanizeError(error))),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
       }
     }
   }
 
   // ── فتح ورقة التعديل الإداري ──
-  Future<void> _openAdminEditDaySheet(BuildContext context, WidgetRef ref) async {
+  Future<void> _openAdminEditDaySheet(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
     Navigator.pop(context);
     final result = await AdminAttendanceDayEditSheet.show(
       context,
@@ -2643,9 +3211,13 @@ class _DayDetailSheet extends ConsumerWidget {
   }
 
   // ── فتح نموذج تعديل حالة اليوم بأثر رجعي (إجازة / مأمورية / قافلة / يوم ترفيهي فاندي) ──
-  Future<void> _openRetroactiveDayChange(BuildContext context, WidgetRef ref) async {
+  Future<void> _openRetroactiveDayChange(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
     Navigator.pop(context); // إغلاق ورقة التفاصيل
-    final isClinicStaff = ref.read(accessContextProvider).value?.isClinicStaff == true;
+    final isClinicStaff =
+        ref.read(accessContextProvider).value?.isClinicStaff == true;
     final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true,
@@ -2662,7 +3234,9 @@ class _DayDetailSheet extends ConsumerWidget {
     );
     if (result == null || !context.mounted) return;
     try {
-      await ref.read(mobileCommandsProvider).submitRequest(
+      await ref
+          .read(mobileCommandsProvider)
+          .submitRequest(
             result['type'] as String,
             result['title'] as String,
             result['reason'] as String,
@@ -2677,9 +3251,9 @@ class _DayDetailSheet extends ConsumerWidget {
       }
     } catch (error) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(humanizeError(error))),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
       }
     }
   }
@@ -2698,7 +3272,9 @@ class _DayDetailSheet extends ConsumerWidget {
     );
     if (result == null || !context.mounted) return;
     try {
-      await ref.read(mobileCommandsProvider).submitRequest(
+      await ref
+          .read(mobileCommandsProvider)
+          .submitRequest(
             'leave',
             result['title'] as String,
             result['reason'] as String,
@@ -2712,17 +3288,21 @@ class _DayDetailSheet extends ConsumerWidget {
       }
     } catch (error) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(humanizeError(error))),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
       }
     }
   }
 
   // ── فتح نموذج تصحيح حضور سريع ──
-  Future<void> _openCorrectionRequest(BuildContext context, WidgetRef ref) async {
+  Future<void> _openCorrectionRequest(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
     Navigator.pop(context);
-    final preselect = (day?.missingCheckOut == true && day?.missingCheckIn != true)
+    final preselect =
+        (day?.missingCheckOut == true && day?.missingCheckIn != true)
         ? 'missing_check_out'
         : 'missing_check_in';
     final result = await showModalBottomSheet<Map<String, dynamic>>(
@@ -2732,14 +3312,14 @@ class _DayDetailSheet extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => _QuickCorrectionSheet(
-        dateStr: _dateStr,
-        preselectType: preselect,
-      ),
+      builder: (_) =>
+          _QuickCorrectionSheet(dateStr: _dateStr, preselectType: preselect),
     );
     if (result == null || !context.mounted) return;
     try {
-      await ref.read(mobileCommandsProvider).requestAttendanceCorrection(
+      await ref
+          .read(mobileCommandsProvider)
+          .requestAttendanceCorrection(
             workDate: DateTime.parse(_dateStr),
             type: result['type'] as String,
             reason: result['reason'] as String,
@@ -2754,16 +3334,19 @@ class _DayDetailSheet extends ConsumerWidget {
       }
     } catch (error) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(humanizeError(error))),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
       }
     }
   }
 
   // ── فتح نموذج إذن سريع ──
   Future<void> _openPermitRequest(
-      BuildContext context, WidgetRef ref, String permitKind) async {
+    BuildContext context,
+    WidgetRef ref,
+    String permitKind,
+  ) async {
     Navigator.pop(context);
     final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
@@ -2772,15 +3355,17 @@ class _DayDetailSheet extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => _QuickPermitSheet(
-        dateStr: _dateStr,
-        permitKind: permitKind,
-      ),
+      builder: (_) =>
+          _QuickPermitSheet(dateStr: _dateStr, permitKind: permitKind),
     );
     if (result == null || !context.mounted) return;
-    final resolvedType = permitKind == 'early_departure' ? 'early_permit' : 'late_permit';
+    final resolvedType = permitKind == 'early_departure'
+        ? 'early_permit'
+        : 'late_permit';
     try {
-      await ref.read(mobileCommandsProvider).submitRequest(
+      await ref
+          .read(mobileCommandsProvider)
+          .submitRequest(
             resolvedType,
             result['title'] as String,
             result['reason'] as String,
@@ -2794,9 +3379,9 @@ class _DayDetailSheet extends ConsumerWidget {
       }
     } catch (error) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(humanizeError(error))),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
       }
     }
   }
@@ -2806,9 +3391,7 @@ class _DayDetailSheet extends ConsumerWidget {
     ref.invalidate(myMonthlyStatementProvider((year, month)));
     if (statement.employeeId.isNotEmpty) {
       ref.invalidate(
-        employeeMonthlyStatementProvider(
-          (statement.employeeId, year, month),
-        ),
+        employeeMonthlyStatementProvider((statement.employeeId, year, month)),
       );
     }
   }
@@ -2857,10 +3440,21 @@ class _ActionTile extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(label, style: TextStyle(
-                        fontWeight: FontWeight.w700, fontSize: 14, color: color)),
-                      Text(subtitle, style: TextStyle(
-                        fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                      Text(
+                        label,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                          color: color,
+                        ),
+                      ),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -2910,18 +3504,30 @@ class _QuickLeaveSheetState extends State<_QuickLeaveSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Center(child: Container(
-            width: 40, height: 4,
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
             decoration: BoxDecoration(
               color: scheme.onSurfaceVariant.withValues(alpha: .3),
-              borderRadius: BorderRadius.circular(2)),
-          )),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
           const SizedBox(height: 16),
-          Text('طلب إجازة', style: TextStyle(
-            fontSize: 18, fontWeight: FontWeight.w900, color: scheme.primary)),
+          Text(
+            'طلب إجازة',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: scheme.primary,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text('اليوم: ${widget.dateStr}', style: TextStyle(
-            fontSize: 13, color: scheme.onSurfaceVariant)),
+          Text(
+            'اليوم: ${widget.dateStr}',
+            style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
+          ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
             value: _leaveType,
@@ -2929,9 +3535,11 @@ class _QuickLeaveSheetState extends State<_QuickLeaveSheet> {
               labelText: 'نوع الإجازة',
               isDense: true,
             ),
-            items: _leaveTypes.entries.map((e) =>
-              DropdownMenuItem(value: e.key, child: Text(e.value)),
-            ).toList(),
+            items: _leaveTypes.entries
+                .map(
+                  (e) => DropdownMenuItem(value: e.key, child: Text(e.value)),
+                )
+                .toList(),
             onChanged: (v) => setState(() => _leaveType = v!),
           ),
           const SizedBox(height: 12),
@@ -2958,7 +3566,9 @@ class _QuickLeaveSheetState extends State<_QuickLeaveSheet> {
     final reason = _reasonCtrl.text.trim();
     if (reason.length < 3) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى إدخال سبب الطلب (3 أحرف على الأقل)')),
+        const SnackBar(
+          content: Text('يرجى إدخال سبب الطلب (3 أحرف على الأقل)'),
+        ),
       );
       return;
     }
@@ -2990,10 +3600,12 @@ class _RetroactiveDayChangeSheet extends StatefulWidget {
   final bool isClinicStaff;
 
   @override
-  State<_RetroactiveDayChangeSheet> createState() => _RetroactiveDayChangeSheetState();
+  State<_RetroactiveDayChangeSheet> createState() =>
+      _RetroactiveDayChangeSheetState();
 }
 
-class _RetroactiveDayChangeSheetState extends State<_RetroactiveDayChangeSheet> {
+class _RetroactiveDayChangeSheetState
+    extends State<_RetroactiveDayChangeSheet> {
   String _category = 'leave';
   String _leaveType = 'casual';
   final _locationCtrl = TextEditingController();
@@ -3006,12 +3618,33 @@ class _RetroactiveDayChangeSheetState extends State<_RetroactiveDayChangeSheet> 
     super.dispose();
   }
 
-  List<({Color color, IconData icon, String id, String label})> get _categories => [
-    (id: 'leave', label: 'إجازة معتمدة', icon: Icons.beach_access_rounded, color: const Color(0xFF4F46E5)),
+  List<({Color color, IconData icon, String id, String label})>
+  get _categories => [
+    (
+      id: 'leave',
+      label: 'إجازة معتمدة',
+      icon: Icons.beach_access_rounded,
+      color: const Color(0xFF4F46E5),
+    ),
     if (!widget.isClinicStaff) ...[
-      (id: 'mission', label: 'مأمورية عمل', icon: Icons.directions_car_rounded, color: const Color(0xFF0EA5E9)),
-      (id: 'convoy', label: 'قافلة مساعدات (كامب)', icon: Icons.volunteer_activism_rounded, color: const Color(0xFF8B5CF6)),
-      (id: 'fundraising', label: 'يوم ترفيهي (فاندي)', icon: Icons.celebration_rounded, color: const Color(0xFFEC4899)),
+      (
+        id: 'mission',
+        label: 'مأمورية عمل',
+        icon: Icons.directions_car_rounded,
+        color: const Color(0xFF0EA5E9),
+      ),
+      (
+        id: 'convoy',
+        label: 'قافلة مساعدات (كامب)',
+        icon: Icons.volunteer_activism_rounded,
+        color: const Color(0xFF8B5CF6),
+      ),
+      (
+        id: 'fundraising',
+        label: 'يوم ترفيهي (فاندي)',
+        icon: Icons.celebration_rounded,
+        color: const Color(0xFFEC4899),
+      ),
     ],
   ];
 
@@ -3072,7 +3705,11 @@ class _RetroactiveDayChangeSheetState extends State<_RetroactiveDayChangeSheet> 
                   color: const Color(0xFF4F46E5).withValues(alpha: .12),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.published_with_changes_rounded, color: Color(0xFF4F46E5), size: 24),
+                child: const Icon(
+                  Icons.published_with_changes_rounded,
+                  color: Color(0xFF4F46E5),
+                  size: 24,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -3081,25 +3718,40 @@ class _RetroactiveDayChangeSheetState extends State<_RetroactiveDayChangeSheet> 
                   children: [
                     const Text(
                       'تعديل حالة اليوم',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     Text(
                       '${widget.dayNameAr} ${widget.dateStr}',
-                      style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: scheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: scheme.outlineVariant.withValues(alpha: .5)),
+                  border: Border.all(
+                    color: scheme.outlineVariant.withValues(alpha: .5),
+                  ),
                 ),
                 child: Text(
                   widget.currentStatus,
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: scheme.onSurfaceVariant),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
               ),
             ],
@@ -3113,7 +3765,9 @@ class _RetroactiveDayChangeSheetState extends State<_RetroactiveDayChangeSheet> 
             decoration: BoxDecoration(
               color: const Color(0xFFEEF2FF),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF6366F1).withValues(alpha: 0.25)),
+              border: Border.all(
+                color: const Color(0xFF6366F1).withValues(alpha: 0.25),
+              ),
             ),
             child: const Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -3123,7 +3777,11 @@ class _RetroactiveDayChangeSheetState extends State<_RetroactiveDayChangeSheet> 
                 Expanded(
                   child: Text(
                     'متاح تعديل حالة هذا اليوم طالما يقع في نفس الشهر الحالي. سيتم رفع الطلب لمديرك المباشر لاعتماده.',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF3730A3), height: 1.4),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF3730A3),
+                      height: 1.4,
+                    ),
                   ),
                 ),
               ],
@@ -3135,7 +3793,11 @@ class _RetroactiveDayChangeSheetState extends State<_RetroactiveDayChangeSheet> 
           // 1. اختيار الفئة
           Text(
             'الحالة الجديدة المطلوبة لهذا اليوم:',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: scheme.onSurface),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: scheme.onSurface,
+            ),
           ),
           const SizedBox(height: 10),
 
@@ -3149,19 +3811,32 @@ class _RetroactiveDayChangeSheetState extends State<_RetroactiveDayChangeSheet> 
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 180),
                     margin: const EdgeInsets.symmetric(horizontal: 3),
-                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 10,
+                      horizontal: 4,
+                    ),
                     decoration: BoxDecoration(
-                      color: isSelected ? cat.color.withValues(alpha: .15) : scheme.surfaceContainerLow,
+                      color: isSelected
+                          ? cat.color.withValues(alpha: .15)
+                          : scheme.surfaceContainerLow,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: isSelected ? cat.color : scheme.outlineVariant.withValues(alpha: .4),
+                        color: isSelected
+                            ? cat.color
+                            : scheme.outlineVariant.withValues(alpha: .4),
                         width: isSelected ? 2 : 1,
                       ),
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(cat.icon, size: 22, color: isSelected ? cat.color : scheme.onSurfaceVariant),
+                        Icon(
+                          cat.icon,
+                          size: 22,
+                          color: isSelected
+                              ? cat.color
+                              : scheme.onSurfaceVariant,
+                        ),
                         const SizedBox(height: 6),
                         Text(
                           cat.label,
@@ -3170,8 +3845,12 @@ class _RetroactiveDayChangeSheetState extends State<_RetroactiveDayChangeSheet> 
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 11,
-                            fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
-                            color: isSelected ? cat.color : scheme.onSurfaceVariant,
+                            fontWeight: isSelected
+                                ? FontWeight.w900
+                                : FontWeight.w600,
+                            color: isSelected
+                                ? cat.color
+                                : scheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -3188,7 +3867,11 @@ class _RetroactiveDayChangeSheetState extends State<_RetroactiveDayChangeSheet> 
           if (_category == 'leave') ...[
             Text(
               'نوع الإجازة المطلوبة:',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: scheme.onSurface),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: scheme.onSurface,
+              ),
             ),
             const SizedBox(height: 8),
             ..._leaveOptions.map((opt) {
@@ -3196,25 +3879,36 @@ class _RetroactiveDayChangeSheetState extends State<_RetroactiveDayChangeSheet> 
               return Container(
                 margin: const EdgeInsets.only(bottom: 8),
                 child: Material(
-                  color: isSelected ? opt.color.withValues(alpha: .09) : scheme.surfaceContainerLow,
+                  color: isSelected
+                      ? opt.color.withValues(alpha: .09)
+                      : scheme.surfaceContainerLow,
                   borderRadius: BorderRadius.circular(12),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(12),
                     onTap: () => setState(() => _leaveType = opt.id),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: isSelected ? opt.color : scheme.outlineVariant.withValues(alpha: .3),
+                          color: isSelected
+                              ? opt.color
+                              : scheme.outlineVariant.withValues(alpha: .3),
                           width: isSelected ? 1.8 : 1,
                         ),
                       ),
                       child: Row(
                         children: [
                           Icon(
-                            isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
-                            color: isSelected ? opt.color : scheme.onSurfaceVariant,
+                            isSelected
+                                ? Icons.radio_button_checked
+                                : Icons.radio_button_off,
+                            color: isSelected
+                                ? opt.color
+                                : scheme.onSurfaceVariant,
                             size: 20,
                           ),
                           const SizedBox(width: 10),
@@ -3229,12 +3923,17 @@ class _RetroactiveDayChangeSheetState extends State<_RetroactiveDayChangeSheet> 
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w800,
-                                        color: isSelected ? opt.color : scheme.onSurface,
+                                        color: isSelected
+                                            ? opt.color
+                                            : scheme.onSurface,
                                       ),
                                     ),
                                     const SizedBox(width: 8),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 2,
+                                      ),
                                       decoration: BoxDecoration(
                                         color: opt.color.withValues(alpha: .15),
                                         borderRadius: BorderRadius.circular(6),
@@ -3253,7 +3952,10 @@ class _RetroactiveDayChangeSheetState extends State<_RetroactiveDayChangeSheet> 
                                 const SizedBox(height: 2),
                                 Text(
                                   opt.desc,
-                                  style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: scheme.onSurfaceVariant,
+                                  ),
                                 ),
                               ],
                             ),
@@ -3275,7 +3977,8 @@ class _RetroactiveDayChangeSheetState extends State<_RetroactiveDayChangeSheet> 
                 labelText: switch (_category) {
                   'mission' => 'وجهة / موضوع المأمورية الخارجية',
                   'convoy' => 'مقر القافلة / القرية المستهدفة للمساعدات (كامب)',
-                  'fundraising' => 'مكان اليوم الترفيهي (اسم الفيلا / المنتجع / المكان)',
+                  'fundraising' =>
+                    'مكان اليوم الترفيهي (اسم الفيلا / المنتجع / المكان)',
                   _ => 'الموقع / الوجهة',
                 },
                 hintText: switch (_category) {
@@ -3284,16 +3987,15 @@ class _RetroactiveDayChangeSheetState extends State<_RetroactiveDayChangeSheet> 
                   'fundraising' => 'مثال: فيلا سقارة / منتجع وادي النخيل...',
                   _ => 'اكتب المكان أو الوجهة...',
                 },
-                prefixIcon: Icon(
-                  switch (_category) {
+                prefixIcon: Icon(switch (_category) {
                     'mission' => Icons.directions_car_rounded,
                     'convoy' => Icons.volunteer_activism_rounded,
                     'fundraising' => Icons.celebration_rounded,
                     _ => Icons.place_rounded,
-                  },
-                  size: 20,
+                }, size: 20),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 isDense: true,
               ),
             ),
@@ -3310,7 +4012,9 @@ class _RetroactiveDayChangeSheetState extends State<_RetroactiveDayChangeSheet> 
               labelText: 'سبب التعديل أو الملاحظات (إلزامي)',
               hintText: 'وضح سبب طلب تعديل حالة هذا اليوم...',
               prefixIcon: const Icon(Icons.edit_note_rounded, size: 22),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
 
@@ -3321,7 +4025,9 @@ class _RetroactiveDayChangeSheetState extends State<_RetroactiveDayChangeSheet> 
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
               backgroundColor: const Color(0xFF4F46E5),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             onPressed: _submit,
             icon: const Icon(Icons.send_rounded, size: 20),
@@ -3339,7 +4045,9 @@ class _RetroactiveDayChangeSheetState extends State<_RetroactiveDayChangeSheet> 
     final reason = _reasonCtrl.text.trim();
     if (reason.length < 3) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى إدخال سبب التعديل (3 أحرف على الأقل)')),
+        const SnackBar(
+          content: Text('يرجى إدخال سبب التعديل (3 أحرف على الأقل)'),
+        ),
       );
       return;
     }
@@ -3358,7 +4066,8 @@ class _RetroactiveDayChangeSheetState extends State<_RetroactiveDayChangeSheet> 
         'weekly_rest_comp': 'بدل راحة',
       };
       payload['leaveType'] = _leaveType;
-      title = 'طلب إجازة ${leaveNames[_leaveType] ?? _leaveType} — ${widget.dateStr}';
+      title =
+          'طلب إجازة ${leaveNames[_leaveType] ?? _leaveType} — ${widget.dateStr}';
     } else {
       var loc = _locationCtrl.text.trim();
       if (loc.isEmpty) {
@@ -3471,7 +4180,11 @@ class _QuickCorrectionSheetState extends State<_QuickCorrectionSheet> {
                   color: scheme.error.withValues(alpha: .12),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(Icons.fingerprint_rounded, color: scheme.error, size: 22),
+                child: Icon(
+                  Icons.fingerprint_rounded,
+                  color: scheme.error,
+                  size: 22,
+                ),
               ),
               const SizedBox(width: 10),
               Column(
@@ -3487,7 +4200,10 @@ class _QuickCorrectionSheetState extends State<_QuickCorrectionSheet> {
                   ),
                   Text(
                     'اليوم: ${widget.dateStr}',
-                    style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: scheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -3496,8 +4212,14 @@ class _QuickCorrectionSheetState extends State<_QuickCorrectionSheet> {
           const SizedBox(height: 16),
           SegmentedButton<String>(
             segments: const [
-              ButtonSegment(value: 'missing_check_in', label: Text('نسيان حضور')),
-              ButtonSegment(value: 'missing_check_out', label: Text('نسيان انصراف')),
+              ButtonSegment(
+                value: 'missing_check_in',
+                label: Text('نسيان حضور'),
+              ),
+              ButtonSegment(
+                value: 'missing_check_out',
+                label: Text('نسيان انصراف'),
+              ),
             ],
             selected: {_type},
             onSelectionChanged: (v) {
@@ -3552,7 +4274,9 @@ class _QuickCorrectionSheetState extends State<_QuickCorrectionSheet> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          isCheckIn ? 'وقت الحضور التقريبي' : 'وقت الانصراف التقريبي',
+                          isCheckIn
+                              ? 'وقت الحضور التقريبي'
+                              : 'وقت الانصراف التقريبي',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -3572,7 +4296,10 @@ class _QuickCorrectionSheetState extends State<_QuickCorrectionSheet> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: scheme.primary.withValues(alpha: .1),
                       borderRadius: BorderRadius.circular(8),
@@ -3580,7 +4307,11 @@ class _QuickCorrectionSheetState extends State<_QuickCorrectionSheet> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.edit_rounded, size: 14, color: scheme.primary),
+                        Icon(
+                          Icons.edit_rounded,
+                          size: 14,
+                          color: scheme.primary,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           'تغيير',
@@ -3621,7 +4352,9 @@ class _QuickCorrectionSheetState extends State<_QuickCorrectionSheet> {
     final reason = _reasonCtrl.text.trim();
     if (reason.length < 3) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى إدخال سبب التصحيح (3 أحرف على الأقل)')),
+        const SnackBar(
+          content: Text('يرجى إدخال سبب التصحيح (3 أحرف على الأقل)'),
+        ),
       );
       return;
     }
@@ -3655,10 +4388,7 @@ class _QuickCorrectionSheetState extends State<_QuickCorrectionSheet> {
 // ─── نموذج إذن سريع ─────────────────────────────────────────────────
 
 class _QuickPermitSheet extends StatefulWidget {
-  const _QuickPermitSheet({
-    required this.dateStr,
-    required this.permitKind,
-  });
+  const _QuickPermitSheet({required this.dateStr, required this.permitKind});
   final String dateStr;
   final String permitKind;
   @override
@@ -3687,18 +4417,30 @@ class _QuickPermitSheetState extends State<_QuickPermitSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Center(child: Container(
-            width: 40, height: 4,
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
             decoration: BoxDecoration(
               color: scheme.onSurfaceVariant.withValues(alpha: .3),
-              borderRadius: BorderRadius.circular(2)),
-          )),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
           const SizedBox(height: 16),
-          Text(_kindLabel, style: const TextStyle(
-            fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFFF59E0B))),
+          Text(
+            _kindLabel,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFFF59E0B),
+            ),
+          ),
           const SizedBox(height: 4),
-          Text('اليوم: ${widget.dateStr}', style: TextStyle(
-            fontSize: 13, color: scheme.onSurfaceVariant)),
+          Text(
+            'اليوم: ${widget.dateStr}',
+            style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
+          ),
           const SizedBox(height: 16),
           TextFormField(
             controller: _reasonCtrl,
@@ -3723,7 +4465,9 @@ class _QuickPermitSheetState extends State<_QuickPermitSheet> {
     final reason = _reasonCtrl.text.trim();
     if (reason.length < 3) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى إدخال سبب الطلب (3 أحرف على الأقل)')),
+        const SnackBar(
+          content: Text('يرجى إدخال سبب الطلب (3 أحرف على الأقل)'),
+        ),
       );
       return;
     }
@@ -3739,12 +4483,14 @@ class _QuickPermitSheetState extends State<_QuickPermitSheet> {
   }
 }
 
-
-
 // ─── شريحة تفاصيل صغيرة (chip) ────────────────────────────────────
 
 class _DetailChip extends StatelessWidget {
-  const _DetailChip({required this.icon, required this.label, required this.color});
+  const _DetailChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
   final IconData icon;
   final String label;
   final Color color;
@@ -3763,7 +4509,14 @@ class _DetailChip extends StatelessWidget {
         children: [
           Icon(icon, size: 13, color: color),
           const SizedBox(width: 4),
-          Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
         ],
       ),
     );
@@ -3771,7 +4524,3 @@ class _DetailChip extends StatelessWidget {
 }
 
 // ─── ورقة تعديل اليوم إدارياً ─────────────────────────────────────
-
-
-
-

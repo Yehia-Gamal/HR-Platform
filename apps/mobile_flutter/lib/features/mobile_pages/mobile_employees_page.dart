@@ -8,6 +8,6 @@ class MobileEmployeesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const PeopleHubPage(initialTab: 1);
+    return const PeopleHubPage();
   }
 }

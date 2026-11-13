@@ -60,7 +60,8 @@ class EmployeeHomePage extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    Container(
+                    Flexible(
+                      child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
                         vertical: 6,
@@ -71,12 +72,15 @@ class EmployeeHomePage extends ConsumerWidget {
                       ),
                       child: Text(
                         date,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: .9),
                           fontSize: 11,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
+                    ),
                     ),
                     const Spacer(),
                     const BrandLogoMark(inverse: true, size: 40),
@@ -87,7 +91,8 @@ class EmployeeHomePage extends ConsumerWidget {
                         photoUrl: p.photoUrl,
                         radius: 20,
                       ),
-                    ) ?? ExcludeSemantics(
+                        ) ??
+                        ExcludeSemantics(
                       child: Icon(
                         Icons.wb_sunny_outlined,
                         color: Colors.white.withValues(alpha: .8),
@@ -150,11 +155,14 @@ class EmployeeHomePage extends ConsumerWidget {
             const _BroadcastAlertCard(),
             const SizedBox(height: 12),
           ],
-          if (!access.isClinicStaff || (summary.value?.pendingLocationRequests ?? 0) > 0) ...[
+          if (!access.isClinicStaff ||
+              (summary.value?.pendingLocationRequests ?? 0) > 0) ...[
             _QuickAction(
               icon: Icons.location_searching_rounded,
               title: 'طلبات الموقع',
-              subtitle: access.isClinicStaff ? 'من إدارة العيادات (مصطفى أحمد / يوسف رسمي)' : 'موافقة واضحة ومؤقتة',
+              subtitle: access.isClinicStaff
+                  ? 'من إدارة العيادات'
+                  : 'موافقة واضحة ومؤقتة',
               badgeCount: summary.value?.pendingLocationRequests,
               onTap: () => Navigator.push(
                 context,
@@ -183,9 +191,7 @@ class EmployeeHomePage extends ConsumerWidget {
             subtitle: 'سجل الانضباط الشفاف ورصيد وتوريدات الصندوق',
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (_) => const MyInstantPenaltiesPage(),
-              ),
+              MaterialPageRoute(builder: (_) => const MyInstantPenaltiesPage()),
             ),
           ),
           const SizedBox(height: 8),
@@ -239,8 +245,6 @@ class EmployeeHomePage extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 20),
-          const MonthGlanceCard(),
-          const SizedBox(height: 12),
           const _AttendanceSparkline(),
           const SizedBox(height: 20),
           Card(
@@ -349,7 +353,10 @@ class _BroadcastAlertCard extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Icon(Icons.chevron_left_rounded, color: scheme.onErrorContainer),
+                Icon(
+                  Icons.chevron_left_rounded,
+                  color: scheme.onErrorContainer,
+                ),
               ],
             ),
           ),
@@ -359,13 +366,69 @@ class _BroadcastAlertCard extends ConsumerWidget {
   }
 
   void _showBroadcastDialog(BuildContext context, WidgetRef ref) {
-    final commands = ref.read(mobileCommandsProvider);
-    final controller = TextEditingController();
-    showDialog(
+    showDialog<void>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) =>
+          _BroadcastAlertDialog(commands: ref.read(mobileCommandsProvider)),
+    );
+  }
+}
+
+/// حوار التنبيه الشامل: يتحقق من النص ويعرض سبب الرفض بدل تجاهل الضغط
+/// بصمت، ويعطّل الزر أثناء الإرسال، ويحرّر متحكم النص بعد الإغلاق.
+class _BroadcastAlertDialog extends StatefulWidget {
+  const _BroadcastAlertDialog({required this.commands});
+
+  final MobileCommands commands;
+
+  @override
+  State<_BroadcastAlertDialog> createState() => _BroadcastAlertDialogState();
+}
+
+class _BroadcastAlertDialogState extends State<_BroadcastAlertDialog> {
+  final _controller = TextEditingController();
+  String? _error;
+  bool _sending = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _send() async {
+    final text = _controller.text.trim();
+    if (text.length < 3) {
+      setState(() => _error = 'اكتب رسالة واضحة (3 أحرف على الأقل).');
+      return;
+    }
+    setState(() {
+      _sending = true;
+      _error = null;
+    });
+    try {
+      await widget.commands.sendBroadcastAlert(text);
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      Navigator.of(context).pop();
+      messenger.showSnackBar(
+        const SnackBar(content: Text('أُرسل التنبيه الشامل لكل الموظفين')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _sending = false;
+        _error = 'فشل الإرسال: ${humanizeError(e)}';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
         title: const Text('إرسال تنبيه شامل'),
-        content: Column(
+      content: SingleChildScrollView(
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -375,48 +438,42 @@ class _BroadcastAlertCard extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             TextField(
-              controller: controller,
+              controller: _controller,
+              enabled: !_sending,
+              autofocus: true,
               maxLength: 300,
               maxLines: 3,
               minLines: 2,
-              decoration: const InputDecoration(
+              onChanged: (_) {
+                if (_error != null) setState(() => _error = null);
+              },
+              decoration: InputDecoration(
                 labelText: 'نص التنبيه (3 أحرف على الأقل)',
                 hintText: 'مثال: اجتماع طارئ فورًا في مقر الجمعية الرئيسي',
-                border: OutlineInputBorder(),
+                errorText: _error,
+                errorMaxLines: 2,
+                border: const OutlineInputBorder(),
               ),
             ),
           ],
         ),
+      ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+          onPressed: _sending ? null : () => Navigator.of(context).pop(),
             child: const Text('إلغاء'),
           ),
           FilledButton(
-            onPressed: () {
-              final text = controller.text.trim();
-              if (text.length < 3) return;
-              final messenger = ScaffoldMessenger.of(context);
-              Navigator.pop(context);
-              commands
-                  .sendBroadcastAlert(text)
-                  .then((_) {
-                    messenger.showSnackBar(
-                      const SnackBar(
-                        content: Text('أُرسل التنبيه الشامل لكل الموظفين'),
-                      ),
-                    );
-                  })
-                  .catchError((e) {
-                    messenger.showSnackBar(
-                      SnackBar(content: Text('فشل الإرسال: ${humanizeError(e)}')),
-                    );
-                  });
-            },
-            child: const Text('إرسال الآن'),
+          onPressed: _sending ? null : _send,
+          child: _sending
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('إرسال الآن'),
           ),
         ],
-      ),
     );
   }
 }
@@ -463,11 +520,7 @@ class _QuickAction extends StatelessWidget {
                     color: scheme.primaryContainer,
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Icon(
-                    icon,
-                    color: scheme.onPrimaryContainer,
-                    size: 22,
-                  ),
+                  child: Icon(icon, color: scheme.onPrimaryContainer, size: 22),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -563,9 +616,9 @@ class _ErrorCard extends StatelessWidget {
           Text(
             'تعذر تحميل ملخص حسابك',
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w800,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 4),
           Text(
@@ -598,7 +651,9 @@ class _AttendanceSparkline extends ConsumerWidget {
     );
     final prevMonth = DateTime(now.year, now.month - 1);
     final previous = now.day < 7
-        ? ref.watch(myMonthlyStatementProvider((prevMonth.year, prevMonth.month)))
+        ? ref.watch(
+            myMonthlyStatementProvider((prevMonth.year, prevMonth.month)),
+          )
         : null;
     final byDate = <String, AttendanceStatementDay>{};
     for (final d in [
@@ -696,22 +751,38 @@ class _SparkDot extends StatelessWidget {
     final color = _dotColor(day);
     final date = DateTime.tryParse(day.date);
     final status = day.status.isNotEmpty ? day.status : 'غير مسجل';
+    // الألوان الفاتحة (رمادي/برتقالي) كانت بنص أبيض = تباين شبه معدوم.
+    final foreground = color.computeLuminance() > .55
+        ? Colors.black87
+        : Colors.white;
+    final label = '${day.dayNameAr} ${date?.day ?? ''}: $status';
     return Tooltip(
-      message: '${day.dayNameAr} ${date?.day ?? ''}: $status',
+      message: label,
+      child: Semantics(
+        label: label,
+        excludeSemantics: true,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: color,
+                border: Border.all(
+                  color: color.computeLuminance() > .55
+                      ? Colors.black.withValues(alpha: .12)
+                      : Colors.transparent,
+                ),
+              ),
             child: Center(
               child: Text(
                 '${date?.day ?? '?'}',
-                style: const TextStyle(
-                  fontSize: 10,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: foreground,
+                    fontWeight: FontWeight.w800,
                 ),
               ),
             ),
@@ -725,6 +796,7 @@ class _SparkDot extends StatelessWidget {
             style: Theme.of(context).textTheme.labelSmall,
           ),
         ],
+      ),
       ),
     );
   }
@@ -752,7 +824,11 @@ class _SparkDot extends StatelessWidget {
 class _ConnectivitySyncBanner extends ConsumerWidget {
   const _ConnectivitySyncBanner();
 
-  void _showSyncDetailsBottomSheet(BuildContext context, WidgetRef ref, bool isOffline) {
+  void _showSyncDetailsBottomSheet(
+    BuildContext context,
+    WidgetRef ref,
+    bool isOffline,
+  ) {
     showModalBottomSheet<void>(
       context: context,
       useSafeArea: true,
@@ -766,12 +842,15 @@ class _ConnectivitySyncBanner extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final connectivity = ref.watch(connectivityProvider);
     final pending = ref.watch(syncQueueCountProvider).value ?? 0;
-    final isOffline = connectivity == ConnectivityState.offline ||
+    final isOffline =
+        connectivity == ConnectivityState.offline ||
         connectivity == ConnectivityState.reconnecting;
     // متصل ولا عمليات معلقة: لا داعي لشريط دائم «متصل بالخادم» في كل فتح
     if (!isOffline && pending == 0) return const SizedBox.shrink();
 
-    final primaryColor = isOffline ? const Color(0xFFF59E0B) : const Color(0xFF10B981);
+    final primaryColor = isOffline
+        ? const Color(0xFFF59E0B)
+        : const Color(0xFF10B981);
     final icon = isOffline ? Icons.cloud_off_rounded : Icons.cloud_done_rounded;
     final text = isOffline
         ? 'وضع عدم الاتصال نشط · البصمات تحفظ محلياً وسترفع فور عودة الشبكة (اضغط للتفاصيل)'
@@ -792,7 +871,10 @@ class _ConnectivitySyncBanner extends ConsumerWidget {
           borderRadius: BorderRadius.circular(12),
           onTap: () => _showSyncDetailsBottomSheet(context, ref, isOffline),
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 14, vertical: isOffline ? 10 : 8),
+            padding: EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: isOffline ? 10 : 8,
+            ),
             child: Row(
               children: [
                 Icon(icon, size: isOffline ? 20 : 16, color: primaryColor),
@@ -803,7 +885,9 @@ class _ConnectivitySyncBanner extends ConsumerWidget {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: isOffline ? const Color(0xFFB45309) : const Color(0xFF10B981),
+                      color: isOffline
+                          ? const Color(0xFFB45309)
+                          : const Color(0xFF10B981),
                     ),
                   ),
                 ),
@@ -811,7 +895,9 @@ class _ConnectivitySyncBanner extends ConsumerWidget {
                 Icon(
                   Icons.arrow_forward_ios_rounded,
                   size: 12,
-                  color: isOffline ? const Color(0xFFB45309) : const Color(0xFF10B981),
+                  color: isOffline
+                      ? const Color(0xFFB45309)
+                      : const Color(0xFF10B981),
                 ),
               ],
             ),
@@ -888,7 +974,9 @@ class _SyncDetailsSheetState extends ConsumerState<_SyncDetailsSheet> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final statusColor = widget.isOffline ? const Color(0xFFF59E0B) : const Color(0xFF10B981);
+    final statusColor = widget.isOffline
+        ? const Color(0xFFF59E0B)
+        : const Color(0xFF10B981);
 
     return Container(
       decoration: BoxDecoration(
@@ -920,7 +1008,9 @@ class _SyncDetailsSheetState extends ConsumerState<_SyncDetailsSheet> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
-                  widget.isOffline ? Icons.cloud_off_rounded : Icons.cloud_done_rounded,
+                  widget.isOffline
+                      ? Icons.cloud_off_rounded
+                      : Icons.cloud_done_rounded,
                   color: statusColor,
                   size: 24,
                 ),
@@ -932,10 +1022,15 @@ class _SyncDetailsSheetState extends ConsumerState<_SyncDetailsSheet> {
                   children: [
                     const Text(
                       'حالة الاتصال ومزامنة البصمات',
-                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 15,
+                      ),
                     ),
                     Text(
-                      widget.isOffline ? 'وضع بدون اتصال (Offline)' : 'متصل بالخادم سحابياً',
+                      widget.isOffline
+                          ? 'وضع بدون اتصال (Offline)'
+                          : 'متصل بالخادم سحابياً',
                       style: TextStyle(
                         fontSize: 12,
                         color: statusColor,
@@ -953,20 +1048,27 @@ class _SyncDetailsSheetState extends ConsumerState<_SyncDetailsSheet> {
             decoration: BoxDecoration(
               color: scheme.surfaceContainerHighest.withValues(alpha: .4),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: scheme.outlineVariant.withValues(alpha: .4)),
+              border: Border.all(
+                color: scheme.outlineVariant.withValues(alpha: .4),
+              ),
             ),
             child: Column(
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('العمليات المعلقة في الطابور:', style: TextStyle(fontSize: 12)),
+                    const Text(
+                      'العمليات المعلقة في الطابور:',
+                      style: TextStyle(fontSize: 12),
+                    ),
                     Text(
                       '${_items.length} عملية',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w900,
-                        color: _items.isEmpty ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                        color: _items.isEmpty
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFFF59E0B),
                       ),
                     ),
                   ],
@@ -975,12 +1077,20 @@ class _SyncDetailsSheetState extends ConsumerState<_SyncDetailsSheet> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('آخر مزامنة ناجحة:', style: TextStyle(fontSize: 12)),
+                    const Text(
+                      'آخر مزامنة ناجحة:',
+                      style: TextStyle(fontSize: 12),
+                    ),
                     Text(
                       _lastSync != null
-                          ? DateFormat('HH:mm  yyyy/MM/dd').format(_lastSync!.toLocal())
+                          ? DateFormat(
+                              'HH:mm  yyyy/MM/dd',
+                            ).format(_lastSync!.toLocal())
                           : 'لم تسجل بعد',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ],
                 ),
@@ -1003,19 +1113,33 @@ class _SyncDetailsSheetState extends ConsumerState<_SyncDetailsSheet> {
                 itemBuilder: (context, idx) {
                   final item = _items[idx];
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: scheme.surface,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: scheme.outlineVariant.withValues(alpha: .5)),
+                      border: Border.all(
+                        color: scheme.outlineVariant.withValues(alpha: .5),
+                      ),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(item.actionLabel, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                        Text(
+                          item.actionLabel,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                         Text(
                           'محاولات: ${item.retryCount}',
-                          style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: scheme.onSurfaceVariant,
+                          ),
                         ),
                       ],
                     ),
@@ -1031,10 +1155,15 @@ class _SyncDetailsSheetState extends ConsumerState<_SyncDetailsSheet> {
                 ? const SizedBox(
                     width: 16,
                     height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
                   )
                 : const Icon(Icons.sync_rounded),
-            label: Text(_isSyncing ? 'جاري المزامنة...' : 'مزامنة يدوية فورية الآن'),
+            label: Text(
+              _isSyncing ? 'جاري المزامنة...' : 'مزامنة يدوية فورية الآن',
+            ),
           ),
         ],
       ),
@@ -1106,7 +1235,8 @@ class _ProactiveSmartAlertBanner extends StatelessWidget {
                       children: [
                         Text(
                           'تنبيه استباقي: لديك طلب موقع بانتظار استجابتك',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 12,
                               ),
@@ -1114,15 +1244,24 @@ class _ProactiveSmartAlertBanner extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           'انقر هنا للموافقة المؤقتة ومشاركة موقعك الميداني مع الإدارة.',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.75),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.color
+                                    ?.withValues(alpha: 0.75),
                                 fontSize: 11,
                               ),
                         ),
                       ],
                     ),
                   ),
-                  const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.amber),
+                  const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: Colors.amber,
+                  ),
                 ],
               ),
             ),
@@ -1148,10 +1287,14 @@ class _ProactiveSmartAlertBanner extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.4),
+                color: Theme.of(
+                  context,
+                ).colorScheme.primaryContainer.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.35),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.35),
                 ),
               ),
               child: Row(
@@ -1159,7 +1302,9 @@ class _ProactiveSmartAlertBanner extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
@@ -1175,7 +1320,8 @@ class _ProactiveSmartAlertBanner extends StatelessWidget {
                       children: [
                         Text(
                           'إعلانات وقرارات إدارية جديدة ($unreadAnnouncements)',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 12,
                               ),
@@ -1183,8 +1329,13 @@ class _ProactiveSmartAlertBanner extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           'يرجى الاطلاع على القرارات الإدارية وتحديثات سياسات العمل.',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.75),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.color
+                                    ?.withValues(alpha: 0.75),
                                 fontSize: 11,
                               ),
                         ),
@@ -1212,9 +1363,7 @@ class _ProactiveSmartAlertBanner extends StatelessWidget {
         child: InkWell(
           onTap: () => Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (_) => const MobileRequestsPage(),
-            ),
+            MaterialPageRoute(builder: (_) => const MobileRequestsPage()),
           ),
           borderRadius: BorderRadius.circular(16),
           child: Container(
@@ -1254,14 +1403,20 @@ class _ProactiveSmartAlertBanner extends StatelessWidget {
                       Text(
                         'انقر لمتابعة حالة الاعتماد وتحديثات الإدارة.',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.75),
+                          color: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.color?.withValues(alpha: 0.75),
                               fontSize: 11,
                             ),
                       ),
                     ],
                   ),
                 ),
-                const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.blue),
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 14,
+                  color: Colors.blue,
+                ),
               ],
             ),
           ),
@@ -1270,5 +1425,3 @@ class _ProactiveSmartAlertBanner extends StatelessWidget {
     );
   }
 }
-
-

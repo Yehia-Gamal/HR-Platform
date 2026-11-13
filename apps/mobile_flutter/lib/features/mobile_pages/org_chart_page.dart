@@ -18,17 +18,17 @@ class OrgEmployee {
   });
 
   factory OrgEmployee.fromJson(Map<String, dynamic> json) => OrgEmployee(
-        id: json['id'] as String,
-        fullNameAr: json['fullNameAr'] as String? ?? '',
-        fullNameEn: json['fullNameEn'] as String?,
-        photoUrl: json['photoUrl'] as String?,
-        jobTitle: json['jobTitle'] as String? ?? '',
-        departmentName: json['departmentName'] as String? ?? '',
-        employeeCode: json['employeeCode'] as String? ?? '',
-        managerEmployeeId: json['managerEmployeeId'] as String?,
-        directReportsCount: (json['directReportsCount'] as num?)?.toInt() ?? 0,
-        depth: (json['depth'] as num?)?.toInt() ?? 0,
-      );
+    id: json['id'] as String,
+    fullNameAr: json['fullNameAr'] as String? ?? '',
+    fullNameEn: json['fullNameEn'] as String?,
+    photoUrl: json['photoUrl'] as String?,
+    jobTitle: json['jobTitle'] as String? ?? '',
+    departmentName: json['departmentName'] as String? ?? '',
+    employeeCode: json['employeeCode'] as String? ?? '',
+    managerEmployeeId: json['managerEmployeeId'] as String?,
+    directReportsCount: (json['directReportsCount'] as num?)?.toInt() ?? 0,
+    depth: (json['depth'] as num?)?.toInt() ?? 0,
+  );
 
   final String id;
   final String fullNameAr;
@@ -49,7 +49,11 @@ class OrgTreeNode {
 }
 
 class OrgChartData {
-  const OrgChartData({required this.employees, required this.tree, required this.stats});
+  const OrgChartData({
+    required this.employees,
+    required this.tree,
+    required this.stats,
+  });
   final List<OrgEmployee> employees;
   final List<OrgTreeNode> tree;
   final OrgStats stats;
@@ -75,6 +79,6 @@ class OrgChartPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const PeopleHubPage(initialTab: 2);
+    return const PeopleHubPage();
   }
 }

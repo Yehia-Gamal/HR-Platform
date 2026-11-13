@@ -1,4 +1,5 @@
 import 'package:ahla_design_tokens/ahla_design_tokens.dart';
+import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/core/sharing/whatsapp_share_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:flutter/material.dart';
@@ -95,10 +96,13 @@ class _MonthlyAchievementDigestSheetState
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final reportsAsync = ref.watch(mobileDailyReportsProvider(widget.employeeId));
+    final reportsAsync = ref.watch(
+      mobileDailyReportsProvider(widget.employeeId),
+    );
     final profileAsync = ref.watch(mobileProfileProvider);
 
-    final resolvedEmployeeName = widget.employeeName ??
+    final resolvedEmployeeName =
+        widget.employeeName ??
         profileAsync.asData?.value.fullNameAr ??
         'الموظف';
     final resolvedDepartment = profileAsync.asData?.value.department;
@@ -192,10 +196,14 @@ class _MonthlyAchievementDigestSheetState
               margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.04),
+                color: isDark
+                    ? Colors.white10
+                    : Colors.black.withValues(alpha: 0.04),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.08),
+                  color: isDark
+                      ? Colors.white12
+                      : Colors.black.withValues(alpha: 0.08),
                 ),
               ),
               child: Row(
@@ -235,21 +243,43 @@ class _MonthlyAchievementDigestSheetState
             // المحتوى الرئيسي
             Expanded(
               child: reportsAsync.when(
-                loading: () => const Center(
-                  child: CircularProgressIndicator(),
-                ),
+                loading: () => const Center(child: CircularProgressIndicator()),
                 error: (err, _) => Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
-                    child: Text('تعذر تحميل التقارير: $err'),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.cloud_off_rounded, size: 44),
+                        const SizedBox(height: 10),
+                        Text(
+                          humanizeError(err),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: isDark ? Colors.white70 : Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        OutlinedButton.icon(
+                          onPressed: () => ref.invalidate(
+                            mobileDailyReportsProvider(widget.employeeId),
+                          ),
+                          icon: const Icon(Icons.refresh_rounded, size: 18),
+                          label: const Text('إعادة المحاولة'),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 data: (allReports) {
                   // فلترة الشهر المختار
-                  final monthReports = allReports
-                      .where((r) =>
+                  final monthReports =
+                      allReports
+                          .where(
+                            (r) =>
                           r.reportDate.year == _selectedYear &&
-                          r.reportDate.month == _selectedMonth)
+                                r.reportDate.month == _selectedMonth,
+                          )
                       .toList()
                     ..sort((a, b) => b.reportDate.compareTo(a.reportDate));
 
@@ -258,11 +288,13 @@ class _MonthlyAchievementDigestSheetState
                   final blockers = <Map<String, String>>[];
                   final managerNotes = <Map<String, String>>[];
 
-                  final df = DateFormat('yyyy-MM-dd', 'ar');
+                  // التاريخ للعرض فقط — «12 نوفمبر» بدل «2026-11-12».
+                  final df = DateFormat('d MMMM', 'ar');
 
                   for (final rep in monthReports) {
                     final dateStr = df.format(rep.reportDate);
-                    if (rep.achievements != null && rep.achievements!.trim().isNotEmpty) {
+                    if (rep.achievements != null &&
+                        rep.achievements!.trim().isNotEmpty) {
                       final lines = rep.achievements!
                           .split('\n')
                           .map((l) => l.trim())
@@ -273,10 +305,20 @@ class _MonthlyAchievementDigestSheetState
                     }
                     if (rep.blockers != null &&
                         rep.blockers!.trim().isNotEmpty &&
-                        !['لا يوجد', 'لا توجد', 'لا', 'none', '-'].contains(rep.blockers!.trim())) {
-                      blockers.add({'date': dateStr, 'text': rep.blockers!.trim()});
+                        ![
+                          'لا يوجد',
+                          'لا توجد',
+                          'لا',
+                          'none',
+                          '-',
+                        ].contains(rep.blockers!.trim())) {
+                      blockers.add({
+                        'date': dateStr,
+                        'text': rep.blockers!.trim(),
+                      });
                     }
-                    if (rep.managerComment != null && rep.managerComment!.trim().isNotEmpty) {
+                    if (rep.managerComment != null &&
+                        rep.managerComment!.trim().isNotEmpty) {
                       managerNotes.add({
                         'date': dateStr,
                         'text': rep.managerComment!.trim(),
@@ -324,49 +366,50 @@ class _MonthlyAchievementDigestSheetState
                   return ListView(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                     children: [
-                      // بطاقات الإحصائيات الأربعة
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildMetricCard(
+                      // بطاقات الإحصائيات الأربعة — شبكة عمودين بدل صف رباعي
+                      // كان يضغط التسميات إلى 9px ويقصّها («توجيهات الإدارة»).
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: 4,
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                          mainAxisExtent: MediaQuery.textScalerOf(
+                            context,
+                          ).scale(96).clamp(96.0, 140.0).toDouble(),
+                        ),
+                        itemBuilder: (context, index) => switch (index) {
+                          0 => _buildMetricCard(
                               label: 'أيام التوثيق',
                               value: '${monthReports.length} يوماً',
                               icon: Icons.calendar_today_rounded,
                               color: AppColors.success,
                               isDark: isDark,
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _buildMetricCard(
+                          1 => _buildMetricCard(
                               label: 'إجمالي المهام',
                               value: '${achievements.length} إنجازاً',
                               icon: Icons.trending_up_rounded,
                               color: AppColors.brandPrimary,
                               isDark: isDark,
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _buildMetricCard(
+                          2 => _buildMetricCard(
                               label: 'معوقات عولجت',
                               value: '${blockers.length}',
                               icon: Icons.shield_rounded,
                               color: AppColors.warning,
                               isDark: isDark,
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _buildMetricCard(
+                          _ => _buildMetricCard(
                               label: 'توجيهات الإدارة',
                               value: '${managerNotes.length}',
                               icon: Icons.military_tech_rounded,
                               color: Colors.purpleAccent,
                               isDark: isDark,
                             ),
-                          ),
-                        ],
+                        },
                       ),
 
                       const SizedBox(height: 18),
@@ -391,7 +434,8 @@ class _MonthlyAchievementDigestSheetState
                       ),
                       const SizedBox(height: 10),
 
-                      ...achievements.map((ach) => Container(
+                      ...achievements.map(
+                        (ach) => Container(
                             margin: const EdgeInsets.only(bottom: 8),
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
@@ -410,7 +454,9 @@ class _MonthlyAchievementDigestSheetState
                                     vertical: 3,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: AppColors.success.withValues(alpha: 0.12),
+                                  color: AppColors.success.withValues(
+                                    alpha: 0.12,
+                                  ),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
@@ -435,7 +481,8 @@ class _MonthlyAchievementDigestSheetState
                                 ),
                               ],
                             ),
-                          )),
+                        ),
+                      ),
 
                       if (blockers.isNotEmpty) ...[
                         const SizedBox(height: 14),
@@ -458,14 +505,17 @@ class _MonthlyAchievementDigestSheetState
                           ],
                         ),
                         const SizedBox(height: 8),
-                        ...blockers.map((b) => Container(
+                        ...blockers.map(
+                          (b) => Container(
                               margin: const EdgeInsets.only(bottom: 6),
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
                                 color: AppColors.warning.withValues(alpha: 0.08),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: AppColors.warning.withValues(alpha: 0.25),
+                                color: AppColors.warning.withValues(
+                                  alpha: 0.25,
+                                ),
                                 ),
                               ),
                               child: Column(
@@ -489,7 +539,8 @@ class _MonthlyAchievementDigestSheetState
                                   ),
                                 ],
                               ),
-                            )),
+                          ),
+                        ),
                       ],
 
                       if (managerNotes.isNotEmpty) ...[
@@ -513,7 +564,8 @@ class _MonthlyAchievementDigestSheetState
                           ],
                         ),
                         const SizedBox(height: 8),
-                        ...managerNotes.map((m) => Container(
+                        ...managerNotes.map(
+                          (m) => Container(
                               margin: const EdgeInsets.only(bottom: 6),
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
@@ -559,7 +611,8 @@ class _MonthlyAchievementDigestSheetState
                                   ),
                                 ],
                               ),
-                            )),
+                          ),
+                        ),
                       ],
                     ],
                   );
@@ -573,15 +626,18 @@ class _MonthlyAchievementDigestSheetState
               error: (_, _) => const SizedBox.shrink(),
               data: (allReports) {
                 final monthReports = allReports
-                    .where((r) =>
+                    .where(
+                      (r) =>
                         r.reportDate.year == _selectedYear &&
-                        r.reportDate.month == _selectedMonth)
+                          r.reportDate.month == _selectedMonth,
+                    )
                     .toList();
                 if (monthReports.isEmpty) return const SizedBox.shrink();
 
                 final topAchs = <String>[];
                 for (final r in monthReports) {
-                  if (r.achievements != null && r.achievements!.trim().isNotEmpty) {
+                  if (r.achievements != null &&
+                      r.achievements!.trim().isNotEmpty) {
                     final lines = r.achievements!
                         .split('\n')
                         .map((l) => l.trim())
@@ -638,7 +694,8 @@ class _MonthlyAchievementDigestSheetState
                       ),
                       const SizedBox(width: 10),
                       // زر نسخ التقرير
-                      OutlinedButton.icon(
+                        Expanded(
+                          child: OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
@@ -659,36 +716,44 @@ class _MonthlyAchievementDigestSheetState
                         onPressed: () async {
                           final buffer = StringBuffer();
                           buffer.writeln(
-                              '📋 تقرير إنجازات شهر ($_monthName $_selectedYear)');
+                                '📋 تقرير إنجازات شهر ($_monthName $_selectedYear)',
+                              );
                           buffer.writeln('الموظف: $resolvedEmployeeName');
                           if (resolvedDepartment != null) {
                             buffer.writeln('القسم: $resolvedDepartment');
                           }
                           buffer.writeln('───────────────');
                           buffer.writeln(
-                              '• أيام العمل الموثقة: ${monthReports.length} يوماً');
+                                '• أيام العمل الموثقة: ${monthReports.length} يوماً',
+                              );
                           buffer.writeln(
-                              '• إجمالي المنجزات: ${topAchs.length} إنجازاً');
+                                '• إجمالي المنجزات: ${topAchs.length} إنجازاً',
+                              );
                           buffer.writeln('───────────────');
                           buffer.writeln('أبرز الإنجازات:');
-                          for (var i = 0;
+                              for (
+                                var i = 0;
                               i < topAchs.length && i < 15;
-                              i++) {
+                                i++
+                              ) {
                             buffer.writeln('${i + 1}) ${topAchs[i]}');
                           }
                           await Clipboard.setData(
-                              ClipboardData(text: buffer.toString()));
+                                ClipboardData(text: buffer.toString()),
+                              );
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text(
-                                    'تم نسخ تقرير الإنجاز الشهري بنجاح للحافظة!'),
+                                      'تم نسخ تقرير الإنجاز الشهري بنجاح للحافظة!',
+                                    ),
                                 duration: Duration(seconds: 2),
                               ),
                             );
                           }
                         },
                       ),
+                        ),
                     ],
                   ),
                 ),
@@ -716,13 +781,14 @@ class _MonthlyAchievementDigestSheetState
         border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, size: 16, color: color),
           const SizedBox(height: 4),
           Text(
             value,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: FontWeight.w900,
               color: color,
             ),
@@ -732,12 +798,14 @@ class _MonthlyAchievementDigestSheetState
           const SizedBox(height: 2),
           Text(
             label,
+            textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 9,
+              fontSize: 11,
+              height: 1.25,
               fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white60 : Colors.black54,
+              color: isDark ? Colors.white70 : Colors.black87,
             ),
-            maxLines: 1,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
         ],

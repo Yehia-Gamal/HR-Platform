@@ -8,25 +8,85 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// فترة التكريم: موظف الشهر أو موظف الأسبوع
-enum HonorPeriod {
-  month,
-  week,
-}
+enum HonorPeriod { month, week }
 
 /// محور التميز: الانضباط والحضور، المأموريات الميدانية، المهام والتقارير، استجابات الموقع
-enum HonorCategory {
-  attendance,
-  missions,
-  reports,
-  locations,
-}
+enum HonorCategory { attendance, missions, reports, locations }
 
-/// بطاقة ملخص لوحة الشرف في الصفحة الرئيسية للموظف
+/// بطاقة ملخص لوحة الشرف في الصفحة الرئيسية للموظف.
+/// لا تعرض شيئاً قبل وصول بيانات حقيقية من الخادم أو عندما لا يوجد مكرَّمون،
+/// بدل حجز مساحة فارغة دائماً كما كان سابقاً.
 class HonorBoardSummaryCard extends ConsumerWidget {
   const HonorBoardSummaryCard({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) => const SizedBox.shrink();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final honorees =
+        ref.watch(honorBoardProvider(('month', 'attendance'))).value ??
+        const <HonoreeItem>[];
+    if (honorees.isEmpty) return const SizedBox.shrink();
+
+    final scheme = Theme.of(context).colorScheme;
+    final top = honorees.first;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Card(
+        elevation: 0,
+        margin: EdgeInsets.zero,
+        color: scheme.tertiaryContainer.withValues(alpha: .55),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: scheme.tertiary.withValues(alpha: .25)),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => showModalBottomSheet<void>(
+            context: context,
+            isScrollControlled: true,
+            useSafeArea: true,
+            builder: (_) => const HonorBoardSheet(),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Icon(Icons.emoji_events_rounded, color: scheme.tertiary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'لوحة الشرف',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          color: scheme.onTertiaryContainer,
+                        ),
+                      ),
+                      Text(
+                        '${top.name}${top.department.isNotEmpty ? ' · ${top.department}' : ''}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: scheme.onTertiaryContainer.withValues(
+                            alpha: .85,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_left_rounded,
+                  color: scheme.onTertiaryContainer,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class HonorBoardSheet extends ConsumerStatefulWidget {
@@ -56,14 +116,18 @@ class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 12),
-            Icon(Icons.military_tech_outlined, size: 56, color: Theme.of(context).colorScheme.outline),
+            Icon(
+              Icons.military_tech_outlined,
+              size: 56,
+              color: Theme.of(context).colorScheme.outline,
+            ),
             const SizedBox(height: 16),
             Text(
               'لوحة الشرف غير متاحة لطاقم العيادات.',
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
           ],
@@ -89,9 +153,11 @@ class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
     final honorees = asyncData.value ?? const <HonoreeItem>[];
     final emptyText = switch (_category) {
       HonorCategory.attendance => 'لم تُسجَّل أيام حضور في هذه الفترة بعد.',
-      HonorCategory.missions => 'لا توجد مأموريات ميدانية معتمدة في هذه الفترة.',
+      HonorCategory.missions =>
+        'لا توجد مأموريات ميدانية معتمدة في هذه الفترة.',
       HonorCategory.reports => 'لم يرفع أحد تقارير يومية في هذه الفترة.',
-      HonorCategory.locations => 'لا توجد استجابات لطلبات الموقع في هذه الفترة.',
+      HonorCategory.locations =>
+        'لا توجد استجابات لطلبات الموقع في هذه الفترة.',
     };
 
     final first = honorees.isNotEmpty ? honorees[0] : null;
@@ -100,11 +166,23 @@ class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
 
     final now = DateTime.now();
     const monthNames = [
-      'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-      'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+      'يناير',
+      'فبراير',
+      'مارس',
+      'أبريل',
+      'مايو',
+      'يونيو',
+      'يوليو',
+      'أغسطس',
+      'سبتمبر',
+      'أكتوبر',
+      'نوفمبر',
+      'ديسمبر',
     ];
     final currentMonthName = monthNames[now.month - 1];
-    final periodLabel = _period == HonorPeriod.month ? 'شهر $currentMonthName' : 'الأسبوع الحالي';
+    final periodLabel = _period == HonorPeriod.month
+        ? 'شهر $currentMonthName'
+        : 'الأسبوع الحالي';
     final categoryLabel = switch (_category) {
       HonorCategory.attendance => 'الانضباط والحضور',
       HonorCategory.missions => 'المأموريات الميدانية',
@@ -150,7 +228,9 @@ class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFFF59E0B).withValues(alpha: .3),
+                              color: const Color(
+                                0xFFF59E0B,
+                              ).withValues(alpha: .3),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),
@@ -185,9 +265,13 @@ class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
                       const Spacer(),
                       IconButton(
                         tooltip: 'مشاركة لوحة الشرف في جروب الواتساب',
-                        icon: const Icon(Icons.share_rounded, color: Color(0xFF25D366)),
+                        icon: const Icon(
+                          Icons.share_rounded,
+                          color: Color(0xFF25D366),
+                        ),
                         onPressed: () {
-                          final topName = first?.name ?? 'نخبة الموظفين المتميزين';
+                          final topName =
+                              first?.name ?? 'نخبة الموظفين المتميزين';
                           WhatsAppShareService.shareHonorCard(
                             employeeName: topName,
                             period: periodLabel,
@@ -216,7 +300,9 @@ class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
                   Container(
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color: scheme.surfaceContainerHighest.withValues(alpha: .45),
+                      color: scheme.surfaceContainerHighest.withValues(
+                        alpha: .45,
+                      ),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Row(
@@ -224,9 +310,10 @@ class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
                         Expanded(
                           child: _PeriodSelectButton(
                             title: 'موظف الشهر 🌟',
-                            subtitle: 'شهر سبتمبر',
+                            subtitle: 'شهر $currentMonthName',
                             isSelected: _period == HonorPeriod.month,
-                            onTap: () => setState(() => _period = HonorPeriod.month),
+                            onTap: () =>
+                                setState(() => _period = HonorPeriod.month),
                           ),
                         ),
                         const SizedBox(width: 6),
@@ -235,7 +322,8 @@ class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
                             title: 'موظف الأسبوع ⚡',
                             subtitle: 'الأسبوع الحالي',
                             isSelected: _period == HonorPeriod.week,
-                            onTap: () => setState(() => _period = HonorPeriod.week),
+                            onTap: () =>
+                                setState(() => _period = HonorPeriod.week),
                           ),
                         ),
                       ],
@@ -252,28 +340,35 @@ class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
                           icon: Icons.access_time_filled_rounded,
                           label: 'الانضباط والحضور',
                           isSelected: _category == HonorCategory.attendance,
-                          onTap: () => setState(() => _category = HonorCategory.attendance),
+                          onTap: () => setState(
+                            () => _category = HonorCategory.attendance,
+                          ),
                         ),
                         const SizedBox(width: 8),
                         _CategorySelectChip(
                           icon: Icons.directions_car_rounded,
                           label: 'المأموريات الميدانية',
                           isSelected: _category == HonorCategory.missions,
-                          onTap: () => setState(() => _category = HonorCategory.missions),
+                          onTap: () => setState(
+                            () => _category = HonorCategory.missions,
+                          ),
                         ),
                         const SizedBox(width: 8),
                         _CategorySelectChip(
                           icon: Icons.assignment_turned_in_rounded,
                           label: 'المهام والتقارير',
                           isSelected: _category == HonorCategory.reports,
-                          onTap: () => setState(() => _category = HonorCategory.reports),
+                          onTap: () =>
+                              setState(() => _category = HonorCategory.reports),
                         ),
                         const SizedBox(width: 8),
                         _CategorySelectChip(
                           icon: Icons.my_location_rounded,
                           label: 'استجابات الموقع',
                           isSelected: _category == HonorCategory.locations,
-                          onTap: () => setState(() => _category = HonorCategory.locations),
+                          onTap: () => setState(
+                            () => _category = HonorCategory.locations,
+                          ),
                         ),
                       ],
                     ),
@@ -288,7 +383,8 @@ class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
                   else if (asyncData.hasError && !asyncData.hasValue)
                     _HonorStatusMessage(
                       icon: Icons.cloud_off_rounded,
-                      text: 'تعذر تحميل لوحة الشرف. تحقق من الاتصال وأعد المحاولة.',
+                      text:
+                          'تعذر تحميل لوحة الشرف. تحقق من الاتصال وأعد المحاولة.',
                       actionLabel: 'إعادة المحاولة',
                       onAction: () => ref.invalidate(
                         honorBoardProvider((periodStr, categoryStr)),
@@ -402,7 +498,8 @@ class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
                   // قائمة الشرف والترتيب العام
                   MobileSectionHeader(
                     title: 'ترتيب قائمة الشرف',
-                    subtitle: 'نخبة المتميزين في $categoryLabel ($periodLabel).',
+                    subtitle:
+                        'نخبة المتميزين في $categoryLabel ($periodLabel).',
                   ),
                   const SizedBox(height: 10),
 
@@ -410,7 +507,8 @@ class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
                   for (final honoree in honorees) ...[
                     _HonoreeListCard(
                       item: honoree,
-                      isCurrentUser: currentName.isNotEmpty &&
+                      isCurrentUser:
+                          currentName.isNotEmpty &&
                           honoree.name.trim() == currentName.trim(),
                     ),
                     const SizedBox(height: 8),
@@ -422,7 +520,9 @@ class _HonorBoardSheetState extends ConsumerState<HonorBoardSheet> {
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: scheme.surfaceContainerHighest.withValues(alpha: .4),
+                      color: scheme.surfaceContainerHighest.withValues(
+                        alpha: .4,
+                      ),
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
                         color: scheme.outlineVariant.withValues(alpha: .5),
@@ -543,10 +643,7 @@ class _PodiumStepWidget extends StatelessWidget {
           textAlign: TextAlign.center,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: 9.5,
-            color: scheme.onSurfaceVariant,
-          ),
+          style: TextStyle(fontSize: 9.5, color: scheme.onSurfaceVariant),
         ),
         const SizedBox(height: 4),
         // الشارة الرقمية
@@ -620,10 +717,7 @@ class _PodiumStepWidget extends StatelessWidget {
 
 /// بطاقة الموظف في القائمة الشرفية التفصيلية
 class _HonoreeListCard extends StatelessWidget {
-  const _HonoreeListCard({
-    required this.item,
-    required this.isCurrentUser,
-  });
+  const _HonoreeListCard({required this.item, required this.isCurrentUser});
 
   final HonoreeItem item;
   final bool isCurrentUser;
@@ -669,18 +763,11 @@ class _HonoreeListCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(10),
             ),
             alignment: Alignment.center,
-            child: Text(
-              rankIcon,
-              style: const TextStyle(fontSize: 18),
-            ),
+            child: Text(rankIcon, style: const TextStyle(fontSize: 18)),
           ),
           const SizedBox(width: 10),
           // صورة الموظف
-          AppAvatar(
-            name: item.name,
-            photoUrl: item.photoUrl,
-            radius: 20,
-          ),
+          AppAvatar(name: item.name, photoUrl: item.photoUrl, radius: 20),
           const SizedBox(width: 10),
           // الاسم والقسم والإنجاز
           Expanded(
@@ -703,7 +790,10 @@ class _HonoreeListCard extends StatelessWidget {
                     if (isCurrentUser) ...[
                       const SizedBox(width: 4),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 1,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFF10B981),
                           borderRadius: BorderRadius.circular(99),
@@ -821,10 +911,7 @@ class _PeriodSelectButton extends StatelessWidget {
               const SizedBox(height: 1),
               Text(
                 subtitle,
-                style: TextStyle(
-                  fontSize: 10,
-                  color: scheme.onSurfaceVariant,
-                ),
+                style: TextStyle(fontSize: 10, color: scheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -875,7 +962,9 @@ class _CategorySelectChip extends StatelessWidget {
               Icon(
                 icon,
                 size: 15,
-                color: isSelected ? const Color(0xFFD97706) : scheme.onSurfaceVariant,
+                color: isSelected
+                    ? const Color(0xFFD97706)
+                    : scheme.onSurfaceVariant,
               ),
               const SizedBox(width: 6),
               Text(
@@ -883,7 +972,9 @@ class _CategorySelectChip extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
-                  color: isSelected ? const Color(0xFFB45309) : scheme.onSurfaceVariant,
+                  color: isSelected
+                      ? const Color(0xFFB45309)
+                      : scheme.onSurfaceVariant,
                 ),
               ),
             ],

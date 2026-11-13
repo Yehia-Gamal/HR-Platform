@@ -106,11 +106,17 @@ class MobileProfilePage extends ConsumerWidget {
               const _ThemePreferenceCard(),
               Card(
                 child: ListTile(
-                  leading: const Icon(Icons.verified_user_rounded, color: AppColors.brandPrimary),
+                    leading: const Icon(
+                      Icons.verified_user_rounded,
+                      color: AppColors.brandPrimary,
+                    ),
                   title: const Text('الخطابات والتكليفات الرسمية (QR)'),
-                  subtitle: const Text('خطاب تكليف بمأمورية، إثبات انتساب، وكود التحقق'),
+                    subtitle: const Text(
+                      'خطاب تكليف بمأمورية، إثبات انتساب، وكود التحقق',
+                    ),
                   trailing: const Icon(Icons.chevron_left_rounded),
-                  onTap: () => showOfficialLettersSheet(context, profile: item),
+                    onTap: () =>
+                        showOfficialLettersSheet(context, profile: item),
                 ),
               ),
               const SizedBox(height: 14),
@@ -205,7 +211,8 @@ class _DigitalIdCardWidget extends ConsumerStatefulWidget {
   final MobileProfile item;
 
   @override
-  ConsumerState<_DigitalIdCardWidget> createState() => _DigitalIdCardWidgetState();
+  ConsumerState<_DigitalIdCardWidget> createState() =>
+      _DigitalIdCardWidgetState();
 }
 
 class _DigitalIdCardWidgetState extends ConsumerState<_DigitalIdCardWidget> {
@@ -234,17 +241,25 @@ class _DigitalIdCardWidgetState extends ConsumerState<_DigitalIdCardWidget> {
       }
       final bytes = await _prepareSquareAvatar(originalBytes);
       final userId = Supabase.instance.client.auth.currentUser!.id;
-      final path = '$userId/avatar_${DateTime.now().millisecondsSinceEpoch}.png';
+      final path =
+          '$userId/avatar_${DateTime.now().millisecondsSinceEpoch}.png';
       final bucket = Supabase.instance.client.storage.from('employee-avatars');
 
-      await bucket.uploadBinary(
+      await bucket
+          .uploadBinary(
         path,
         bytes,
-        fileOptions: const FileOptions(contentType: 'image/png', upsert: false),
-      ).timeout(const Duration(seconds: 60));
+            fileOptions: const FileOptions(
+              contentType: 'image/png',
+              upsert: false,
+            ),
+          )
+          .timeout(const Duration(seconds: 60));
       final rawUrl = bucket.getPublicUrl(path);
 
-      await Supabase.instance.client.rpc("set_my_photo_url", params: {"p_photo_url": rawUrl}).timeout(const Duration(seconds: 20));
+      await Supabase.instance.client
+          .rpc("set_my_photo_url", params: {"p_photo_url": rawUrl})
+          .timeout(const Duration(seconds: 20));
       final previousPath = _employeeAvatarPath(widget.item.photoUrl);
       if (previousPath != null && previousPath != path) {
         try {
@@ -256,13 +271,15 @@ class _DigitalIdCardWidgetState extends ConsumerState<_DigitalIdCardWidget> {
       ref.invalidate(mobileProfileProvider);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم تحديث الصورة بنجاح')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('تم تحديث الصورة بنجاح')));
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(humanizeError(error))),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
       }
     } finally {
       if (mounted) setState(() => _isUploading = false);
@@ -276,7 +293,9 @@ class _DigitalIdCardWidgetState extends ConsumerState<_DigitalIdCardWidget> {
     final source = frame.image;
     try {
       if (source.width < 512 || source.height < 512) {
-        throw StateError('دقة الصورة منخفضة. استخدم صورة لا تقل عن 512×512 بكسل.');
+        throw StateError(
+          'دقة الصورة منخفضة. استخدم صورة لا تقل عن 512×512 بكسل.',
+        );
       }
       final sourceEdge = source.width < source.height
           ? source.width.toDouble()
@@ -397,20 +416,33 @@ class _DigitalIdCardWidgetState extends ConsumerState<_DigitalIdCardWidget> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF10B981).withValues(alpha: .22),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFF10B981).withValues(alpha: .6)),
+                    border: Border.all(
+                      color: const Color(0xFF10B981).withValues(alpha: .6),
+                    ),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.verified_rounded, size: 13, color: Color(0xFF10B981)),
+                      Icon(
+                        Icons.verified_rounded,
+                        size: 13,
+                        color: Color(0xFF10B981),
+                      ),
                       SizedBox(width: 4),
                       Text(
                         'موثّق رسمياً',
-                        style: TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.w800),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ],
                   ),
@@ -438,7 +470,9 @@ class _DigitalIdCardWidgetState extends ConsumerState<_DigitalIdCardWidget> {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFFBBF24).withValues(alpha: .25),
+                            color: const Color(
+                              0xFFFBBF24,
+                            ).withValues(alpha: .25),
                             blurRadius: 10,
                           ),
                         ],
@@ -452,7 +486,10 @@ class _DigitalIdCardWidgetState extends ConsumerState<_DigitalIdCardWidget> {
                           ),
                           if (_isUploading)
                             const Positioned.fill(
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.amber),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.amber,
+                              ),
                             )
                           else
                             PositionedDirectional(
@@ -489,21 +526,30 @@ class _DigitalIdCardWidgetState extends ConsumerState<_DigitalIdCardWidget> {
                           fontWeight: FontWeight.w900,
                         ),
                       ),
-                      if (item.fullNameEn != null && item.fullNameEn!.isNotEmpty) ...[
+                      if (item.fullNameEn != null &&
+                          item.fullNameEn!.isNotEmpty) ...[
                         const SizedBox(height: 2),
                         Text(
                           item.fullNameEn!,
-                          style: const TextStyle(color: Colors.white70, fontSize: 11),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 11,
+                          ),
                         ),
                       ],
                       const SizedBox(height: 6),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFFBBF24).withValues(alpha: .18),
                           borderRadius: BorderRadius.circular(6),
                           border: Border.all(
-                            color: const Color(0xFFFBBF24).withValues(alpha: .45),
+                            color: const Color(
+                              0xFFFBBF24,
+                            ).withValues(alpha: .45),
                           ),
                         ),
                         child: Text(
@@ -518,12 +564,19 @@ class _DigitalIdCardWidgetState extends ConsumerState<_DigitalIdCardWidget> {
                       const SizedBox(height: 6),
                       Row(
                         children: [
-                          const Icon(Icons.corporate_fare_rounded, size: 13, color: Colors.white60),
+                          const Icon(
+                            Icons.corporate_fare_rounded,
+                            size: 13,
+                            color: Colors.white60,
+                          ),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
                               '${item.department ?? "الإدارة العامة"} • ${item.branch ?? "مقر الجمعية الرئيسي"}',
-                              style: const TextStyle(color: Colors.white70, fontSize: 10.5),
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 10.5,
+                              ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -546,7 +599,11 @@ class _DigitalIdCardWidgetState extends ConsumerState<_DigitalIdCardWidget> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.badge_outlined, size: 16, color: Colors.white70),
+                  const Icon(
+                    Icons.badge_outlined,
+                    size: 16,
+                    color: Colors.white70,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     'كود الموظف: ${PhoneDisplay.stripCountryCode(item.employeeCode)}',
@@ -560,7 +617,13 @@ class _DigitalIdCardWidgetState extends ConsumerState<_DigitalIdCardWidget> {
                   const SizedBox(width: 6),
                   InkWell(
                     onTap: () {
-                      Clipboard.setData(ClipboardData(text: PhoneDisplay.stripCountryCode(item.employeeCode)));
+                      Clipboard.setData(
+                        ClipboardData(
+                          text: PhoneDisplay.stripCountryCode(
+                            item.employeeCode,
+                          ),
+                        ),
+                      );
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('تم نسخ كود الموظف'),
@@ -600,7 +663,10 @@ class _DigitalIdCardWidgetState extends ConsumerState<_DigitalIdCardWidget> {
                                 : (item.branch ?? 'مقر الجمعية الرئيسي'),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(color: Colors.white70, fontSize: 10.5),
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 10.5,
+                            ),
                           ),
                         ),
                       ],
@@ -659,21 +725,84 @@ class _MyDailyStatusCard extends ConsumerWidget {
     return DateFormat('hh:mm a', 'ar').format(dt.toLocal());
   }
 
+  Widget _statusPlaceholder(BuildContext context, {required Widget child}) {
+    final theme = Theme.of(context);
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: .6),
+          width: 1.2,
+        ),
+      ),
+      child: Padding(padding: const EdgeInsets.all(16), child: child),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final attStateAsync = ref.watch(attendanceStateProvider);
 
     return attStateAsync.when(
-      loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
+      // لا تُخفِ البطاقة أثناء التحميل أو عند الخطأ: اختفاؤها المفاجئ كان
+      // يجعل المستخدم يظن أن حالة الدوام غير متاحة أصلًا. نعرض بديلًا واضحًا.
+      loading: () => _statusPlaceholder(
+        context,
+        child: Row(
+          children: [
+            const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'جارٍ تحميل حالة الدوام…',
+                style: TextStyle(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      error: (error, _) => _statusPlaceholder(
+        context,
+        child: Row(
+          children: [
+            Icon(
+              Icons.cloud_off_rounded,
+              size: 20,
+              color: theme.colorScheme.error,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'تعذر تحميل حالة الدوام: ${humanizeError(error)}',
+                style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+              ),
+            ),
+            TextButton(
+              onPressed: () => ref.invalidate(attendanceStateProvider),
+              child: const Text('إعادة المحاولة'),
+            ),
+          ],
+        ),
+      ),
       data: (att) {
         final status = att.todayStatus;
         final color = _attendanceColor(status);
         final label = _attendanceLabel(status);
         final checkIn = att.todayCheckInAt;
         final checkOut = att.todayCheckOutAt;
-        final todayStr = DateFormat('EEEE، d MMMM', 'ar').format(DateTime.now());
+        final todayStr = DateFormat(
+          'EEEE، d MMMM',
+          'ar',
+        ).format(DateTime.now());
 
         String hint;
         if (att.missionToday != null) {
@@ -749,7 +878,10 @@ class _MyDailyStatusCard extends ConsumerWidget {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: color.withValues(alpha: .12),
                         borderRadius: BorderRadius.circular(20),
@@ -798,9 +930,14 @@ class _MyDailyStatusCard extends ConsumerWidget {
                 const SizedBox(height: 10),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: .4),
+                    color: theme.colorScheme.surfaceContainerHighest.withValues(
+                      alpha: .4,
+                    ),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -840,15 +977,73 @@ class _TeamDailyStatusCard extends ConsumerWidget {
     final teamAsync = ref.watch(mobileTeamProvider);
 
     return teamAsync.when(
-      loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
+      // البطاقة تخص المديرين فقط؛ لكن إخفاءها عند تعذّر الشبكة كان يخفي
+      // معلومة مهمة بلا أي تفسير. نُظهر تحميلًا هادئًا وخطأً قابلًا للإعادة.
+      loading: () => Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: .6),
+            width: 1.2,
+          ),
+        ),
+        child: const Padding(
+          padding: EdgeInsets.all(16),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              SizedBox(width: 12),
+              Text('جارٍ تحميل حالة الفريق…'),
+            ],
+          ),
+        ),
+      ),
+      error: (_, _) => Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: .6),
+            width: 1.2,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+          child: Row(
+            children: [
+              Icon(
+                Icons.cloud_off_rounded,
+                size: 20,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 10),
+              const Expanded(child: Text('تعذر تحميل حالة الفريق')),
+              TextButton(
+                onPressed: () => ref.invalidate(mobileTeamProvider),
+                child: const Text('إعادة المحاولة'),
+              ),
+            ],
+          ),
+        ),
+      ),
       data: (members) {
         if (members.isEmpty) return const SizedBox.shrink();
 
-        final present = members.where((m) => m.attendanceStatus == 'present').length;
+        final present = members
+            .where((m) => m.attendanceStatus == 'present')
+            .length;
         final late = members.where((m) => m.attendanceStatus == 'late').length;
-        final absent = members.where((m) => m.attendanceStatus == 'absent').length;
-        final onLeave = members.where((m) => m.attendanceStatus == 'on_leave').length;
+        final absent = members
+            .where((m) => m.attendanceStatus == 'absent')
+            .length;
+        final onLeave = members
+            .where((m) => m.attendanceStatus == 'on_leave')
+            .length;
 
         return Card(
           elevation: 0,
@@ -869,7 +1064,9 @@ class _TeamDailyStatusCard extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.primaryContainer.withValues(alpha: .4),
+                        color: theme.colorScheme.primaryContainer.withValues(
+                          alpha: .4,
+                        ),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(
@@ -965,7 +1162,11 @@ class _TeamDailyStatusCard extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(24),
                         child: Stack(
                           children: [
-                            AppAvatar(name: m.name, photoUrl: m.photoUrl, radius: 22),
+                            AppAvatar(
+                              name: m.name,
+                              photoUrl: m.photoUrl,
+                              radius: 22,
+                            ),
                             Positioned(
                               bottom: 0,
                               right: 0,
@@ -1117,6 +1318,7 @@ class _InfoSection extends StatelessWidget {
                 ? null
                 : DateFormat('d MMM y', 'ar').format(item.hireDate!),
           ),
+
           /// V17 §4.2.5 — Contract end date hidden (not relevant for current org).
         ],
       ),
@@ -1208,7 +1410,8 @@ class _DeviceSecuritySectionState
   Future<void> _checkBiometricSupport() async {
     try {
       final localAuth = LocalAuthentication();
-      final supported = await localAuth.isDeviceSupported() &&
+      final supported =
+          await localAuth.isDeviceSupported() &&
           await localAuth.canCheckBiometrics;
       if (mounted) setState(() => _localBiometricSupported = supported);
     } catch (_) {
@@ -1221,9 +1424,9 @@ class _DeviceSecuritySectionState
     try {
       await ref.read(mobileCommandsProvider).registerPasskey();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم تسجيل الجهاز بنجاح.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('تم تسجيل الجهاز بنجاح.')));
       }
     } catch (error) {
       if (mounted) {
@@ -1233,9 +1436,9 @@ class _DeviceSecuritySectionState
             : msg.contains('الجهاز لا يدعم')
                 ? 'فعّل قفل الشاشة (نقش أو PIN) من إعدادات الجهاز.'
                 : 'تعذر تسجيل الجهاز. أعد المحاولة.';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(text)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(text)));
       }
     } finally {
       if (mounted) setState(() => _registering = false);
@@ -1291,15 +1494,15 @@ class _DeviceSecuritySectionState
           .read(mobileCommandsProvider)
           .revokePasskey(device.id, reasonController.text);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم إلغاء الجهاز.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('تم إلغاء الجهاز.')));
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(humanizeError(error))),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
       }
     } finally {
       reasonController.dispose();
@@ -1358,9 +1561,7 @@ class _DeviceSecuritySectionState
                       children: [
                         Text(
                           'أمان هذا الجهاز',
-                          style: Theme.of(context)
-                              .textTheme
-                              .labelLarge
+                          style: Theme.of(context).textTheme.labelLarge
                               ?.copyWith(fontWeight: FontWeight.w900),
                         ),
                         Text(
@@ -1369,9 +1570,8 @@ class _DeviceSecuritySectionState
                               : _localBiometricSupported!
                                   ? 'الجهاز يدعم البصمة وقفل الشاشة الآمن'
                                   : 'لا توجد بصمة — يمكن استخدام النقش أو PIN',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: scheme.onSurfaceVariant),
                         ),
                       ],
                     ),
@@ -1407,7 +1607,9 @@ class _DeviceSecuritySectionState
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 20),
                     decoration: BoxDecoration(
-                      color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                      color: scheme.surfaceContainerHighest.withValues(
+                        alpha: 0.5,
+                      ),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Column(
@@ -1428,9 +1630,8 @@ class _DeviceSecuritySectionState
                         const SizedBox(height: 4),
                         Text(
                           'سجل هذا الجهاز لاستخدام البصمة أو النقش في إثبات الحضور.',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: scheme.onSurfaceVariant),
                         ),
                       ],
                     ),
@@ -1438,11 +1639,18 @@ class _DeviceSecuritySectionState
                 }
                 // الأجهزة في حالات نهاية (مستبدل/ملغى/محظور) تُطوى في لوحة
                 // مختصرة — منع تكديس بطاقات كاملة كما في القوائم الطويلة.
-                const terminal = {'revoked', 'replaced', 'blocked', 'auto_revoked'};
-                final live =
-                    items.where((d) => !terminal.contains(d.status)).toList();
-                final past =
-                    items.where((d) => terminal.contains(d.status)).toList();
+                const terminal = {
+                  'revoked',
+                  'replaced',
+                  'blocked',
+                  'auto_revoked',
+                };
+                final live = items
+                    .where((d) => !terminal.contains(d.status))
+                    .toList();
+                final past = items
+                    .where((d) => terminal.contains(d.status))
+                    .toList();
                 return Column(
                   children: [
                     ...live.map((device) {
@@ -1454,7 +1662,9 @@ class _DeviceSecuritySectionState
                         width: double.infinity,
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                            color: scheme.surfaceContainerHighest.withValues(
+                              alpha: 0.5,
+                            ),
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
                             color: active
@@ -1526,8 +1736,9 @@ class _DeviceSecuritySectionState
                               SizedBox(
                                 width: double.infinity,
                                 child: OutlinedButton.icon(
-                                  onPressed:
-                                      isRevoking ? null : () => _revoke(device),
+                                    onPressed: isRevoking
+                                        ? null
+                                        : () => _revoke(device),
                                   icon: isRevoking
                                       ? const SizedBox.square(
                                           dimension: 16,
@@ -1545,8 +1756,7 @@ class _DeviceSecuritySectionState
                       ),
                     );
                     }),
-                    if (past.isNotEmpty)
-                      _InactiveDevicesPanel(devices: past),
+                    if (past.isNotEmpty) _InactiveDevicesPanel(devices: past),
                   ],
                 );
               },
@@ -1574,9 +1784,7 @@ class _DeviceSecuritySectionState
               child: OutlinedButton.icon(
                 onPressed: () => Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const PasskeyDevicesPage(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const PasskeyDevicesPage()),
                 ),
                 icon: const Icon(Icons.devices_outlined),
                 label: const Text('إدارة جميع الأجهزة'),
@@ -1623,9 +1831,9 @@ class _InactiveDevicesPanel extends StatelessWidget {
           ),
           subtitle: Text(
             'معطّلة أو مستبدلة — لا تُستخدم لإثبات الحضور.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: scheme.onSurfaceVariant,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
           ),
           children: [
             for (final d in devices)
@@ -1697,18 +1905,22 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
       // 0457: تحقق من قوة كلمة المرور على الخادم أولاً مع مسار احتياطي آمن
       try {
         final strengthResult = await client
-            .rpc<Map<String, dynamic>>('validate_password_strength',
-                params: {'p_password': _passwordController.text})
+            .rpc<Map<String, dynamic>>(
+              'validate_password_strength',
+              params: {'p_password': _passwordController.text},
+            )
             .timeout(const Duration(seconds: 10));
         final valid = strengthResult['valid'] == true;
         if (!valid) {
-          final issues = (strengthResult['issues'] as List<dynamic>?)
+          final issues =
+              (strengthResult['issues'] as List<dynamic>?)
                   ?.map((e) => '• $e')
                   .join('\n') ??
               '';
           if (mounted) {
-            setState(() => _error =
-                'كلمة المرور لا تلبي متطلبات الأمان:\n$issues');
+            setState(
+              () => _error = 'كلمة المرور لا تلبي متطلبات الأمان:\n$issues',
+            );
           }
           return;
         }
@@ -1716,7 +1928,9 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
         // في حال تعذر الوصول لدالة الخادم، نتحقق محلياً (بنفس حد.validator)
         if (_passwordController.text.length < 12) {
           if (mounted) {
-            setState(() => _error = 'الرقم السري يجب أن يكون 12 حرفًا على الأقل.');
+            setState(
+              () => _error = 'الرقم السري يجب أن يكون 12 حرفًا على الأقل.',
+            );
           }
           return;
         }
@@ -1731,7 +1945,8 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
 
       // SEC: إزالة علامة must_change_password في حال تم تعيينها بواسطة الإدارة
       try {
-        await client.rpc<dynamic>('clear_must_change_password')
+        await client
+            .rpc<dynamic>('clear_must_change_password')
             .timeout(const Duration(seconds: 5));
       } catch (_) {
         // ثانوي
@@ -1748,7 +1963,8 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
       final msg = e.message.toLowerCase();
       String errorMsg;
       if (msg.contains('reauthentication') || msg.contains('recent login')) {
-        errorMsg = 'يجب إعادة تسجيل الدخول قبل تغيير كلمة المرور. سجّل الدخول ثم أعد المحاولة.';
+        errorMsg =
+            'يجب إعادة تسجيل الدخول قبل تغيير كلمة المرور. سجّل الدخول ثم أعد المحاولة.';
       } else if (msg.contains('session') || msg.contains('expired')) {
         errorMsg = 'انتهت صلاحية الجلسة. سجّل الدخول من جديد.';
       } else {
@@ -1756,7 +1972,8 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
       }
       if (mounted) setState(() => _error = errorMsg);
     } catch (_) {
-      if (mounted) setState(() => _error = 'تعذر تغيير الرقم السري بأمان. أعد المحاولة.');
+      if (mounted)
+        setState(() => _error = 'تعذر تغيير الرقم السري بأمان. أعد المحاولة.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -1794,7 +2011,9 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
                 ),
                 child: Text(
                   _error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onErrorContainer,
+                  ),
                 ),
               ),
             TextFormField(
@@ -1805,8 +2024,11 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
                 helperText: '12 حرفًا على الأقل — يُفضَّل مزيج حروف وأرقام',
                 border: const OutlineInputBorder(),
                 suffixIcon: IconButton(
-                  icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
-                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                  ),
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
                 ),
               ),
               validator: (val) {
@@ -1824,8 +2046,11 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
                 labelText: 'تأكيد الرقم السري',
                 border: const OutlineInputBorder(),
                 suffixIcon: IconButton(
-                  icon: Icon(_obscureConfirm ? Icons.visibility : Icons.visibility_off),
-                  onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                  icon: Icon(
+                    _obscureConfirm ? Icons.visibility : Icons.visibility_off,
+                  ),
+                  onPressed: () =>
+                      setState(() => _obscureConfirm = !_obscureConfirm),
                 ),
               ),
               validator: (val) {
@@ -1852,6 +2077,7 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
     );
   }
 }
+
 class _AppVersionCard extends StatefulWidget {
   const _AppVersionCard();
 
@@ -1971,20 +2197,26 @@ class _ShareLocationCardState extends ConsumerState<_ShareLocationCard> {
   String? _result;
 
   Future<void> _share() async {
-    setState(() { _sending = true; _result = null; });
+    setState(() {
+      _sending = true;
+      _result = null;
+    });
     try {
       final location = await LocationService.current();
       // فشل العنوان (reverse geocode) لا يمنع الإرسال — الموقع هو الأهم.
       String addr = 'غير متاح';
       try {
-        addr = await LocationService.reverseGeocode(
-              location.latitude, location.longitude,
+        addr =
+            await LocationService.reverseGeocode(
+              location.latitude,
+              location.longitude,
             ) ??
             'غير متاح';
       } catch (_) {
         addr = 'غير متاح';
       }
-      await ref.read(mobileCommandsProvider)
+      await ref
+          .read(mobileCommandsProvider)
           .shareMyLocationProactively(
             latitude: location.latitude,
             longitude: location.longitude,
@@ -2051,7 +2283,8 @@ class _ShareLocationCardState extends ConsumerState<_ShareLocationCard> {
               onPressed: _sending ? null : _share,
               icon: _sending
                   ? const SizedBox(
-                      width: 18, height: 18,
+                      width: 18,
+                      height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.send_rounded),

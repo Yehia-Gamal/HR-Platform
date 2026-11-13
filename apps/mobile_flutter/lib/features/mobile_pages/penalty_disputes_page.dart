@@ -1,4 +1,6 @@
+import 'package:ahla_shabab_management_os/core/formatting/arabic_text.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/penalty_dispute_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:flutter/material.dart';
@@ -25,83 +27,83 @@ class PenaltyDisputesPage extends ConsumerWidget {
       body: SafeArea(
         top: false,
         child: RefreshIndicator(
-        onRefresh: () async => ref.invalidate(penaltyDisputesProvider),
-        child: disputes.when(
-          loading: () => ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            children: const [
-              SizedBox(height: 220),
-              Center(child: CircularProgressIndicator()),
-            ],
-          ),
-          error: (error, _) => ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(24),
-            children: [
-              const SizedBox(height: 120),
-              Icon(
-                Icons.error_outline,
-                size: 48,
-                color: Theme.of(context).colorScheme.error,
-              ),
-              const SizedBox(height: 12),
-              Text(humanizeError(error), textAlign: TextAlign.center),
-              const SizedBox(height: 12),
-              Center(
-                child: TextButton.icon(
-                  onPressed: () => ref.invalidate(penaltyDisputesProvider),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('إعادة المحاولة'),
-                ),
-              ),
-            ],
-          ),
-          data: (items) => ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-            children: [
-              if (items.isEmpty) ...[
-                const SizedBox(height: 48),
+          onRefresh: () async => ref.invalidate(penaltyDisputesProvider),
+          child: disputes.when(
+            loading: () => ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: const [
+                SizedBox(height: 220),
+                Center(child: CircularProgressIndicator()),
+              ],
+            ),
+            error: (error, _) => ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(24),
+              children: [
+                const SizedBox(height: 120),
                 Icon(
-                  Icons.check_circle_outline,
-                  size: 54,
-                  color: Theme.of(context).colorScheme.primary,
+                  Icons.error_outline,
+                  size: 48,
+                  color: Theme.of(context).colorScheme.error,
                 ),
                 const SizedBox(height: 12),
-                const Center(
-                  child: Text(
-                    'لا توجد طعون مسجلة',
-                    style: TextStyle(fontWeight: FontWeight.w800),
+                Text(humanizeError(error), textAlign: TextAlign.center),
+                const SizedBox(height: 12),
+                Center(
+                  child: TextButton.icon(
+                    onPressed: () => ref.invalidate(penaltyDisputesProvider),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('إعادة المحاولة'),
                   ),
                 ),
-                const SizedBox(height: 4),
-                Center(
-                  child: Text(
-                    'لم تُقدّم أي طعن على غرامة حتى الآن.\nيمكنك تقديم طعن من الزر في الأسفل.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ],
+            ),
+            data: (items) => ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+              children: [
+                if (items.isEmpty) ...[
+                  const SizedBox(height: 48),
+                  Icon(
+                    Icons.check_circle_outline,
+                    size: 54,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(height: 12),
+                  const Center(
+                    child: Text(
+                      'لا توجد طعون مسجلة',
+                      style: TextStyle(fontWeight: FontWeight.w800),
                     ),
                   ),
-                ),
-              ] else ...[
-                const MobileSectionHeader(
-                  title: 'سجل الطعون',
-                  subtitle: 'جميع طعونك على غرامات الحضور الفورية.',
-                ),
-                const SizedBox(height: 10),
-                for (final item in items) ...[
-                  _DisputeCard(item: item, dateFmt: _dateFmt),
+                  const SizedBox(height: 4),
+                  Center(
+                    child: Text(
+                      'لم تُقدّم أي طعن على غرامة حتى الآن.\nيمكنك تقديم طعن من الزر في الأسفل.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  const MobileSectionHeader(
+                    title: 'سجل الطعون',
+                    subtitle: 'جميع طعونك على غرامات الحضور الفورية.',
+                  ),
                   const SizedBox(height: 10),
+                  for (final item in items) ...[
+                    _DisputeCard(item: item, dateFmt: _dateFmt),
+                    const SizedBox(height: 10),
+                  ],
                 ],
               ],
-            ],
+            ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 /// بطاقة طعن فردية.
@@ -157,9 +159,7 @@ class _DisputeCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Container(
         decoration: BoxDecoration(
-          border: Border(
-            right: BorderSide(color: statusColor, width: 4),
-          ),
+          border: Border(right: BorderSide(color: statusColor, width: 4)),
         ),
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -176,8 +176,10 @@ class _DisputeCard extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: statusColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
@@ -194,12 +196,8 @@ class _DisputeCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 10),
-            Text(
-              item.reason,
-              style: const TextStyle(fontSize: 13),
-            ),
-            if (item.reviewNotes != null &&
-                item.reviewNotes!.isNotEmpty) ...[
+            Text(item.reason, style: const TextStyle(fontSize: 13)),
+            if (item.reviewNotes != null && item.reviewNotes!.isNotEmpty) ...[
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.all(10),
@@ -249,150 +247,225 @@ class _DisputeCard extends StatelessWidget {
   }
 }
 
-/// عرض حوار تقديم طعن جديد على غرامة.
-Future<void> _showNewDisputeDialog(
-  BuildContext context,
-  WidgetRef ref,
-) async {
-  final penaltyIdController = TextEditingController();
-  final reasonController = TextEditingController();
-  final formKey = GlobalKey<FormState>();
-  bool isSubmitting = false;
-
+/// حوار تقديم طعن جديد على غرامة.
+///
+/// كان يطلب من الموظف كتابة معرّف الغرامة (UUID) يدويًا — وهو غير معروف له
+/// عمليًا فيمنع الميزة كلها. الآن يختار الغرامة من قائمة غراماته الفعلية،
+/// مع تحقق من الطول قبل الإرسال وتنظيف المتحكمات بعد الإغلاق.
+Future<void> _showNewDisputeDialog(BuildContext context, WidgetRef ref) async {
   await showModalBottomSheet<void>(
     context: context,
-      useSafeArea: true,
+    useSafeArea: true,
     isScrollControlled: true,
+    showDragHandle: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
-    builder: (ctx) => StatefulBuilder(
-      builder: (ctx, setState) => Padding(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 20,
-          bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+    builder: (_) => const _NewDisputeSheet(),
+  );
+}
+
+class _NewDisputeSheet extends ConsumerStatefulWidget {
+  const _NewDisputeSheet();
+
+  @override
+  ConsumerState<_NewDisputeSheet> createState() => _NewDisputeSheetState();
+}
+
+class _NewDisputeSheetState extends ConsumerState<_NewDisputeSheet> {
+  final _reason = TextEditingController();
+  String? _penaltyId;
+  String? _error;
+  bool _submitting = false;
+
+  @override
+  void dispose() {
+    _reason.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final penaltyId = _penaltyId;
+    if (penaltyId == null) {
+      setState(() => _error = 'اختر الغرامة التي تريد الطعن عليها أولًا.');
+      return;
+    }
+    if (_reason.text.trim().length < 5) {
+      setState(() => _error = 'اكتب سبب الطعن بوضوح (5 أحرف على الأقل).');
+      return;
+    }
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+    try {
+      await submitPenaltyDispute(
+        penaltyId: penaltyId,
+        reason: _reason.text.trim(),
+      );
+      ref.invalidate(penaltyDisputesProvider);
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تم تقديم الطعن بنجاح وهو قيد مراجعة الموارد البشرية'),
+          backgroundColor: Colors.green,
         ),
-        child: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.gavel, color: Colors.deepPurple, size: 24),
-                  const SizedBox(width: 8),
-                  const Text(
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _error = 'تعذر تقديم الطعن: ${humanizeError(e)}';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
+    final penalties = ref.watch(myInstantPenaltiesProvider);
+
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 4,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.gavel_rounded,
+                  color: Colors.deepPurple,
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
                     'تقديم طعن على غرامة',
-                    style: TextStyle(
-                      fontSize: 16,
+                    style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'اختر الغرامة من سجلّك ثم اكتب سبب الطعن. ستراجع الموارد البشرية '
+              'الطعن وترد عليه، وتظهر النتيجة في هذه الصفحة.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: muted,
+                height: 1.5,
               ),
-              const SizedBox(height: 8),
-              Text(
-                'أدخل معرّف الغرامة وسبب الطعن. ستقوم إدارة الموارد البشرية '
-                'بمراجعة الطعن والرد عليه.',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'الغرامة المطلوب الطعن عليها',
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            penalties.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (e, _) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  humanizeError(e),
+                  style: TextStyle(color: theme.colorScheme.error),
                 ),
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: penaltyIdController,
-                decoration: InputDecoration(
-                  labelText: 'معرّف الغرامة',
-                  hintText: 'مثال: uuid-of-penalty',
-                  hintStyle: const TextStyle(fontSize: 12),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) {
-                    return 'يرجى إدخال معرّف الغرامة';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: reasonController,
-                maxLines: 4,
-                decoration: InputDecoration(
-                  labelText: 'سبب الطعن',
-                  hintText: 'اكتب سبب الطعن بالتفصيل...',
-                  hintStyle: const TextStyle(fontSize: 12),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                validator: (val) {
-                  if (val == null || val.trim().length < 5) {
-                    return 'يرجى كتابة سبب الطعن لا يقل عن 5 أحرف';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: isSubmitting
-                    ? null
-                    : () async {
-                        if (!formKey.currentState!.validate()) return;
-                        setState(() => isSubmitting = true);
-                        try {
-                          await submitPenaltyDispute(
-                            penaltyId: penaltyIdController.text.trim(),
-                            reason: reasonController.text.trim(),
-                          );
-                          ref.invalidate(penaltyDisputesProvider);
-                          if (ctx.mounted) {
-                            Navigator.of(ctx).pop();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'تم تقديم الطعن بنجاح وهو قيد مراجعة الموارد البشرية',
-                                ),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                          }
-                        } catch (e) {
-                          setState(() => isSubmitting = false);
-                          if (ctx.mounted) {
-                            ScaffoldMessenger.of(ctx).showSnackBar(
-                              SnackBar(
-                                content: Text('تعذر تقديم الطعن: ${humanizeError(e)}'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        }
-                      },
-                icon: isSubmitting
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
+              data: (items) {
+                if (items.isEmpty) {
+                  return Text(
+                    'لا توجد غرامات مسجّلة على حسابك، فلا حاجة لتقديم طعن.',
+                    style: TextStyle(color: muted, height: 1.5),
+                  );
+                }
+                return Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final p in items)
+                      ChoiceChip(
+                        selected: _penaltyId == p.id,
+                        label: Text(
+                          '${_disputeDate(p.workDate)} · '
+                          '${fmtUnits(p.currentAmount)} ج.م',
                         ),
-                      )
-                    : const Icon(Icons.send, size: 18),
-                label: Text(
-                  isSubmitting ? 'جارٍ الإرسال...' : 'إرسال الطعن للمراجعة',
+                        onSelected: _submitting
+                            ? null
+                            : (_) => setState(() {
+                                _penaltyId = p.id;
+                                _error = null;
+                              }),
+                      ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _reason,
+              maxLines: 4,
+              minLines: 3,
+              enabled: !_submitting,
+              decoration: InputDecoration(
+                labelText: 'سبب الطعن',
+                hintText: 'اكتب سبب الطعن بالتفصيل...',
+                alignLabelWithHint: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                _error!,
+                style: TextStyle(
+                  color: theme.colorScheme.error,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
-          ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: _submitting ? null : _submit,
+              icon: _submitting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.send_rounded, size: 18),
+              label: Text(
+                _submitting ? 'جارٍ الإرسال...' : 'إرسال الطعن للمراجعة',
+              ),
+            ),
+          ],
         ),
       ),
-    ),
-  );
+    );
+  }
+}
+
+String _disputeDate(String raw) {
+  final date = DateTime.tryParse(raw);
+  if (date == null) return raw;
+  return DateFormat('d MMMM y', 'ar').format(date);
 }

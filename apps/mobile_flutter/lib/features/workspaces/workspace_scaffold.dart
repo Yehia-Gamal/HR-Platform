@@ -54,17 +54,19 @@ class WorkspaceScaffold extends ConsumerWidget {
     final unread =
         notifications.asData?.value.where((item) => !item.isRead).length ?? 0;
     final requests = ref.watch(mobileRequestsProvider);
-    final pendingApprovalsCount = requests.asData?.value
-            .where((r) =>
+    final pendingApprovalsCount =
+        requests.asData?.value
+            .where(
+              (r) =>
                 !r.isMineFor(contextData.employeeId) &&
                 r.status == 'pending' &&
-                (r.canDecide ?? true))
+                  (r.canDecide ?? true),
+            )
             .length ??
         0;
     // V20: اعرض الاسم الثنائي (الاسم + الأب) بدل الاسم الأول فقط،
     // مع تجنّب الاسماء الطويلة التي تُقصّ في الشريط.
-    final nameTokens =
-        contextData.displayName.trim().split(RegExp(r'\s+'));
+    final nameTokens = contextData.displayName.trim().split(RegExp(r'\s+'));
     final fullName = nameTokens.length >= 2
         ? '${nameTokens[0]} ${nameTokens[1]}'
         : contextData.displayName.trim();
@@ -101,9 +103,8 @@ class WorkspaceScaffold extends ConsumerWidget {
                             fullName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.w800),
                           ),
                           Text(
                             title,
@@ -147,12 +148,17 @@ class WorkspaceScaffold extends ConsumerWidget {
               IconButton(
                 tooltip: 'حسابي',
                 onPressed: () => _showProfile(context),
-                icon: AppAvatar(name: contextData.displayName, photoUrl: contextData.photoUrl, radius: 17),
+                  icon: AppAvatar(
+                    name: contextData.displayName,
+                    photoUrl: contextData.photoUrl,
+                    radius: 17,
+                  ),
               ),
               if (showServicesButton)
                 IconButton(
                   tooltip: 'الخدمات والمزيد',
-                  onPressed: () => _showMore(context, ref, pendingApprovalsCount),
+                    onPressed: () =>
+                        _showMore(context, ref, pendingApprovalsCount),
                   icon: Badge(
                     isLabelVisible: pendingApprovalsCount > 0,
                     label: Text(
@@ -231,11 +237,17 @@ class WorkspaceScaffold extends ConsumerWidget {
     );
   }
 
-  void _showMore(BuildContext context, WidgetRef ref, [int pendingApprovals = 0]) {
+  void _showMore(
+    BuildContext context,
+    WidgetRef ref, [
+    int pendingApprovals = 0,
+  ]) {
     final isExecutive = workspace == WorkspaceId.executive;
-    final isManagerOrOps = workspace == WorkspaceId.manager ||
+    final isManagerOrOps =
+        workspace == WorkspaceId.manager ||
         workspace == WorkspaceId.fieldOperations;
-    final canApproveRequests = isManagerOrOps ||
+    final canApproveRequests =
+        isManagerOrOps ||
         isExecutive ||
         workspace == WorkspaceId.mainAdmin ||
         contextData.hasAnyPermission(const [
@@ -291,7 +303,8 @@ class WorkspaceScaffold extends ConsumerWidget {
           icon: Icons.campaign_outlined,
           label: 'القرارات والتعاميم',
           page: MobileOfficialFeedPage(
-            canPublish: isExecutive ||
+            canPublish:
+                isExecutive ||
                 contextData.hasAnyPermission(const [
                   'posts.publish',
                   'comms.announcement.manage',
@@ -328,11 +341,15 @@ class WorkspaceScaffold extends ConsumerWidget {
                 child: GridView.builder(
                   shrinkWrap: true,
                   itemCount: items.length,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
                     crossAxisSpacing: 10,
                     mainAxisSpacing: 10,
-                    childAspectRatio: 1.7,
+                    // ارتفاع البطاقة يتبع حجم خط النظام بدل نسبة ثابتة تُقصّ
+                    // النصوص العربية الطويلة على الشاشات الصغيرة.
+                    mainAxisExtent: MediaQuery.textScalerOf(
+                      context,
+                    ).scale(76).clamp(76.0, 116.0).toDouble(),
                   ),
                   itemBuilder: (context, index) {
                     final item = items[index];
@@ -354,7 +371,9 @@ class WorkspaceScaffold extends ConsumerWidget {
                           ).colorScheme.surfaceContainerLow,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: Theme.of(context).colorScheme.outlineVariant,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.outlineVariant,
                           ),
                         ),
                         child: Padding(
@@ -379,6 +398,8 @@ class WorkspaceScaffold extends ConsumerWidget {
                                     Expanded(
                                       child: Text(
                                         item.label,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
                                         style: Theme.of(context)
                                             .textTheme
                                             .labelLarge
@@ -400,7 +421,9 @@ class WorkspaceScaffold extends ConsumerWidget {
                                         ),
                                         decoration: BoxDecoration(
                                           color: const Color(0xFFD97706),
-                                          borderRadius: BorderRadius.circular(10),
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
                                         ),
                                         child: Text(
                                           '${item.badgeCount}',
@@ -440,7 +463,9 @@ class WorkspaceScaffold extends ConsumerWidget {
                     context: sheetContext,
                     builder: (dialogContext) => AlertDialog(
                       title: const Text('تسجيل الخروج'),
-                      content: const Text('هل تريد تسجيل الخروج من هذا الجهاز؟'),
+                      content: const Text(
+                        'هل تريد تسجيل الخروج من هذا الجهاز؟',
+                      ),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(dialogContext, false),
@@ -482,7 +507,11 @@ class WorkspaceScaffold extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            AppAvatar(name: contextData.displayName, photoUrl: contextData.photoUrl, radius: 34),
+            AppAvatar(
+              name: contextData.displayName,
+              photoUrl: contextData.photoUrl,
+              radius: 34,
+            ),
             const SizedBox(height: 12),
             Text(
               contextData.displayName,

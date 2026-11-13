@@ -17,10 +17,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// بحث، ملخص حالة اليوم (يُصفّي بالضغط)، والهيكل الإداري كاملًا شجرةً
 /// بحالة كل موظف اليوم. للإدارة وHR: تصفية بحالة التوظيف (السجل سابقًا).
 class PeopleHubPage extends ConsumerStatefulWidget {
-  const PeopleHubPage({super.key, this.initialTab = 0});
-
-  /// أُبقي للتوافق مع نقاط الدخول القديمة (كانت تفتح تبويبًا بعينه).
-  final int initialTab;
+  const PeopleHubPage({super.key});
 
   @override
   ConsumerState<PeopleHubPage> createState() => _PeopleHubPageState();
@@ -336,11 +333,13 @@ class _PeopleHubPageState extends ConsumerState<PeopleHubPage> {
     final people = canSeeClinic
         ? allPeople
         : allPeople
-            .where((p) => !isClinicGirl(
+              .where(
+                (p) => !isClinicGirl(
                   name: p.name,
                   jobTitle: p.jobTitle,
                   department: p.department,
-                ))
+                ),
+              )
             .toList(growable: false);
     for (final p in people) {
       final m = p.managerId == null ? null : byId[p.managerId];
@@ -528,11 +527,13 @@ class _PeopleHubPageState extends ConsumerState<PeopleHubPage> {
         final visibleItems = canSeeClinic
             ? items
             : items
-                .where((e) => !isClinicGirl(
+                  .where(
+                    (e) => !isClinicGirl(
                       name: e.fullNameAr,
                       jobTitle: e.jobTitle,
                       department: e.department,
-                    ))
+                    ),
+                  )
                 .toList(growable: false);
         final matches = sortByHierarchy<MobileEmployeeSummary>(
           visibleItems

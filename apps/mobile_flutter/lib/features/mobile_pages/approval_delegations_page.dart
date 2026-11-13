@@ -138,7 +138,8 @@ class _ApprovalDelegationsPageState
                 // قائمة التفويضات السابقة والحالية
                 const MobileSectionHeader(
                   title: 'سجل التفويضات',
-                  subtitle: 'سجل تفويضاتك وتفويضات الزملاء الموجهة إليك (الأحدث أولاً).',
+                  subtitle:
+                      'سجل تفويضاتك وتفويضات الزملاء الموجهة إليك (الأحدث أولاً).',
                 ),
                 const SizedBox(height: 10),
 
@@ -151,10 +152,9 @@ class _ApprovalDelegationsPageState
                         Icon(
                           Icons.assignment_ind_outlined,
                           size: 48,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurfaceVariant
-                              .withValues(alpha: .5),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurfaceVariant.withValues(alpha: .5),
                         ),
                         const SizedBox(height: 12),
                         const Text(
@@ -173,11 +173,13 @@ class _ApprovalDelegationsPageState
                     ),
                   )
                 else
-                  ...delegations.map((d) => _DelegationCard(
-                        delegation: d,
-                        onCancelled: () =>
-                            ref.invalidate(myApprovalDelegationsProvider),
-                      )),
+                  ...delegations.map(
+                    (d) => _DelegationCard(
+                      delegation: d,
+                      onCancelled: () =>
+                          ref.invalidate(myApprovalDelegationsProvider),
+                    ),
+                  ),
               ],
             );
           },
@@ -204,10 +206,7 @@ class _ApprovalDelegationsPageState
 }
 
 class _DelegationCard extends ConsumerWidget {
-  const _DelegationCard({
-    required this.delegation,
-    required this.onCancelled,
-  });
+  const _DelegationCard({required this.delegation, required this.onCancelled});
 
   final ApprovalDelegation delegation;
   final VoidCallback onCancelled;
@@ -241,12 +240,12 @@ class _DelegationCard extends ConsumerWidget {
                         children: [
                           Icon(
                             delegation.isMine
-                              ? Icons.arrow_circle_up_rounded
-                              : Icons.arrow_circle_down_rounded,
+                                ? Icons.arrow_circle_up_rounded
+                                : Icons.arrow_circle_down_rounded,
                             size: 18,
                             color: delegation.isMine
-                              ? theme.colorScheme.primary
-                              : AppColors.statusSuccess,
+                                ? theme.colorScheme.primary
+                                : AppColors.statusSuccess,
                           ),
                           const SizedBox(width: 6),
                           Text(
@@ -260,7 +259,8 @@ class _DelegationCard extends ConsumerWidget {
                           ),
                         ],
                       ),
-                      if (delegation.isMine && delegation.delegateCode.isNotEmpty)
+                      if (delegation.isMine &&
+                          delegation.delegateCode.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top: 2, right: 24),
                           child: Text(
@@ -279,12 +279,22 @@ class _DelegationCard extends ConsumerWidget {
             ),
             const Divider(height: 20),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.date_range_rounded, size: 16, color: Colors.grey),
+                const Icon(
+                  Icons.date_range_rounded,
+                  size: 16,
+                  color: Colors.grey,
+                ),
                 const SizedBox(width: 6),
-                Text(
-                  'من: ${delegation.startsAt}  إلى: ${delegation.endsAt}',
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                Expanded(
+                  child: Text(
+                    'من: ${_delegationDate(delegation.startsAt)}  إلى: ${_delegationDate(delegation.endsAt)}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -371,11 +381,7 @@ class _DelegationCard extends ConsumerWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(
-          color: fg,
-          fontWeight: FontWeight.w800,
-          fontSize: 11,
-        ),
+        style: TextStyle(color: fg, fontWeight: FontWeight.w800, fontSize: 11),
       ),
     );
   }
@@ -497,8 +503,10 @@ class _NewDelegationSheetState extends ConsumerState<_NewDelegationSheet> {
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                 ),
                 value: _selectedDelegateId,
                 items: team.map((m) {
@@ -625,7 +633,9 @@ class _NewDelegationSheetState extends ConsumerState<_NewDelegationSheet> {
 
     setState(() => _isSubmitting = true);
     try {
-      await ref.read(mobileCommandsProvider).setApprovalDelegation(
+      await ref
+          .read(mobileCommandsProvider)
+          .setApprovalDelegation(
             delegateEmployeeId: _selectedDelegateId!,
             startsAt: _fmt.format(_startsAt),
             endsAt: _fmt.format(_endsAt),
@@ -657,4 +667,12 @@ class _NewDelegationSheetState extends ConsumerState<_NewDelegationSheet> {
       if (mounted) setState(() => _isSubmitting = false);
     }
   }
+}
+
+/// تواريخ التفويض تصل من الخادم كنص ISO؛ نعرضها عربية مقروءة بدل
+/// «2026-11-12» داخل جملة عربية.
+String _delegationDate(String raw) {
+  final date = DateTime.tryParse(raw);
+  if (date == null) return raw;
+  return DateFormat('d MMMM y', 'ar').format(date);
 }

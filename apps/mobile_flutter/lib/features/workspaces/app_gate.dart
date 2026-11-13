@@ -91,10 +91,12 @@ class _AuthenticatedGateState extends ConsumerState<_AuthenticatedGate>
       final session = supabase.auth.currentSession;
       if (session != null) {
         final expiresAt = session.expiresAt;
-        final isExpiredOrExpiringSoon = session.isExpired ||
+        final isExpiredOrExpiringSoon =
+            session.isExpired ||
             (expiresAt != null &&
-                DateTime.fromMillisecondsSinceEpoch(expiresAt * 1000)
-                    .isBefore(DateTime.now().add(const Duration(minutes: 10))));
+                DateTime.fromMillisecondsSinceEpoch(
+                  expiresAt * 1000,
+                ).isBefore(DateTime.now().add(const Duration(minutes: 10))));
 
         if (isExpiredOrExpiringSoon) {
           try {
@@ -150,7 +152,8 @@ class _AuthenticatedGateState extends ConsumerState<_AuthenticatedGate>
     // 0471-UX: عند انقطاع الشبكة لا معنى لعرض «تسجيل الخروج» — الحل هو
     // إعادة المحاولة بعد عودة الاتصال. الخروج يُعرض فقط عند اتصال سليم
     // (أي أن المشكلة في الجلسة نفسها لا في الشبكة).
-    final offlineLike = connectivity == ConnectivityState.offline ||
+    final offlineLike =
+        connectivity == ConnectivityState.offline ||
         connectivity == ConnectivityState.reconnecting ||
         connectivity == ConnectivityState.serverUnavailable;
 
@@ -180,7 +183,8 @@ class _AuthenticatedGateState extends ConsumerState<_AuthenticatedGate>
         onSignOut: offlineLike ? null : signOut,
       ),
       error: (err, _) {
-        final isNetError = offlineLike ||
+        final isNetError =
+            offlineLike ||
             err.toString().contains('SocketException') ||
             err.toString().contains('ClientException') ||
             err.toString().contains('AuthRetryableFetchException') ||
@@ -207,7 +211,8 @@ class _AuthenticatedGateState extends ConsumerState<_AuthenticatedGate>
           // Prevents silent logout on temporary DNS/network failure.
           if (offlineLike) {
             return _ErrorPage(
-              message: 'انقطع الاتصال بالخادم. تحقق من توفر الإنترنت وسيتم إعادة المحاولة تلقائياً.',
+              message:
+                  'انقطع الاتصال بالخادم. تحقق من توفر الإنترنت وسيتم إعادة المحاولة تلقائياً.',
               onRetry: () {
                 ref.read(connectivityProvider.notifier).recheck();
                 ref.invalidate(authSessionProvider);
@@ -257,10 +262,13 @@ class _AuthenticatedGateState extends ConsumerState<_AuthenticatedGate>
             final workspace = _mobileWorkspace(contextData);
             if (workspace != null) {
               return switch (workspace) {
-                WorkspaceId.executive => ExecutiveWorkspace(access: contextData),
+                WorkspaceId.executive => ExecutiveWorkspace(
+                  access: contextData,
+                ),
                 WorkspaceId.manager => ManagerWorkspace(access: contextData),
-                WorkspaceId.fieldOperations =>
-                  OperationsWorkspace(access: contextData),
+                WorkspaceId.fieldOperations => OperationsWorkspace(
+                  access: contextData,
+                ),
                 WorkspaceId.employee => EmployeeWorkspace(access: contextData),
                 _ => _buildAdminOrUnassignedPage(
                     contextData,
@@ -292,7 +300,12 @@ class _AuthenticatedGateState extends ConsumerState<_AuthenticatedGate>
     // حسابات الأدمين "الويب فقط" تُمنع من الموبايل. يحيى له دورين (admin +
     // executive-secretary) فيُسمح له كسكرتير. من لديه admin فقط يُحال إلى
     // صفحة "ويب فقط". (دفاع عميق بجانب المنع في identifier-sign-in.)
-    const webOnlySlugs = {'admin', 'super-admin', 'super_admin', 'system-admin'};
+    const webOnlySlugs = {
+      'admin',
+      'super-admin',
+      'super_admin',
+      'system-admin',
+    };
     if (context.roles.any(webOnlySlugs.contains) &&
         !context.roles.contains('executive-secretary')) {
       return null;
@@ -324,13 +337,9 @@ class _AuthenticatedGateState extends ConsumerState<_AuthenticatedGate>
     VoidCallback onSignOut,
     VoidCallback onRetry,
   ) {
-    const adminSlugs = {
-      'admin',
-      'super-admin',
-      'super_admin',
-      'system-admin',
-    };
-    final isAdmin = context.roles.any(adminSlugs.contains) ||
+    const adminSlugs = {'admin', 'super-admin', 'super_admin', 'system-admin'};
+    final isAdmin =
+        context.roles.any(adminSlugs.contains) ||
         context.workspaces.contains(WorkspaceId.mainAdmin);
 
     if (isAdmin) {
@@ -399,18 +408,25 @@ class _ReleaseStatusPage extends StatelessWidget {
                   border: Border.all(
                     color: isDark
                         ? Colors.white.withValues(alpha: 0.10)
-                        : theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+                        : theme.colorScheme.outlineVariant.withValues(
+                            alpha: 0.6,
+                          ),
                     width: 1.2,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: isDark ? 0.40 : 0.08),
+                      color: Colors.black.withValues(
+                        alpha: isDark ? 0.40 : 0.08,
+                      ),
                       blurRadius: 30,
                       offset: const Offset(0, 10),
                     ),
                   ],
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 28,
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -453,12 +469,17 @@ class _ReleaseStatusPage extends StatelessWidget {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    if (policy.action == MobileReleaseAction.updateRequired) ...[
+                    if (policy.action ==
+                        MobileReleaseAction.updateRequired) ...[
                       const SizedBox(height: 14),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                          color: theme.colorScheme.surfaceContainerHighest
+                              .withValues(alpha: 0.5),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
@@ -490,7 +511,10 @@ class _ReleaseStatusPage extends StatelessWidget {
                           icon: const Icon(Icons.open_in_new_rounded, size: 20),
                           label: const Text(
                             'تحميل التحديث الآن',
-                            style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800),
+                            style: TextStyle(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
                       ),
@@ -505,12 +529,17 @@ class _ReleaseStatusPage extends StatelessWidget {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14),
                             ),
-                            side: BorderSide(color: theme.colorScheme.outlineVariant),
+                            side: BorderSide(
+                              color: theme.colorScheme.outlineVariant,
+                            ),
                           ),
                           icon: const Icon(Icons.refresh_rounded, size: 18),
                           label: const Text(
                             'إعادة التحقق',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                       ),
@@ -527,11 +556,7 @@ class _ReleaseStatusPage extends StatelessWidget {
 }
 
 class _ErrorPage extends ConsumerStatefulWidget {
-  const _ErrorPage({
-    required this.message,
-    this.onRetry,
-    this.onSignOut,
-  });
+  const _ErrorPage({required this.message, this.onRetry, this.onSignOut});
 
   final String message;
   final VoidCallback? onRetry;
@@ -573,7 +598,9 @@ class _ErrorPageState extends ConsumerState<_ErrorPage> {
       _autoRetryTimer = Timer.periodic(const Duration(seconds: 6), (_) async {
         if (!mounted || _isRetrying) return;
         try {
-          final online = await hasNetworkConnection().timeout(const Duration(seconds: 4));
+          final online = await hasNetworkConnection().timeout(
+            const Duration(seconds: 4),
+          );
           if (online && mounted) {
             _triggerRetry();
           }
@@ -624,7 +651,8 @@ class _ErrorPageState extends ConsumerState<_ErrorPage> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final connectivity = ref.watch(connectivityProvider);
-    final isOffline = connectivity == ConnectivityState.offline ||
+    final isOffline =
+        connectivity == ConnectivityState.offline ||
         connectivity == ConnectivityState.reconnecting ||
         connectivity == ConnectivityState.serverUnavailable ||
         _isNetworkRelated(widget.message);
@@ -644,7 +672,8 @@ class _ErrorPageState extends ConsumerState<_ErrorPage> {
             ? 'استعادة جلسة العمل'
             : 'تعذر تحميل البيانات';
 
-    final String displayMessage = isOffline && !widget.message.contains('بياناتك')
+    final String displayMessage =
+        isOffline && !widget.message.contains('بياناتك')
         ? 'انقطع الاتصال بالإنترنت مؤقتاً. بياناتك وجلستك محفوظة بأمان وسنعيد المزامنة تلقائياً بمجرد توفر الشبكة.'
         : widget.message;
 
@@ -687,18 +716,25 @@ class _ErrorPageState extends ConsumerState<_ErrorPage> {
                   border: Border.all(
                     color: isDark
                         ? Colors.white.withValues(alpha: 0.10)
-                        : theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+                        : theme.colorScheme.outlineVariant.withValues(
+                            alpha: 0.6,
+                          ),
                     width: 1.2,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: isDark ? 0.40 : 0.08),
+                      color: Colors.black.withValues(
+                        alpha: isDark ? 0.40 : 0.08,
+                      ),
                       blurRadius: 30,
                       offset: const Offset(0, 10),
                     ),
                   ],
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 28,
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -719,11 +755,7 @@ class _ErrorPageState extends ConsumerState<_ErrorPage> {
                         ),
                       ),
                       child: Center(
-                        child: Icon(
-                          mainIcon,
-                          size: 38,
-                          color: iconColor,
-                        ),
+                        child: Icon(mainIcon, size: 38, color: iconColor),
                       ),
                     ),
                     const SizedBox(height: 18),
@@ -757,12 +789,19 @@ class _ErrorPageState extends ConsumerState<_ErrorPage> {
                     // شارة الفحص التلقائي الحيّة في حالة انقطاع الشبكة
                     if (isOffline) ...[
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 7,
+                        ),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withValues(alpha: isDark ? 0.16 : 0.08),
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: isDark ? 0.16 : 0.08,
+                          ),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: theme.colorScheme.primary.withValues(alpha: 0.25),
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.25,
+                            ),
                           ),
                         ),
                         child: Row(
@@ -773,7 +812,9 @@ class _ErrorPageState extends ConsumerState<_ErrorPage> {
                               height: 13,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: isDark ? AppColors.darkPrimary : AppColors.brandPrimary,
+                                color: isDark
+                                    ? AppColors.darkPrimary
+                                    : AppColors.brandPrimary,
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -782,7 +823,9 @@ class _ErrorPageState extends ConsumerState<_ErrorPage> {
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
-                                color: isDark ? AppColors.darkPrimary : AppColors.brandPrimary,
+                                color: isDark
+                                    ? AppColors.darkPrimary
+                                    : AppColors.brandPrimary,
                               ),
                             ),
                           ],
@@ -794,12 +837,19 @@ class _ErrorPageState extends ConsumerState<_ErrorPage> {
                     // بنر الذكر الروحاني المطمئن للقلب
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.12 : 0.08),
+                        color: const Color(
+                          0xFF10B981,
+                        ).withValues(alpha: isDark ? 0.12 : 0.08),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: const Color(0xFF10B981).withValues(alpha: 0.22),
+                          color: const Color(
+                            0xFF10B981,
+                          ).withValues(alpha: 0.22),
                         ),
                       ),
                       child: Row(
@@ -986,7 +1036,10 @@ class _TimedLoadingPageState extends State<_TimedLoadingPage> {
                   ),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 32,
+                  ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -1007,7 +1060,9 @@ class _TimedLoadingPageState extends State<_TimedLoadingPage> {
                               child: CircularProgressIndicator(
                                 strokeWidth: 3,
                                 color: const Color(0xFF10B981),
-                                backgroundColor: const Color(0xFF10B981).withValues(alpha: .15),
+                                backgroundColor: const Color(
+                                  0xFF10B981,
+                                ).withValues(alpha: .15),
                               ),
                             ),
                             const Icon(
@@ -1023,12 +1078,19 @@ class _TimedLoadingPageState extends State<_TimedLoadingPage> {
                       FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF10B981).withValues(alpha: .12),
+                            color: const Color(
+                              0xFF10B981,
+                            ).withValues(alpha: .12),
                             borderRadius: BorderRadius.circular(99),
                             border: Border.all(
-                              color: const Color(0xFF10B981).withValues(alpha: .28),
+                              color: const Color(
+                                0xFF10B981,
+                              ).withValues(alpha: .28),
                             ),
                           ),
                           child: const Row(
@@ -1059,16 +1121,20 @@ class _TimedLoadingPageState extends State<_TimedLoadingPage> {
                         child: Center(
                           child: AnimatedSwitcher(
                             duration: const Duration(milliseconds: 400),
-                            transitionBuilder: (child, animation) => FadeTransition(
+                            transitionBuilder: (child, animation) =>
+                                FadeTransition(
                               opacity: animation,
                               child: SlideTransition(
-                                position: Tween<Offset>(
+                                    position:
+                                        Tween<Offset>(
                                   begin: const Offset(0.0, 0.15),
                                   end: Offset.zero,
-                                ).animate(CurvedAnimation(
+                                        ).animate(
+                                          CurvedAnimation(
                                   parent: animation,
                                   curve: Curves.easeOutCubic,
-                                )),
+                                          ),
+                                        ),
                                 child: child,
                               ),
                             ),
@@ -1155,8 +1221,9 @@ class _WebOnlyPage extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final badgeColor =
-        isDark ? const Color(0xFF818CF8) : const Color(0xFF4338CA);
+    final badgeColor = isDark
+        ? const Color(0xFF818CF8)
+        : const Color(0xFF4338CA);
     final badgeBg = isDark
         ? const Color(0xFF312E81).withValues(alpha: 0.5)
         : const Color(0xFFEEF2FF);
@@ -1334,8 +1401,9 @@ class _UnassignedWorkspacePage extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final amberColor =
-        isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309);
+    final amberColor = isDark
+        ? const Color(0xFFFBBF24)
+        : const Color(0xFFB45309);
     final amberBg = isDark
         ? const Color(0xFF78350F).withValues(alpha: 0.35)
         : const Color(0xFFFEF3C7);
@@ -1421,7 +1489,9 @@ class _UnassignedWorkspacePage extends StatelessWidget {
                         width: double.infinity,
                         child: FilledButton.tonalIcon(
                           onPressed: () {
-                            final code = PhoneDisplay.stripCountryCode(access.employeeCode);
+                            final code = PhoneDisplay.stripCountryCode(
+                              access.employeeCode,
+                            );
                             final name = access.displayName;
                             final text =
                                 'السلام عليكم، أنا الموظف $name${code.isNotEmpty ? ' (كود: $code)' : ''}. قمت بتسجيل الدخول في التطبيق وبانتظار تفعيل مساحة العمل الخاصة بي.';
@@ -1480,21 +1550,23 @@ class _SuspendedAccountPage extends StatelessWidget {
   final VoidCallback onRetry;
   final VoidCallback onSignOut;
 
-  static const String yehiaPhone = '+201154869616';
-  static const String yehiaWhatsapp = '201154869616';
-  static const String yehiaName = 'م. يحيى جمال السبع';
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final message = access.suspensionMessage?.trim().isNotEmpty == true
         ? access.suspensionMessage!
-        : 'تم إيقافك عن العمل، راجع المسؤول م. يحيى لسداد الغرامات التي عليك';
-    final amount = access.suspensionAmount ?? 500.0;
-    final contactName = access.managerContactName ?? yehiaName;
-    final contactPhone = access.managerContactPhone ?? yehiaPhone;
-    final contactWa = access.managerContactWhatsapp ?? yehiaWhatsapp;
+        : 'تم إيقافك عن العمل، راجع المسؤول لسداد الغرامات التي عليك';
+    // لا نخترع مبلغاً أو جهة اتصال: نعرض فقط ما يعيده الخادم. اختراع 500 ج.م
+    // أو رقم مدير ثابت كان يضلل الموظف ويوجّهه لشخص قد يكون غير مسؤول الحالة.
+    final amount = access.suspensionAmount;
+    final amountLabel = amount == null
+        ? 'غير محدد — راجع الإدارة'
+        : '${amount.toStringAsFixed(0)} ج.م';
+    final contactName = access.managerContactName;
+    final contactPhone = access.managerContactPhone;
+    final contactWa = access.managerContactWhatsapp;
+    final contactLabel = contactName ?? 'الإدارة';
 
     const redColor = Color(0xFFDC2626);
     const redLight = Color(0xFFEF4444);
@@ -1574,14 +1646,14 @@ class _SuspendedAccountPage extends StatelessWidget {
                       // شريط التنبيه وتوجيه الموظف لم. يحيى
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
                         decoration: BoxDecoration(
                           color: bannerBg,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: bannerBorder,
-                            width: 1.2,
-                          ),
+                          border: Border.all(color: bannerBorder, width: 1.2),
                         ),
                         child: Column(
                           children: [
@@ -1617,7 +1689,9 @@ class _SuspendedAccountPage extends StatelessWidget {
                               .withValues(alpha: isDark ? 0.35 : 0.5),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+                            color: theme.colorScheme.outlineVariant.withValues(
+                              alpha: 0.4,
+                            ),
                           ),
                         ),
                         child: Column(
@@ -1629,13 +1703,18 @@ class _SuspendedAccountPage extends StatelessWidget {
                             ),
                             if (access.employeeCode != null) ...[
                               const Divider(height: 16),
-                              _buildCodeRow(context, PhoneDisplay.stripCountryCode(access.employeeCode)),
+                              _buildCodeRow(
+                                context,
+                                PhoneDisplay.stripCountryCode(
+                                  access.employeeCode,
+                                ),
+                              ),
                             ],
                             const Divider(height: 16),
                             _buildInfoRow(
                               context,
                               'إجمالي الغرامات المستحقة:',
-                              '${amount.toStringAsFixed(0)} ج.م',
+                              amountLabel,
                               isBold: true,
                               valueColor: isDark ? redLight : redColor,
                             ),
@@ -1643,7 +1722,7 @@ class _SuspendedAccountPage extends StatelessWidget {
                             _buildInfoRow(
                               context,
                               'المسؤول للمراجعة والسداد:',
-                              contactName,
+                              contactLabel,
                               isBold: true,
                               valueColor: const Color(0xFF0284C7),
                             ),
@@ -1661,16 +1740,21 @@ class _SuspendedAccountPage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 22),
-                      // زر واتساب مباشر لم. يحيى
+                      // أزرار التواصل تظهر فقط عند توفر جهة اتصال من الخادم.
+                      if (contactWa != null) ...[
                       SizedBox(
                         width: double.infinity,
                         child: FilledButton.icon(
                           onPressed: () {
-                            final code = PhoneDisplay.stripCountryCode(access.employeeCode);
+                              final code = PhoneDisplay.stripCountryCode(
+                                access.employeeCode,
+                              );
                             final name = access.displayName;
-                            final owed = amount.toStringAsFixed(0);
+                              final owed = amount == null
+                                  ? 'غير محددة'
+                                  : '${amount.toStringAsFixed(0)} ج.م';
                             final text =
-                                'السلام عليكم م. يحيى، أنا الموظف $name${code.isNotEmpty ? ' (كود: $code)' : ''}. تم إيقاف حسابي بالمنظومة لوجود غرامات مستحقة بقيمة $owed ج.م. برجاء مراجعة الحساب وتوضيح إجراءات السداد ورفع الإيقاف.';
+                                  'السلام عليكم${contactName != null ? ' $contactName' : ''}، أنا الموظف $name${code.isNotEmpty ? ' (كود: $code)' : ''}. تم إيقاف حسابي بالمنظومة لوجود غرامات مستحقة بقيمة $owed. برجاء مراجعة الحساب وتوضيح إجراءات السداد ورفع الإيقاف.';
                             launchUrl(
                               Uri.parse(
                                 'https://wa.me/$contactWa?text=${Uri.encodeComponent(text)}',
@@ -1679,7 +1763,9 @@ class _SuspendedAccountPage extends StatelessWidget {
                             );
                           },
                           icon: const Icon(Icons.chat_bubble_rounded),
-                          label: const Text('مراسلة م. يحيى عبر واتساب للسداد'),
+                            label: Text(
+                              'مراسلة $contactLabel عبر واتساب للسداد',
+                            ),
                           style: FilledButton.styleFrom(
                             backgroundColor: const Color(0xFF10B981),
                             foregroundColor: Colors.white,
@@ -1692,7 +1778,8 @@ class _SuspendedAccountPage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      // زر اتصال مباشر بم. يحيى
+                      ],
+                      if (contactPhone != null) ...[
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton.icon(
@@ -1703,7 +1790,7 @@ class _SuspendedAccountPage extends StatelessWidget {
                             );
                           },
                           icon: const Icon(Icons.phone_in_talk_rounded),
-                          label: Text('الاتصال بـ $contactName'),
+                            label: Text('الاتصال بـ $contactLabel'),
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
@@ -1713,13 +1800,16 @@ class _SuspendedAccountPage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 10),
+                      ],
                       // زر إعادة التحقق بعد السداد
                       SizedBox(
                         width: double.infinity,
                         child: FilledButton.tonalIcon(
                           onPressed: onRetry,
                           icon: const Icon(Icons.refresh_rounded),
-                          label: const Text('إعادة التحقق من حالة الحساب (بعد السداد)'),
+                          label: const Text(
+                            'إعادة التحقق من حالة الحساب (بعد السداد)',
+                          ),
                           style: FilledButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 13),
                             shape: RoundedRectangleBorder(
@@ -1844,4 +1934,3 @@ class _SuspendedAccountPage extends StatelessWidget {
     );
   }
 }
-
