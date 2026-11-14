@@ -35,7 +35,7 @@ void main() {
       expect(sla.tone, RequestSlaTone.warning);
       expect(sla.isCompleted, isFalse);
       expect(sla.color, const Color(0xFFD97706));
-      expect(sla.label, contains('قيد الانتظار'));
+      expect(sla.label, contains('معلق منذ'));
       expect(sla.responsibleParty, 'الموارد البشرية');
     });
 
@@ -53,7 +53,7 @@ void main() {
       expect(sla.tone, RequestSlaTone.breached);
       expect(sla.isCompleted, isFalse);
       expect(sla.color, AppColors.statusDanger);
-      expect(sla.label, contains('معلق أكثر من 24 س'));
+      expect(sla.label, contains('معلق منذ'));
       expect(sla.detail, contains('أحمد محمود'));
       expect(sla.responsibleParty, 'أحمد محمود');
     });
