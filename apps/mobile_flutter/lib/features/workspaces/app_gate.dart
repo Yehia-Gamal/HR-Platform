@@ -1643,7 +1643,7 @@ class _SuspendedAccountPage extends StatelessWidget {
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 14),
-                      // شريط التنبيه وتوجيه الموظف لم. يحيى
+                      // شريط التنبيه وتوجيه الموظف للإدارة
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(

@@ -207,24 +207,28 @@ class _LeaveBalanceStripState extends ConsumerState<LeaveBalanceStrip> {
         if (_isGridView)
           LayoutBuilder(
             builder: (context, constraints) {
-              final width = constraints.maxWidth;
-              final tileWidth = (width - 10) / 2;
-              const targetHeight = 124.0;
-              final ratio = (tileWidth / targetHeight).clamp(1.1, 3.8);
-              return GridView.count(
-                crossAxisCount: 2,
+              final tileHeight = MediaQuery.textScalerOf(
+                context,
+              ).scale(124).clamp(124.0, 180.0).toDouble();
+              return GridView(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
-                childAspectRatio: ratio,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                  // ارتفاع ثابت كان يقصّ النص عند تكبير خط النظام.
+                  mainAxisExtent: tileHeight,
+                ),
                 children: allCards,
               );
             },
           )
         else
           SizedBox(
-            height: 132,
+            height: MediaQuery.textScalerOf(
+              context,
+            ).scale(132).clamp(132.0, 190.0).toDouble(),
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: allCards.length,

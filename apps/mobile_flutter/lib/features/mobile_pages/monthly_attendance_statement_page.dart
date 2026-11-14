@@ -777,6 +777,10 @@ class _AttendancePercentageCard extends StatelessWidget {
             : displayPct >= 70
                 ? const Color(0xFFF59E0B)
                 : scheme.error;
+    // حلقة النسبة تحتاج مساحة أكبر عندما يكبّر المستخدم خط النظام.
+    final ringSize = MediaQuery.textScalerOf(
+      context,
+    ).scale(94).clamp(94.0, 128.0).toDouble();
 
     return Card(
       margin: EdgeInsets.zero,
@@ -794,8 +798,8 @@ class _AttendancePercentageCard extends StatelessWidget {
               children: [
                 // دائرة النسبة المحدثة
                 SizedBox(
-                  width: 94,
-                  height: 94,
+                  width: ringSize,
+                  height: ringSize,
                   child: Stack(
                     alignment: Alignment.center,
                     children: [

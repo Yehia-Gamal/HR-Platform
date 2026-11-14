@@ -90,9 +90,10 @@ class AccessContext {
             (rolesList.contains('clinic-staff') && !rolesList.contains('clinics-manager')));
 
     final managerContact = json['managerContact'] as Map<dynamic, dynamic>?;
-    final managerName = managerContact?['name'] as String? ?? 'م. يحيى جمال السبع';
-    final managerPhone = managerContact?['phone'] as String? ?? '+201154869616';
-    final managerWhatsapp = managerContact?['whatsapp'] as String? ?? '201154869616';
+    // لا نخترع وسيلة تواصل: إن لم يرسلها الخادم نُبقيها فارغة.
+    final managerName = managerContact?['name'] as String?;
+    final managerPhone = managerContact?['phone'] as String?;
+    final managerWhatsapp = managerContact?['whatsapp'] as String?;
 
     return AccessContext(
       userId: json['userId'] as String? ?? '',

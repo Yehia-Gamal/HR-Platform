@@ -155,13 +155,18 @@ class _ExecutiveReportsPageState extends ConsumerState<ExecutiveReportsPage> {
         const SizedBox(height: 12),
 
         // ── بطاقات الإحصاء التفاعلية الرشيقة (شبكة مضغوطة قابلة للفلترة الفورية) ──
-        GridView.count(
-          crossAxisCount: 2,
+        GridView(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
-          childAspectRatio: 2.3,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+            // نسبة ثابتة كانت تقصّ التسميات عند تكبير خط النظام.
+            mainAxisExtent: MediaQuery.textScalerOf(
+              context,
+            ).scale(70).clamp(70.0, 112.0).toDouble(),
+          ),
           children: [
             _ExecutiveReportStatCard(
               title: 'مكتملة',
