@@ -1518,10 +1518,12 @@ class _MissingPunchesBanner extends ConsumerWidget {
         : const <AttendanceStatementDay>[];
 
     final parts = <String>[];
-    if (s.missingCheckInCount > 0)
+    if (s.missingCheckInCount > 0) {
       parts.add('نسيان حضور: ${s.missingCheckInCount}');
-    if (s.missingCheckOutCount > 0)
+    }
+    if (s.missingCheckOutCount > 0) {
       parts.add('نسيان انصراف: ${s.missingCheckOutCount}');
+    }
     final desc = parts.join(' · ');
 
     return Card(

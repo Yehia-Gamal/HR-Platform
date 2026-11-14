@@ -1972,8 +1972,9 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
       }
       if (mounted) setState(() => _error = errorMsg);
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         setState(() => _error = 'تعذر تغيير الرقم السري بأمان. أعد المحاولة.');
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
