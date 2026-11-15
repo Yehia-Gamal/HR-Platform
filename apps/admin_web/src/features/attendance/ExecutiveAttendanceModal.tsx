@@ -175,7 +175,8 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
       }
     }
 
-    const fullWidth = Math.max(el.scrollWidth, el.offsetWidth, 1040);
+    const TARGET_WIDTH = 1040;
+    const fullWidth = TARGET_WIDTH;
     const fullHeight = Math.max(el.scrollHeight, el.offsetHeight);
 
     const scrollParent = el.parentElement;
@@ -198,6 +199,10 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
         scrollX: 0,
         scrollY: 0,
         onclone: (clonedDoc: Document, clonedEl: HTMLElement) => {
+          clonedEl.style.width = `${TARGET_WIDTH}px`;
+          clonedEl.style.minWidth = `${TARGET_WIDTH}px`;
+          clonedEl.style.maxWidth = `${TARGET_WIDTH}px`;
+          clonedEl.style.boxSizing = 'border-box';
           clonedEl.style.height = `${fullHeight}px`;
           clonedEl.style.minHeight = `${fullHeight}px`;
           clonedEl.style.maxHeight = 'none';
@@ -205,8 +210,26 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
           clonedEl.style.position = 'static';
           clonedEl.style.transform = 'none';
 
+          // تأمين تقييد أبعاد الشعار الرسمي بدقة داخل الكائن المستنسخ لمنع تمدد صورته الأصلية
+          const clonedImgs = clonedEl.querySelectorAll('img');
+          clonedImgs.forEach((img) => {
+            img.style.width = '80px';
+            img.style.height = '80px';
+            img.style.minWidth = '80px';
+            img.style.minHeight = '80px';
+            img.style.maxWidth = '80px';
+            img.style.maxHeight = '80px';
+            img.style.objectFit = 'contain';
+            img.style.display = 'block';
+            img.setAttribute('width', '80');
+            img.setAttribute('height', '80');
+          });
+
           let curr: HTMLElement | null = clonedEl.parentElement;
           while (curr && curr !== clonedDoc.body) {
+            curr.style.width = `${TARGET_WIDTH}px`;
+            curr.style.minWidth = `${TARGET_WIDTH}px`;
+            curr.style.maxWidth = 'none';
             curr.style.height = 'auto';
             curr.style.minHeight = 'auto';
             curr.style.maxHeight = 'none';
@@ -217,6 +240,9 @@ export function ExecutiveAttendanceModal({ dateIso, onClose }: Props) {
           }
 
           if (clonedDoc.body) {
+            clonedDoc.body.style.width = `${TARGET_WIDTH}px`;
+            clonedDoc.body.style.minWidth = `${TARGET_WIDTH}px`;
+            clonedDoc.body.style.maxWidth = 'none';
             clonedDoc.body.style.height = 'auto';
             clonedDoc.body.style.minHeight = 'auto';
             clonedDoc.body.style.maxHeight = 'none';
@@ -489,7 +515,7 @@ ${
           if (e.target === e.currentTarget) onClose();
         }}
       >
-        <div className="relative w-full max-w-5xl bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden my-auto max-h-[94vh] flex flex-col text-slate-100">
+        <div className="relative w-full max-w-[1120px] bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden my-auto max-h-[94vh] flex flex-col text-slate-100">
           {/* شريط التحكم العلوي */}
           <header className="flex flex-wrap items-center justify-between gap-3 p-4 border-b border-slate-800 bg-slate-950/90 shrink-0">
             <div className="flex items-center gap-2.5">
@@ -659,10 +685,13 @@ ${
               /* ─── البطاقة التنفيذية التي سيتم التقاطها كصورة (Executive Card) ─── */
               <div
                 id="executive-attendance-card"
-                className="w-full max-w-[1040px] rounded-2xl p-6 sm:p-8 shadow-2xl shrink-0 space-y-6"
+                className="rounded-2xl p-6 sm:p-8 shadow-2xl shrink-0 space-y-6"
                 dir="rtl"
                 style={{
-                  minWidth: '880px',
+                  width: '1040px',
+                  minWidth: '1040px',
+                  maxWidth: '1040px',
+                  boxSizing: 'border-box',
                   backgroundColor: '#0b1329',
                   color: '#f8fafc',
                   border: '1px solid rgba(255, 255, 255, 0.12)',
@@ -672,8 +701,32 @@ ${
                 {/* 1. الترويسة الملكية للجمعية مع الشعار الرسمي */}
                 <div className="flex items-center justify-between pb-5 border-b border-slate-800/90 gap-4">
                   <div className="flex items-center gap-4">
-                    <div className="size-20 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-700/80 p-2 flex items-center justify-center shadow-2xl shrink-0 ring-1 ring-white/10">
-                      <img src={ASSOCIATION_LOGO_WHITE_DATA_URL} alt="شعار جمعية خواطر أحلى شباب" className="size-full object-contain" />
+                    <div
+                      className="rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-700/80 p-2 flex items-center justify-center shadow-2xl shrink-0 ring-1 ring-white/10"
+                      style={{
+                        width: '80px',
+                        height: '80px',
+                        minWidth: '80px',
+                        minHeight: '80px',
+                        maxWidth: '80px',
+                        maxHeight: '80px',
+                        boxSizing: 'border-box',
+                      }}
+                    >
+                      <img
+                        src={ASSOCIATION_LOGO_WHITE_DATA_URL}
+                        alt="شعار جمعية خواطر أحلى شباب"
+                        width={80}
+                        height={80}
+                        style={{
+                          width: '80px',
+                          height: '80px',
+                          maxWidth: '80px',
+                          maxHeight: '80px',
+                          objectFit: 'contain',
+                          display: 'block',
+                        }}
+                      />
                     </div>
                     <div>
                       <h1 className="text-xl sm:text-2xl font-black text-white leading-tight">جمعية خواطر أحلى شباب</h1>
@@ -792,7 +845,13 @@ ${
                     )}
 
                     {/* 3. شريط المؤشرات الرقمية المدققة رياضياً (KPI Strip) */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2.5 sm:gap-3">
+                    <div
+                      className="grid gap-2.5 sm:gap-3"
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+                      }}
+                    >
                       <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-center">
                         <span className="block text-[11px] font-bold text-slate-400 mb-1">قوة العمل المجدولة</span>
                         <span className="text-2xl font-black text-white font-mono">{fmtNum(metrics.totalScheduledEmployees)}</span>
@@ -1197,7 +1256,13 @@ ${
                 {activeReportTab === 'end_of_day' && (
                   <div className="space-y-6">
                     {/* مؤشرات نهاية اليوم وساعات العمل */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                    <div
+                      className="grid gap-3"
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
+                      }}
+                    >
                       <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-center">
                         <span className="block text-[11px] font-bold text-slate-400 mb-1">حضروا اليوم</span>
                         <span className="text-2xl font-black text-white font-mono">{endOfDayMetrics.totalCheckedIn}</span>

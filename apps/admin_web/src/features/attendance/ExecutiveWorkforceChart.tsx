@@ -158,7 +158,7 @@ export function ExecutiveWorkforceChart({ metrics, isLight = false, numberSystem
       </div>
 
       {/* منطقة الدونات والمؤشرات */}
-      <div className="flex flex-col md:flex-row items-center justify-around gap-6 py-2">
+      <div className="flex flex-row items-center justify-around gap-6 py-2">
         {/* SVG Donut Chart */}
         <div className="relative size-48 shrink-0 flex items-center justify-center">
           <svg className="size-full -rotate-90" viewBox="0 0 160 160">
@@ -194,7 +194,13 @@ export function ExecutiveWorkforceChart({ metrics, isLight = false, numberSystem
         </div>
 
         {/* دليل الشارت التفصيلي (Legend) بالقيم والنسب */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full max-w-lg">
+        <div
+          className="grid gap-2.5 w-full max-w-lg"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+          }}
+        >
           {slices.map((slice) => (
             <div
               key={slice.key}
