@@ -106,7 +106,7 @@ export function SuspendedEmployeesPage() {
   const [paymentNotes, setPaymentNotes] = useState('');
   const [paymentLoading, setPaymentLoading] = useState(false);
 
-  const rawList = employees ?? [];
+  const rawList = useMemo(() => employees ?? [], [employees]);
 
   // تصفية وبحث
   const filteredList = useMemo(() => {
@@ -141,10 +141,14 @@ export function SuspendedEmployeesPage() {
   const doubledOnlyCount = activeDisplayList.length - actuallySuspendedCount;
 
   // نسخ الهاتف للحافظة
-  const copyPhone = (phone: string) => {
-    navigator.clipboard.writeText(phone);
-    setCopiedPhone(phone);
-    setTimeout(() => setCopiedPhone(null), 2000);
+  const copyPhone = async (phone: string) => {
+    try {
+      await navigator.clipboard.writeText(phone);
+      setCopiedPhone(phone);
+      setTimeout(() => setCopiedPhone(null), 2000);
+    } catch {
+      toast({ message: 'تعذر نسخ رقم الهاتف.', tone: 'error' });
+    }
   };
 
   // رفع الإيقاف إدارياً وتفعيل الحساب
@@ -543,6 +547,7 @@ export function SuspendedEmployeesPage() {
         <div className="space-y-4">
           {filteredList.map((emp) => {
             const isActuallySuspended = emp.status === 'suspended' || !emp.isActive;
+            const phone = emp.phone;
             return (
               <div
                 key={emp.employeeId}
@@ -581,16 +586,16 @@ export function SuspendedEmployeesPage() {
                             كود: {emp.employeeCode}
                           </span>
                         )}
-                        {emp.phone && (
+                        {phone && (
                           <button
                             type="button"
-                            onClick={() => copyPhone(emp.phone!)}
+                            onClick={() => void copyPhone(phone)}
                             className="inline-flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-primary transition-colors cursor-pointer"
                             title="انقر لنسخ رقم الهاتف"
                           >
                             <Phone className="size-3" />
-                            <span dir="ltr">{emp.phone}</span>
-                            {copiedPhone === emp.phone ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3 text-[var(--text-muted)]" />}
+                            <span dir="ltr">{phone}</span>
+                            {copiedPhone === phone ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3 text-[var(--text-muted)]" />}
                           </button>
                         )}
                       </div>

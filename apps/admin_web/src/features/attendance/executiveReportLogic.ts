@@ -173,11 +173,7 @@ export function isClinicTeamMember(item: AttendanceRosterItem): boolean {
   const name = (item.employeeName ?? '').trim();
 
   // مدراء ومشرفو العيادات والمجمعات لا يُحجبون أبداً عن التقرير العام
-  if (
-    name.includes('مصطفي أحمد') ||
-    name.includes('مصطفى أحمد') ||
-    name.includes('يوسف رسمي')
-  ) {
+  if (name.includes('مصطفي أحمد') || name.includes('مصطفى أحمد') || name.includes('يوسف رسمي')) {
     return false;
   }
 

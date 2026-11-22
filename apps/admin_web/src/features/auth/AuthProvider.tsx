@@ -1,6 +1,6 @@
 import type { AccessContext } from '@ahla/shared-contracts';
 import type { Session } from '@supabase/supabase-js';
-import { createContext, type PropsWithChildren, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, type PropsWithChildren, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { attachAuthObservability } from '../../core/authObservability';
 import { env, hasSupabaseConfig } from '../../core/env';
 import { safeErrorMessage } from '../../core/errorMapper';
@@ -35,17 +35,36 @@ const PASSWORD_RESET_LIMIT = 3;
 const PASSWORD_RESET_WINDOW_MS = 60 * 60 * 1000;
 const PASSWORD_RESET_KEY = 'ahla.passwordReset.attempts';
 
-export function AuthProvider({ children }: PropsWithChildren) {
+export function AuthProvider({ children, clearSessionData }: PropsWithChildren<{ clearSessionData?: () => void }>) {
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [session, setSession] = useState<Session | null>(null);
   const [access, setAccess] = useState<AccessContext | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isMock, setIsMock] = useState(false);
+  const currentUserId = useRef<string | null>(null);
+  const sessionVersion = useRef(0);
+
+  const observeSession = useCallback(
+    (nextSession: Session | null) => {
+      const nextUserId = nextSession?.user.id ?? null;
+      if (currentUserId.current !== nextUserId) {
+        currentUserId.current = nextUserId;
+        sessionVersion.current += 1;
+        clearSessionData?.();
+        setAccess(null);
+        setStatus(nextSession ? 'loading' : 'anonymous');
+      }
+      setSession(nextSession);
+      return sessionVersion.current;
+    },
+    [clearSessionData],
+  );
 
   const refreshAccess = useCallback(async () => {
     if (isMock) return;
+    const version = sessionVersion.current;
     const next = await loadAccessContext();
-    setAccess(next);
+    if (version === sessionVersion.current) setAccess(next);
   }, [isMock]);
 
   useEffect(() => {
@@ -68,44 +87,57 @@ export function AuthProvider({ children }: PropsWithChildren) {
     void getSupabase()
       .then(async (supabase) => {
         // تسجيل المستمع أولاً — يجب أن يكون نشطاً دائماً بغض النظر عن وجود جلسة أولية
-        const { data: listener } = supabase.auth.onAuthStateChange(async (event, nextSession) => {
-          if (!active) return;
+        if (!active) return;
+        const initialVersion = sessionVersion.current;
+        const { data: listener } = supabase.auth.onAuthStateChange((event, nextSession) => {
+          if (!active || event === 'INITIAL_SESSION') return;
           authObservability.onAuthChange(event, nextSession?.user.id ?? null);
-          setSession(nextSession);
+          const version = observeSession(nextSession);
           if (!nextSession) {
             setAccess(null);
             setStatus('anonymous');
             return;
           }
           // تحديث الصلاحيات عند تجديد التوكن أو تحديث المستخدم أو تسجيل دخول خارجي
-          if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || event === 'SIGNED_IN') {
-            try {
-              const nextAccess = await loadAccessContext();
-              setAccess(nextAccess);
-              setStatus('authenticated');
-            } catch {
-              // فشل تحديث الصلاحيات — نبقي على القيم الحالية
-            }
+          if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY') {
+            // Start RPCs after the auth callback releases the Supabase session lock.
+            window.setTimeout(() => {
+              if (!active || version !== sessionVersion.current) return;
+              void loadAccessContext()
+                .then((nextAccess) => {
+                  if (!active || version !== sessionVersion.current) return;
+                  setAccess(nextAccess);
+                  setStatus('authenticated');
+                })
+                .catch(() => {
+                  if (active && version === sessionVersion.current) {
+                    setStatus((current) => (current === 'loading' ? 'anonymous' : current));
+                  }
+                });
+            }, 0);
           }
         });
         unsubscribe = () => listener.subscription.unsubscribe();
 
         const { data, error: sessionError } = await supabase.auth.getSession();
-        if (!active) return;
+        if (!active || initialVersion !== sessionVersion.current) return;
         if (sessionError) {
           setError(safeErrorMessage(sessionError));
           setStatus('anonymous');
           return;
         }
-        setSession(data.session);
+        const version = observeSession(data.session);
         if (!data.session) {
           setStatus('anonymous');
           return;
         }
         try {
-          setAccess(await loadAccessContext());
+          const nextAccess = await loadAccessContext();
+          if (!active || version !== sessionVersion.current) return;
+          setAccess(nextAccess);
           setStatus('authenticated');
         } catch (accessError) {
+          if (!active || version !== sessionVersion.current) return;
           setError(safeErrorMessage(accessError));
           setStatus('anonymous');
         }
@@ -120,65 +152,74 @@ export function AuthProvider({ children }: PropsWithChildren) {
       active = false;
       unsubscribe?.();
     };
-  }, []);
+  }, [observeSession]);
 
-  const signIn = useCallback(async (identifier: string, password: string) => {
-    if (!hasSupabaseConfig) throw new Error('Supabase غير مهيأ.');
-    setError(null);
-    const supabase = await getSupabase();
-    const { data, error: invokeError } = await supabase.functions.invoke('identifier-sign-in', {
-      body: { identifier: identifier.trim(), password },
-    });
-    const payload = data as {
-      access_token?: string;
-      refresh_token?: string;
-      error?: string;
-    } | null;
-    if (invokeError || !payload?.access_token || !payload.refresh_token) {
-      // FunctionsHttpError: data يكون null — نستخرج كود الخطأ من جسم الاستجابة
-      let errorCode = payload?.error;
-      if (!errorCode && invokeError) {
-        const resp = (invokeError as Record<string, unknown>).context;
-        if (resp instanceof Response) {
-          const body = (await resp.json().catch(() => null)) as { error?: string } | null;
-          errorCode = body?.error;
+  const signIn = useCallback(
+    async (identifier: string, password: string) => {
+      if (!hasSupabaseConfig) throw new Error('Supabase غير مهيأ.');
+      const initialVersion = sessionVersion.current;
+      setError(null);
+      const supabase = await getSupabase();
+      const { data, error: invokeError } = await supabase.functions.invoke('identifier-sign-in', {
+        body: { identifier: identifier.trim(), password },
+      });
+      if (initialVersion !== sessionVersion.current) return;
+      const payload = data as {
+        access_token?: string;
+        refresh_token?: string;
+        error?: string;
+      } | null;
+      if (invokeError || !payload?.access_token || !payload.refresh_token) {
+        // FunctionsHttpError: data يكون null — نستخرج كود الخطأ من جسم الاستجابة
+        let errorCode = payload?.error;
+        if (!errorCode && invokeError) {
+          const resp = (invokeError as Record<string, unknown>).context;
+          if (resp instanceof Response) {
+            const body = (await resp.json().catch(() => null)) as { error?: string } | null;
+            errorCode = body?.error;
+          }
         }
+        if (initialVersion !== sessionVersion.current) return;
+        const message =
+          errorCode === 'TOO_MANY_ATTEMPTS'
+            ? 'محاولات كثيرة. انتظر قليلًا ثم حاول مرة أخرى.'
+            : errorCode === 'SERVER_CONFIGURATION'
+              ? 'الخدمة غير مهيأة. تواصل مع الدعم.'
+              : 'بيانات الدخول غير صحيحة أو الحساب غير متاح.';
+        setError(message);
+        setStatus('anonymous');
+        throw new Error(message);
       }
-      const message =
-        errorCode === 'TOO_MANY_ATTEMPTS'
-          ? 'محاولات كثيرة. انتظر قليلًا ثم حاول مرة أخرى.'
-          : errorCode === 'SERVER_CONFIGURATION'
-            ? 'الخدمة غير مهيأة. تواصل مع الدعم.'
-            : 'بيانات الدخول غير صحيحة أو الحساب غير متاح.';
-      setError(message);
-      setStatus('anonymous');
-      throw new Error(message);
-    }
-    const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-      access_token: payload.access_token,
-      refresh_token: payload.refresh_token,
-    });
-    if (sessionError || !sessionData.session) {
-      const message = 'تعذر إنشاء جلسة آمنة. حاول مرة أخرى.';
-      setError(message);
-      setStatus('anonymous');
-      throw new Error(message);
-    }
-    try {
-      const nextAccess = await loadAccessContext();
-      setSession(sessionData.session);
-      setAccess(nextAccess);
-      setStatus('authenticated');
-    } catch {
-      await supabase.auth.signOut({ scope: 'local' });
-      setSession(null);
-      setAccess(null);
-      const message = 'تم تسجيل الدخول، لكن تعذر تحميل صلاحيات الحساب. حاول مرة أخرى أو تواصل مع الدعم.';
-      setError(message);
-      setStatus('anonymous');
-      throw new Error(message);
-    }
-  }, []);
+      const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+        access_token: payload.access_token,
+        refresh_token: payload.refresh_token,
+      });
+      if (sessionError || !sessionData.session) {
+        const message = 'تعذر إنشاء جلسة آمنة. حاول مرة أخرى.';
+        setError(message);
+        setStatus('anonymous');
+        throw new Error(message);
+      }
+      const version = observeSession(sessionData.session);
+      try {
+        const nextAccess = await loadAccessContext();
+        if (version !== sessionVersion.current) return;
+        setAccess(nextAccess);
+        setStatus('authenticated');
+      } catch {
+        if (version !== sessionVersion.current) return;
+        await supabase.auth.signOut({ scope: 'local' });
+        if (version !== sessionVersion.current && currentUserId.current !== null) return;
+        observeSession(null);
+        setAccess(null);
+        const message = 'تم تسجيل الدخول، لكن تعذر تحميل صلاحيات الحساب. حاول مرة أخرى أو تواصل مع الدعم.';
+        setError(message);
+        setStatus('anonymous');
+        throw new Error(message);
+      }
+    },
+    [observeSession],
+  );
 
   // SEC: rate limit للـ password reset من جهة العميل — نتتبع الطلبات في
   // localStorage (نافذة ساعة). الحماية الحقيقية يجب أن تكون في الخادم/Supabase،
@@ -222,25 +263,32 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
   }, []);
 
-  const signInMock = useCallback((persona: MockPersona) => {
-    if (!env.devMocksEnabled) return;
-    setIsMock(true);
-    setSession(null);
-    setAccess(mockContexts[persona]);
-    setError(null);
-    setStatus('authenticated');
-  }, []);
+  const signInMock = useCallback(
+    (persona: MockPersona) => {
+      clearSessionData?.();
+      if (!env.devMocksEnabled) return;
+      setIsMock(true);
+      setSession(null);
+      setAccess(mockContexts[persona]);
+      setError(null);
+      setStatus('authenticated');
+    },
+    [clearSessionData],
+  );
 
   const signOut = useCallback(async () => {
+    const version = sessionVersion.current;
     if (!isMock && hasSupabaseConfig) {
       const supabase = await getSupabase();
       await supabase.auth.signOut();
     }
+    if (version !== sessionVersion.current && currentUserId.current !== null) return;
+    if (isMock) clearSessionData?.();
     setIsMock(false);
-    setSession(null);
+    observeSession(null);
     setAccess(null);
     setStatus('anonymous');
-  }, [isMock]);
+  }, [clearSessionData, isMock, observeSession]);
 
   const value = useMemo<AuthContextValue>(
     () => ({

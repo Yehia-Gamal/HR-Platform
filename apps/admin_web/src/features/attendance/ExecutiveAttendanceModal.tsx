@@ -18,7 +18,6 @@ import {
   TrendingUp,
   UserCheck,
   UserX,
-  Users,
   X,
 } from 'lucide-react';
 import { useAttendanceRosterPage } from './useAttendanceDashboard';
@@ -1047,7 +1046,8 @@ ${
                                     <td className="p-2 text-slate-300">{m.item.departmentName ?? '—'}</td>
                                     <td className="p-2">
                                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/25 text-amber-300 border border-amber-500/50 font-black text-[10.5px]">
-                                        {m.item.firstCheckIn ? '⏳ خرج لمأمورية قبل الاعتماد' : '⏳ مأمورية ميدانية قيد الاعتماد'} #{m.item.pendingRequestNumber ?? ''}
+                                        {m.item.firstCheckIn ? '⏳ خرج لمأمورية قبل الاعتماد' : '⏳ مأمورية ميدانية قيد الاعتماد'} #
+                                        {m.item.pendingRequestNumber ?? ''}
                                       </span>
                                     </td>
                                     <td className="p-2 text-slate-200">

@@ -90,6 +90,7 @@ const queryClient = new QueryClient({
     },
   }),
 });
+const clearSessionData = () => queryClient.clear();
 
 // Attach observability after queryClient creation (cast for internal API access)
 attachQueryObservability(queryClient as unknown as Parameters<typeof attachQueryObservability>[0]);
@@ -104,7 +105,7 @@ createRoot(rootElement).render(
       <AppErrorBoundary>
         <ToastProvider>
           <BrowserRouter>
-            <AuthProvider>
+            <AuthProvider clearSessionData={clearSessionData}>
               <App />
             </AuthProvider>
           </BrowserRouter>
