@@ -195,7 +195,7 @@ export function AttendancePage() {
             <button
               type="button"
               onClick={() => handleShiftDate(1)}
-              className="btn-secondary !h-9 !w-9 !p-0 rounded-xl flex items-center justify-center shrink-0"
+              className="btn-secondary !h-10 !w-10 !p-0 rounded-xl flex items-center justify-center shrink-0"
               title="اليوم التالي"
               aria-label="اليوم التالي"
             >
@@ -205,12 +205,12 @@ export function AttendancePage() {
               type="date"
               value={dateIso}
               onChange={(e) => setDateIso(e.target.value || cairoTodayIso())}
-              className="input !h-9 text-xs font-bold rounded-xl flex-1"
+              className="input !h-10 text-xs font-bold rounded-xl flex-1 px-3"
             />
             <button
               type="button"
               onClick={() => handleShiftDate(-1)}
-              className="btn-secondary !h-9 !w-9 !p-0 rounded-xl flex items-center justify-center shrink-0"
+              className="btn-secondary !h-10 !w-10 !p-0 rounded-xl flex items-center justify-center shrink-0"
               title="اليوم السابق"
               aria-label="اليوم السابق"
             >
@@ -220,9 +220,13 @@ export function AttendancePage() {
         </div>
 
         {/* اختيار القسم */}
-        <label className="flex flex-col gap-1.5 text-xs font-bold text-[var(--text-muted)] min-w-[170px] flex-1 sm:flex-none">
+        <label className="flex flex-col gap-1.5 text-xs font-bold text-[var(--text-muted)] min-w-[180px] flex-1 sm:flex-none">
           <span>القسم</span>
-          <select className="select !h-9 text-xs font-bold rounded-xl" value={departmentId ?? ''} onChange={(e) => setDepartmentId(e.target.value || null)}>
+          <select
+            className="select !h-10 text-xs font-bold rounded-xl py-1.5"
+            value={departmentId ?? ''}
+            onChange={(e) => setDepartmentId(e.target.value || null)}
+          >
             <option value="">كل الأقسام</option>
             {lookups.data?.departments.map((d) => (
               <option key={d.id} value={d.id}>
@@ -233,9 +237,13 @@ export function AttendancePage() {
         </label>
 
         {/* اختيار الفرع */}
-        <label className="flex flex-col gap-1.5 text-xs font-bold text-[var(--text-muted)] min-w-[170px] flex-1 sm:flex-none">
+        <label className="flex flex-col gap-1.5 text-xs font-bold text-[var(--text-muted)] min-w-[180px] flex-1 sm:flex-none">
           <span>الفرع</span>
-          <select className="select !h-9 text-xs font-bold rounded-xl" value={branchId ?? ''} onChange={(e) => setBranchId(e.target.value || null)}>
+          <select
+            className="select !h-10 text-xs font-bold rounded-xl py-1.5"
+            value={branchId ?? ''}
+            onChange={(e) => setBranchId(e.target.value || null)}
+          >
             <option value="">كل الفروع</option>
             {lookups.data?.branches.map((b) => (
               <option key={b.id} value={b.id}>
@@ -250,7 +258,7 @@ export function AttendancePage() {
           {!isToday ? (
             <button
               type="button"
-              className="btn-secondary !h-9 px-3 text-xs font-bold rounded-xl text-[var(--primary)] hover:bg-[var(--primary)]/10"
+              className="btn-secondary !h-10 px-3.5 text-xs font-bold rounded-xl text-[var(--primary)] hover:bg-[var(--primary)]/10"
               onClick={() => setDateIso(cairoTodayIso())}
             >
               اليوم الحالي
@@ -259,7 +267,7 @@ export function AttendancePage() {
           {hasFilters ? (
             <button
               type="button"
-              className="btn-ghost !h-9 px-3 text-xs font-bold rounded-xl text-[var(--danger)] hover:bg-[var(--danger)]/10"
+              className="btn-ghost !h-10 px-3.5 text-xs font-bold rounded-xl text-[var(--danger)] hover:bg-[var(--danger)]/10"
               onClick={() => {
                 setDepartmentId(null);
                 setBranchId(null);
@@ -299,6 +307,42 @@ export function AttendancePage() {
               </div>
             ) : null}
           </div>
+
+          {/* ─── المقاييس الأساسية ─── */}
+          <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <MetricCard
+              label="المجدولون اليوم"
+              value={data.scheduled}
+              icon={Users}
+              hint="وفق الورديات وتقويم العمل"
+              compact={true}
+              to={detailsUrl('scheduled', dateIso, departmentId, branchId)}
+            />
+            <MetricCard
+              label="حاضرون"
+              value={data.present}
+              icon={CheckCircle2}
+              hint={expected > 0 ? `${presentPct}% من ${expected} مطلوب حضورهم` : 'لا دوام مطلوب اليوم'}
+              compact={true}
+              to={detailsUrl('present', dateIso, departmentId, branchId)}
+            />
+            <MetricCard
+              label="متأخرون"
+              value={data.late}
+              icon={Clock3}
+              hint="حسب سياسة الوردية"
+              compact={true}
+              to={detailsUrl('late', dateIso, departmentId, branchId)}
+            />
+            <MetricCard
+              label="غياب"
+              value={data.absent}
+              icon={UserMinus}
+              hint={data.unexcusedAbsent != null ? `منهم ${data.unexcusedAbsent} بدون إذن` : 'متابعة المتغيبين'}
+              compact={true}
+              to={detailsUrl('absent', dateIso, departmentId, branchId)}
+            />
+          </section>
 
           {/* ─── بوابات تنفيذية سريعة ─── */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -378,42 +422,6 @@ export function AttendancePage() {
               />
             </Link>
           </div>
-
-          {/* ─── المقاييس الأساسية ─── */}
-          <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <MetricCard
-              label="المجدولون اليوم"
-              value={data.scheduled}
-              icon={Users}
-              hint="وفق الورديات وتقويم العمل"
-              compact={true}
-              to={detailsUrl('scheduled', dateIso, departmentId, branchId)}
-            />
-            <MetricCard
-              label="حاضرون"
-              value={data.present}
-              icon={CheckCircle2}
-              hint={expected > 0 ? `${presentPct}% من ${expected} مطلوب حضورهم` : 'لا دوام مطلوب اليوم'}
-              compact={true}
-              to={detailsUrl('present', dateIso, departmentId, branchId)}
-            />
-            <MetricCard
-              label="متأخرون"
-              value={data.late}
-              icon={Clock3}
-              hint="حسب سياسة الوردية"
-              compact={true}
-              to={detailsUrl('late', dateIso, departmentId, branchId)}
-            />
-            <MetricCard
-              label="غياب"
-              value={data.absent}
-              icon={UserMinus}
-              hint={data.unexcusedAbsent != null ? `منهم ${data.unexcusedAbsent} بدون إذن` : 'متابعة المتغيبين'}
-              compact={true}
-              to={detailsUrl('absent', dateIso, departmentId, branchId)}
-            />
-          </section>
 
           {/* ─── حالات تحتاج اهتمام ─── */}
           <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
