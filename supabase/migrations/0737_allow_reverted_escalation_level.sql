@@ -133,3 +133,4 @@ $$;
 
 revoke all on function public.revert_doubled_instant_penalty(uuid, text) from public, anon;
 grant execute on function public.revert_doubled_instant_penalty(uuid, text) to authenticated, service_role;
+

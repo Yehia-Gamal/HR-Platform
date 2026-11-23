@@ -7,6 +7,8 @@ on:
 jobs:
   database:
     runs-on: ubuntu-latest
+    env:
+      SUPABASE_AUTH_SITE_URL: http://127.0.0.1:4173
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

@@ -13,22 +13,22 @@ const DEV_ORIGINS = [
   "http://localhost:4174",
   "http://127.0.0.1:4174",
 ];
+const DEFAULT_ORIGINS = [
+  "https://ahla-shabab-management-os.vercel.app",
+];
+const ALLOWED_ORIGINS = new Set([
+  ...(ALLOWED.length > 0 ? ALLOWED : DEFAULT_ORIGINS),
+  ...(DEV ? DEV_ORIGINS : []),
+]);
 
-export function corsHeaders(req: Request): Record<string, string> {
-  const origin = req.headers.get("Origin") ?? "";
-  const isLocalhost =
-    origin.startsWith("http://localhost:") ||
-    origin.startsWith("http://127.0.0.1:") ||
-    origin.startsWith("https://localhost:") ||
-    origin.startsWith("https://127.0.0.1:");
-  const allowed = new Set([...ALLOWED, ...DEV_ORIGINS]);
-  const allow = (allowed.has(origin) || isLocalhost) ? origin : (ALLOWED[0] ?? "*");
+export function corsHeaders(req: Request, methods = "POST, OPTIONS"): Record<string, string> {
+  const origin = req.headers.get("Origin");
   return {
-    "Access-Control-Allow-Origin": allow,
+    ...(origin && ALLOWED_ORIGINS.has(origin) ? { "Access-Control-Allow-Origin": origin } : {}),
     "Vary": "Origin",
     "Access-Control-Allow-Headers":
-        "Content-Type, Authorization, apikey, x-client-info, x-cron-secret",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Content-Type, Authorization, apikey, x-client-info, x-request-id, x-cron-secret",
+    "Access-Control-Allow-Methods": methods,
     "Access-Control-Max-Age": "86400",
   };
 }

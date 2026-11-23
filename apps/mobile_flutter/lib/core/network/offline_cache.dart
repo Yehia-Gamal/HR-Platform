@@ -15,9 +15,7 @@ class OfflineCache {
   static final OfflineCache instance = OfflineCache._();
 
   final FlutterSecureStorage _storage = const FlutterSecureStorage(
-    aOptions: AndroidOptions(
-      resetOnError: true,
-    ),
+    aOptions: AndroidOptions(resetOnError: true),
   );
 
   static const _prefix = 'offline_cache_';
@@ -26,24 +24,18 @@ class OfflineCache {
   /// أقصى عمر لعنصر الكاش قبل اعتباره منتهي الصلاحية (24 ساعة).
   static const _maxAge = Duration(hours: 24);
 
-  String? _currentUserId;
+  String _dataKey(String userId, String cacheKey) =>
+      '$_prefix${userId}_$cacheKey';
 
-  void setCurrentUser(String? userId) {
-    _currentUserId = userId;
-  }
+  String _tsKey(String userId, String cacheKey) =>
+      '$_tsPrefix${userId}_$cacheKey';
 
-  String _dataKey(String cacheKey) =>
-      '$_prefix${_currentUserId != null ? "${_currentUserId}_" : ""}$cacheKey';
-
-  String _tsKey(String cacheKey) =>
-      '$_tsPrefix${_currentUserId != null ? "${_currentUserId}_" : ""}$cacheKey';
-
-  Future<void> put(String cacheKey, dynamic data) async {
+  Future<void> put(String userId, String cacheKey, dynamic data) async {
     try {
       final json = jsonEncode(data);
-      await _storage.write(key: _dataKey(cacheKey), value: json);
+      await _storage.write(key: _dataKey(userId, cacheKey), value: json);
       await _storage.write(
-        key: _tsKey(cacheKey),
+        key: _tsKey(userId, cacheKey),
         value: DateTime.now().toIso8601String(),
       );
     } catch (_) {}
@@ -51,17 +43,19 @@ class OfflineCache {
 
   /// يُرجع البيانات المخزّنة إن لم تنتهِ صلاحيتها (خلال [_maxAge]).
   /// إن انتهت، يُحذف العنصر ويُرجع null إلا إذا كان [allowStale] مفعلاً.
-  Future<dynamic> get(String cacheKey, {bool allowStale = false}) async {
+  Future<dynamic> get(String userId, String cacheKey) async {
     try {
       // تحقق من TTL قبل الإرجاع
-      final ts = await getTimestamp(cacheKey);
+      final rawTimestamp = await _storage.read(key: _tsKey(userId, cacheKey));
+      final ts = rawTimestamp == null ? null : DateTime.tryParse(rawTimestamp);
       if (ts == null) return null;
       final age = DateTime.now().difference(ts);
-      if (age > _maxAge && !allowStale) {
-        await remove(cacheKey);
+      if (age > _maxAge) {
+        await _storage.delete(key: _dataKey(userId, cacheKey));
+        await _storage.delete(key: _tsKey(userId, cacheKey));
         return null;
       }
-      final json = await _storage.read(key: _dataKey(cacheKey));
+      final json = await _storage.read(key: _dataKey(userId, cacheKey));
       if (json == null) return null;
       return jsonDecode(json);
     } catch (_) {
@@ -69,43 +63,17 @@ class OfflineCache {
     }
   }
 
-  Future<DateTime?> getTimestamp(String cacheKey) async {
-    try {
-      final ts = await _storage.read(key: _tsKey(cacheKey));
-      if (ts == null) return null;
-      return DateTime.parse(ts);
-    } catch (_) {
-      return null;
-    }
-  }
-
-  Future<void> remove(String cacheKey) async {
-    try {
-      await _storage.delete(key: _dataKey(cacheKey));
-      await _storage.delete(key: _tsKey(cacheKey));
-    } catch (_) {}
-  }
-
-  /// يُحدّث كل عناصر الكاش للمستخدم الحالي عبر iterate جميع المفاتيح
-  /// التي تبدأ بالـ prefix الخاص بالمستخدم.
-  Future<void> clearAll() async {
+  Future<void> clearAllForUser(String userId) async {
     try {
       final allKeys = await _storage.readAll();
-      final dataPrefix = '$_prefix${_currentUserId != null ? "${_currentUserId}_" : ""}';
-      final tsPrefix = '$_tsPrefix${_currentUserId != null ? "${_currentUserId}_" : ""}';
+      final dataPrefix = _dataKey(userId, '');
+      final tsPrefix = _tsKey(userId, '');
       for (final key in allKeys.keys) {
         if (key.startsWith(dataPrefix) || key.startsWith(tsPrefix)) {
           await _storage.delete(key: key);
         }
       }
     } catch (_) {}
-  }
-
-  Future<void> clearAllForUser(String? userId) async {
-    final saved = _currentUserId;
-    _currentUserId = userId;
-    await clearAll();
-    _currentUserId = saved;
   }
 
   static const attendanceState = 'attendance_state';

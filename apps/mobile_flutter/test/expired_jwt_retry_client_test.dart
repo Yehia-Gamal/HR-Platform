@@ -10,6 +10,16 @@ import 'package:http/testing.dart';
 const _expiredBody =
     '{"code":"PGRST303","details":null,"hint":null,"message":"JWT expired"}';
 
+String _token(String sessionId, String signature) {
+  final claims = base64Url.encode(
+    utf8.encode(jsonEncode({'session_id': sessionId})),
+  );
+  return 'e30.$claims.$signature';
+}
+
+final _stale = _token('first-session', 'stale');
+final _fresh = _token('first-session', 'fresh');
+
 void main() {
   late List<http.Request> sent;
   late int refreshes;
@@ -17,7 +27,7 @@ void main() {
 
   ExpiredJwtRetryClient build(
     http.Response Function(http.Request) handler, {
-    String? refreshed = 'fresh',
+    bool refreshSucceeds = true,
   }) {
     sent = [];
     refreshes = 0;
@@ -29,24 +39,24 @@ void main() {
       currentAccessToken: () => current,
       refreshAccessToken: () async {
         refreshes++;
-        current = refreshed;
-        return refreshed;
+        current = refreshSucceeds ? _fresh : null;
+        return current;
       },
     );
   }
 
   http.Response expiredUnlessFresh(http.Request r) =>
-      r.headers['Authorization'] == 'Bearer fresh'
+      r.headers['Authorization'] == 'Bearer $_fresh'
       ? http.Response('[]', 200)
       : http.Response(_expiredBody, 401);
 
-  setUp(() => current = 'stale');
+  setUp(() => current = _stale);
 
   test('يجدد الجلسة ويعيد طلب RPC بنفس الجسم عند JWT expired', () async {
     final client = build(expiredUnlessFresh);
     final res = await client.post(
       Uri.parse('https://x.supabase.co/rest/v1/rpc/get_honor_board'),
-      headers: {'Authorization': 'Bearer stale'},
+      headers: {'Authorization': 'Bearer $_stale'},
       body: jsonEncode({'p_period': 'month'}),
     );
     expect(res.statusCode, 200);
@@ -57,10 +67,10 @@ void main() {
 
   test('لا يجدد ثانيةً إن جُدّدت الجلسة بطلب موازٍ', () async {
     final client = build(expiredUnlessFresh);
-    current = 'fresh';
+    current = _fresh;
     final res = await client.post(
       Uri.parse('https://x.supabase.co/rest/v1/rpc/get_my_notifications'),
-      headers: {'Authorization': 'Bearer stale'},
+      headers: {'Authorization': 'Bearer $_stale'},
     );
     expect(res.statusCode, 200);
     expect(refreshes, 0);
@@ -72,10 +82,38 @@ void main() {
     final client = build((_) => http.Response(denied, 401));
     final res = await client.post(
       Uri.parse('https://x.supabase.co/rest/v1/rpc/x'),
-      headers: {'Authorization': 'Bearer stale'},
+      headers: {'Authorization': 'Bearer $_stale'},
     );
     expect(res.statusCode, 401);
     expect(res.body, denied);
+    expect(refreshes, 0);
+    expect(sent, hasLength(1));
+  });
+
+  test('does not replay a mutation after an unrelated HTTP 500', () async {
+    final client = build((_) {
+      current = _fresh;
+      return http.Response('{"message":"server error"}', 500);
+    });
+    final res = await client.post(
+      Uri.parse('https://x.supabase.co/rest/v1/rpc/x'),
+      headers: {'Authorization': 'Bearer $_stale'},
+    );
+    expect(res.statusCode, 500);
+    expect(refreshes, 0);
+    expect(sent, hasLength(1));
+  });
+
+  test('does not replay a request after the active session changes', () async {
+    final client = build((_) {
+      current = _token('second-session', 'new');
+      return http.Response(_expiredBody, 401);
+    });
+    final res = await client.post(
+      Uri.parse('https://x.supabase.co/rest/v1/rpc/x'),
+      headers: {'Authorization': 'Bearer $_stale'},
+    );
+    expect(res.statusCode, 401);
     expect(refreshes, 0);
     expect(sent, hasLength(1));
   });
@@ -90,10 +128,10 @@ void main() {
   });
 
   test('فشل التجديد يعيد الاستجابة الأصلية دون حلقة', () async {
-    final client = build(expiredUnlessFresh, refreshed: null);
+    final client = build(expiredUnlessFresh, refreshSucceeds: false);
     final res = await client.post(
       Uri.parse('https://x.supabase.co/rest/v1/rpc/get_honor_board'),
-      headers: {'Authorization': 'Bearer stale'},
+      headers: {'Authorization': 'Bearer $_stale'},
     );
     expect(res.statusCode, 401);
     expect(res.body, _expiredBody);

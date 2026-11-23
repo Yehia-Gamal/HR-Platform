@@ -2,7 +2,7 @@
   "imports": {
     "@simplewebauthn/server": "jsr:@simplewebauthn/server@13",
     "@supabase/supabase-js": "npm:@supabase/supabase-js@2",
-    "zod": "npm:zod@4"
+    "zod": "npm:zod@4.6.7"
   },
   "nodeModulesDir": "auto",
   "compilerOptions": { "strict": true }

@@ -10,11 +10,10 @@ import 'package:ahla_shabab_management_os/core/network/offline_sync_queue.dart';
 /// جميع العمليات best-effort: لا يُرمى أي استثناء.
 Future<void> cleanupOnSignOut({String? userId}) async {
   try {
-    await OfflineCache.instance.clearAllForUser(userId);
-    OfflineCache.instance.setCurrentUser(null);
+    if (userId != null) await OfflineCache.instance.clearAllForUser(userId);
   } catch (_) {}
   try {
-    await OfflineSyncQueue.instance.clear();
+    if (userId != null) await OfflineSyncQueue.forUser(userId).clear();
   } catch (_) {}
   try {
     await FirebaseMessaging.instance.deleteToken();

@@ -12,7 +12,9 @@ interface SubscribeBody {
 
 Deno.serve(
   createHandler({ functionName: 'push-subscribe', version: '1.0.0' }, async (req, ctx) => {
-    if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
+    if (req.method === 'OPTIONS') {
+      return new Response('ok', { headers: corsHeaders(req, 'POST, DELETE, OPTIONS') });
+    }
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) return respond(req, { error: 'UNAUTHORIZED' }, 401);
 

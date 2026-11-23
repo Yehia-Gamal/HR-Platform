@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const excludedDirs = new Set([
-  '.git', 'node_modules', 'dist', 'build', '.dart_tool', '.idea', '.vscode',
+  '.git', 'node_modules', 'dist', 'dist-e2e', 'build', '.dart_tool', '.idea', '.vscode', '.temp',
   '.claude', 'android', 'ios',
 ]);
 const checkedExtensions = new Set(['.json', '.lock', '.sql']);

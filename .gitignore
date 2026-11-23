@@ -27,6 +27,8 @@ backup-drill/
 build/
 coverage/
 dist/
+dist-e2e/
+.tmp_flutter/
 dist-mobile/symbols/
 node_modules/
 staging_generated_secrets.local.txt

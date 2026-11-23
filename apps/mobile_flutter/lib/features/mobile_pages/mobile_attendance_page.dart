@@ -2057,17 +2057,21 @@ class _TodayStatusCard extends StatelessWidget {
               children: [
                 Icon(Icons.today_outlined, size: 18, color: scheme.primary),
                 const SizedBox(width: 8),
-                const Text(
-                  'حالة اليوم',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                const Expanded(
+                  child: Text(
+                    'حالة اليوم',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                  ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 8),
                 if (hasStatus)
-                  MobileStatusPill(effectiveTodayStatus)
+                  Flexible(child: MobileStatusPill(effectiveTodayStatus))
                 else if (state.missionToday != null)
-                  MobileStatusPill(state.missionToday!.type)
+                  Flexible(child: MobileStatusPill(state.missionToday!.type))
                 else
-                  const MobileStatusPill('not_recorded'),
+                  const Flexible(child: MobileStatusPill('not_recorded')),
               ],
             ),
             const SizedBox(height: 12),
@@ -2100,12 +2104,16 @@ class _TodayStatusCard extends StatelessWidget {
                                     : scheme.onSurfaceVariant,
                               ),
                               const SizedBox(width: 6),
-                              Text(
-                                'وقت الحضور',
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  color: scheme.onSurfaceVariant,
-                                  fontWeight: FontWeight.w600,
+                              Flexible(
+                                child: Text(
+                                  'وقت الحضور',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    color: scheme.onSurfaceVariant,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                             ],
@@ -2115,6 +2123,8 @@ class _TodayStatusCard extends StatelessWidget {
                             state.todayCheckInAt != null
                                 ? formatter.format(state.todayCheckInAt!.toLocal())
                                 : 'لم يُسجل بعد',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w800,
@@ -2193,12 +2203,16 @@ class _TodayStatusCard extends StatelessWidget {
                                     : AppColors.statusWarning,
                               ),
                               const SizedBox(width: 6),
-                              Text(
-                                'وقت الانصراف',
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  color: scheme.onSurfaceVariant,
-                                  fontWeight: FontWeight.w600,
+                              Flexible(
+                                child: Text(
+                                  'وقت الانصراف',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    color: scheme.onSurfaceVariant,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                             ],
@@ -2208,6 +2222,8 @@ class _TodayStatusCard extends StatelessWidget {
                             state.todayCheckOutAt != null
                                 ? formatter.format(state.todayCheckOutAt!.toLocal())
                                 : (state.todayCheckInAt != null ? 'قيد العمل الآن' : '—'),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w800,
@@ -2358,12 +2374,13 @@ class _TodayStatusCard extends StatelessWidget {
                 icon: Icons.schedule_rounded,
                 label: 'الوردية المعتمدة',
                 value: '${currentShift!.name} (${currentShift!.formattedRange})',
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
+                trailing: Wrap(
+                  spacing: 4,
+                  runSpacing: 4,
+                  alignment: WrapAlignment.end,
                   children: [
                     if (currentShift!.hasTodayPermit && currentShift!.todayPermit != null) ...[
                       Container(
-                        margin: const EdgeInsets.only(left: 4),
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: const Color(0xFFD97706).withValues(alpha: 0.15),
@@ -2500,9 +2517,11 @@ class _StatusRow extends StatelessWidget {
       children: [
         Icon(icon, size: 16, color: scheme.onSurfaceVariant),
         const SizedBox(width: 8),
-        Text(
-          label,
-          style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+        Flexible(
+          child: Text(
+            label,
+            style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+          ),
         ),
         const SizedBox(width: 8),
         Expanded(

@@ -25,7 +25,7 @@ function request(opts, body = null) {
       res.on('data', c => d += c);
       res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body: d }));
     });
-    req.on('error', (e) => resolve({ status: 0, error: e.message }));
+    req.on('error', (e) => resolve({ status: 0, error: e.message, body: '' }));
     if (body) req.write(typeof body === 'string' ? body : JSON.stringify(body));
     req.end();
   });

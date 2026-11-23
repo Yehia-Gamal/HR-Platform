@@ -11,7 +11,7 @@ import { createLogger } from "./logger.ts";
 //  • كتم تفاصيل الأخطاء في الإنتاج (stack/raw messages تظهر في غير الإنتاج فقط).
 //  • تتبّع المدة (timed) ودمج السياق (child).
 //
-// ملاحظة: تُشغَّل عبر `deno test supabase/functions/` في CI (Deno غير مُثبّت محلياً).
+// تُشغَّل عبر `deno test supabase/functions/` في CI.
 
 interface Capture {
   log: string[];
@@ -31,6 +31,15 @@ function captureConsole(): { out: Capture; restore: () => void } {
 }
 
 /** يثبّت Deno.env.get ليرجع قيمة محدّدة لـ ENVIRONMENT فقط طوال fn. */
+async function withEnvAsync(env: string | undefined, fn: () => Promise<void>): Promise<void> {
+  const s = stub(Deno.env, "get", (key: string) => (key === "ENVIRONMENT" ? env : undefined));
+  try {
+    await fn();
+  } finally {
+    s.restore();
+  }
+}
+
 function withEnv(env: string | undefined, fn: () => void): void {
   const s = stub(Deno.env, "get", (key: string) => (key === "ENVIRONMENT" ? env : undefined));
   try {
@@ -201,14 +210,14 @@ Deno.test("خطأ Error: error_name + error_message؛ الـ stack في غير �
     assertEquals(e.error_message, "boom");
     assertEquals(typeof e.error_stack, "string");
   });
-  // إنتاج → لا stack
+  // إنتاج → لا رسالة خطأ خام أو stack
   withEnv(undefined, () => {
     const c = captureConsole();
     createLogger({ functionName: "fn" }).error("failed", err);
     c.restore();
     const e = lastEntry(c.out.error[0]);
     assertEquals(e.error_name, "Error");
-    assertEquals(e.error_message, "boom");
+    assertEquals(e.error_message, "[redacted-nonprod-only]");
     assertEquals(e.error_stack, undefined);
   });
 });
@@ -271,7 +280,7 @@ Deno.test("debug: لا يبثّ شيئاً في الإنتاج، ويبثّ في
 
 // ─── timed و child ───────────────────────────────────────────────────────────
 Deno.test("timed: نجاح → info «<op> completed» مع duration_ms ويعيد النتيجة", async () => {
-  withEnv(undefined, async () => {
+  await withEnvAsync(undefined, async () => {
     const c = captureConsole();
     const log = createLogger({ functionName: "fn" });
     const result = await log.timed("op", async () => 42, { tag: "t" });
@@ -286,7 +295,7 @@ Deno.test("timed: نجاح → info «<op> completed» مع duration_ms ويعي
 });
 
 Deno.test("timed: فشل → error «<op> failed» مع duration_ms ويُعيد رمي الخطأ", async () => {
-  withEnv(undefined, async () => {
+  await withEnvAsync(undefined, async () => {
     const c = captureConsole();
     const log = createLogger({ functionName: "fn" });
     let caught: unknown = undefined;
@@ -303,7 +312,7 @@ Deno.test("timed: فشل → error «<op> failed» مع duration_ms ويُعيد
     const e = lastEntry(c.out.error[0]);
     assertEquals(e.message, "op failed");
     assertEquals(typeof e.duration_ms, "number");
-    assertEquals(e.error_message, "nope");
+    assertEquals(e.error_message, "[redacted-nonprod-only]");
   });
 });
 

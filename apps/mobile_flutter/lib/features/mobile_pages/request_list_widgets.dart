@@ -162,8 +162,11 @@ class _LeaveBalanceStripState extends ConsumerState<LeaveBalanceStrip> {
       children: [
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 4,
             children: [
               Text(
                 'الأرصدة المتاحة (${allCards.length})',
@@ -189,12 +192,14 @@ class _LeaveBalanceStripState extends ConsumerState<LeaveBalanceStrip> {
                         color: scheme.primary,
                       ),
                       const SizedBox(width: 4),
-                      Text(
-                        _isGridView ? 'عرض شريط' : 'عرض شبكي',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: scheme.primary,
+                      Flexible(
+                        child: Text(
+                          _isGridView ? 'عرض شريط' : 'عرض شبكي',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: scheme.primary,
+                          ),
                         ),
                       ),
                     ],

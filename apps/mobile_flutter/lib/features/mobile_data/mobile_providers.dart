@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:ahla_shabab_management_os/core/network/offline_aware_provider.dart';
 import 'package:ahla_shabab_management_os/core/network/offline_cache.dart';
 import 'package:ahla_shabab_management_os/core/network/offline_sync_queue.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
@@ -202,36 +203,26 @@ final markNotificationOpenedProvider = FutureProvider.family<void, String>((
 });
 
 final employeeHomeProvider = FutureProvider<EmployeeHomeSummary>((ref) async {
-  try {
-    final data = await _withTimeout(
-      ref.watch(supabaseProvider).rpc<dynamic>('get_employee_home'),
-    );
-    final result = EmployeeHomeSummary.fromJson(_asMap(data));
-    OfflineCache.instance.put(OfflineCache.employeeHome, _asMap(data));
-    return result;
-  } catch (e) {
-    final cached = await OfflineCache.instance.get(OfflineCache.employeeHome);
-    if (cached != null) return EmployeeHomeSummary.fromJson(_asMap(cached));
-    rethrow;
-  }
+  ref.watch(authUserIdProvider);
+  final client = ref.watch(supabaseProvider);
+  return offlineAwareRpc(
+    client: client,
+    rpcCall: () => client.rpc<dynamic>('get_employee_home'),
+    cacheKey: OfflineCache.employeeHome,
+    parser: (data) => EmployeeHomeSummary.fromJson(_asMap(data)),
+  );
 });
 final managerDashboardProvider = FutureProvider<ManagerDashboardSummary>((
   ref,
 ) async {
-  try {
-    final data = await _withTimeout(
-      ref.watch(supabaseProvider).rpc<dynamic>('get_manager_dashboard'),
-    );
-    final result = ManagerDashboardSummary.fromJson(_asMap(data));
-    OfflineCache.instance.put(OfflineCache.managerDashboard, _asMap(data));
-    return result;
-  } catch (e) {
-    final cached = await OfflineCache.instance.get(
-      OfflineCache.managerDashboard,
-    );
-    if (cached != null) return ManagerDashboardSummary.fromJson(_asMap(cached));
-    rethrow;
-  }
+  ref.watch(authUserIdProvider);
+  final client = ref.watch(supabaseProvider);
+  return offlineAwareRpc(
+    client: client,
+    rpcCall: () => client.rpc<dynamic>('get_manager_dashboard'),
+    cacheKey: OfflineCache.managerDashboard,
+    parser: (data) => ManagerDashboardSummary.fromJson(_asMap(data)),
+  );
 });
 final executiveDashboardProvider = FutureProvider<ExecutiveDashboardSummary>((
   ref,
@@ -242,26 +233,14 @@ final executiveDashboardProvider = FutureProvider<ExecutiveDashboardSummary>((
   return ExecutiveDashboardSummary.fromJson(_asMap(data));
 });
 final mobileRequestsProvider = FutureProvider<List<MobileRequest>>((ref) async {
-  try {
-    final data = await _withTimeout(
-      ref
-          .watch(supabaseProvider)
-          .rpc<dynamic>('get_request_inbox', params: {'p_limit': 100}),
-    );
-    final result = _asList(
-      data,
-    ).map(MobileRequest.fromJson).toList(growable: false);
-    OfflineCache.instance.put(OfflineCache.myRequests, _asList(data));
-    return result;
-  } catch (e) {
-    final cached = await OfflineCache.instance.get(OfflineCache.myRequests);
-    if (cached != null) {
-      return (cached as List<dynamic>)
-          .map((e) => MobileRequest.fromJson(_asMap(e)))
-          .toList(growable: false);
-    }
-    rethrow;
-  }
+  ref.watch(authUserIdProvider);
+  final client = ref.watch(supabaseProvider);
+  return offlineAwareRpc(
+    client: client,
+    rpcCall: () => client.rpc<dynamic>('get_request_inbox', params: {'p_limit': 100}),
+    cacheKey: OfflineCache.myRequests,
+    parser: (data) => _asList(data).map(MobileRequest.fromJson).toList(growable: false),
+  );
 });
 // تكليفات العمل (مأمورية/قافلة/فاندي). p_scope: 'mine' للموظف، 'team' للمدير.
 final workAssignmentsProvider =
@@ -301,26 +280,14 @@ final myMonthlyStatementProvider =
 final mobileKpiProvider = FutureProvider<List<MobileKpiEvaluation>>((
   ref,
 ) async {
-  try {
-    final data = await _withTimeout(
-      ref
-          .watch(supabaseProvider)
-          .rpc<dynamic>('get_kpi_inbox', params: {'p_limit': 100}),
-    );
-    final result = _asList(
-      data,
-    ).map(MobileKpiEvaluation.fromJson).toList(growable: false);
-    OfflineCache.instance.put(OfflineCache.kpiList, _asList(data));
-    return result;
-  } catch (e) {
-    final cached = await OfflineCache.instance.get(OfflineCache.kpiList);
-    if (cached != null) {
-      return (cached as List<dynamic>)
-          .map((e) => MobileKpiEvaluation.fromJson(_asMap(e)))
-          .toList(growable: false);
-    }
-    rethrow;
-  }
+  ref.watch(authUserIdProvider);
+  final client = ref.watch(supabaseProvider);
+  return offlineAwareRpc(
+    client: client,
+    rpcCall: () => client.rpc<dynamic>('get_kpi_inbox', params: {'p_limit': 100}),
+    cacheKey: OfflineCache.kpiList,
+    parser: (data) => _asList(data).map(MobileKpiEvaluation.fromJson).toList(growable: false),
+  );
 });
 final kpiEvaluationFormProvider =
     FutureProvider.family<KpiEvaluationForm, String>((ref, evaluationId) async {
@@ -335,30 +302,19 @@ final kpiEvaluationFormProvider =
       return KpiEvaluationForm.fromJson(_asMap(data));
     });
 final attendanceStateProvider = FutureProvider<AttendanceState>((ref) async {
-  try {
-    // 0226: Pass installation_id so the server checks THIS device specifically,
-    // not all devices. Prevents canPunch=true on a replaced/revoked device.
-    final installationId = await ref.watch(installationIdProvider.future);
-    final data = await _withTimeout(
-      ref
-          .watch(supabaseProvider)
-          .rpc<dynamic>(
-            'get_my_attendance_state',
-            params: {'p_installation_id': installationId},
-          ),
-    );
-    final result = AttendanceState.fromJson(_asMap(data));
-    // Cache for offline use.
-    OfflineCache.instance.put(OfflineCache.attendanceState, _asMap(data));
-    return result;
-  } catch (e) {
-    // Try cached data when offline.
-    final cached = await OfflineCache.instance.get(
-      OfflineCache.attendanceState,
-    );
-    if (cached != null) return AttendanceState.fromJson(_asMap(cached));
-    rethrow;
-  }
+  ref.watch(authUserIdProvider);
+  final client = ref.watch(supabaseProvider);
+  // The server checks whether this installation is replaced or revoked.
+  final installationId = await ref.watch(installationIdProvider.future);
+  return offlineAwareRpc(
+    client: client,
+    rpcCall: () => client.rpc<dynamic>(
+      'get_my_attendance_state',
+      params: {'p_installation_id': installationId},
+    ),
+    cacheKey: OfflineCache.attendanceState,
+    parser: (data) => AttendanceState.fromJson(_asMap(data)),
+  );
 });
 
 /// قناة Realtime لأحداث الحضور — تحدّث حالة البصمة فوراً بدل انتظار الاستقصاء.

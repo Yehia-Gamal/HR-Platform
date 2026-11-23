@@ -1,6 +1,5 @@
-import 'dart:async';
-
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:ahla_shabab_management_os/core/network/offline_aware_provider.dart';
 import 'package:ahla_shabab_management_os/core/network/offline_cache.dart';
 import 'package:ahla_shabab_management_os/shared/access_context.dart';
 import 'package:flutter/foundation.dart';
@@ -13,18 +12,17 @@ final supabaseProvider = Provider<SupabaseClient>(
 
 final authSessionProvider = StreamProvider<Session?>((ref) async* {
   final client = ref.watch(supabaseProvider);
-  var session = client.auth.currentSession;
+  final session = client.auth.currentSession;
   if (session != null && session.isExpired) {
     try {
-      final refreshed = await client.auth.refreshSession();
-      session = refreshed.session ?? session;
+      await client.auth.refreshSession();
     } catch (e) {
       if (kDebugMode) {
         debugPrint('[AuthSession] Background refresh failed, retaining session: $e');
       }
     }
   }
-  yield session;
+  yield client.auth.currentSession;
 
   // منع أخطاء الشبكة أثناء التحديث التلقائي في الخلفية من إسقاط المزود
   final safeStream = client.auth.onAuthStateChange.handleError((error, stackTrace) {
@@ -56,6 +54,10 @@ final authSessionProvider = StreamProvider<Session?>((ref) async* {
   }
 });
 
+final authUserIdProvider = Provider<String?>((ref) {
+  return ref.watch(authSessionProvider.select((state) => state.value?.user.id));
+});
+
 /// Streams true while a PASSWORD_RECOVERY deep-link session is active (invite /
 /// reset email opened the app). Resets to false once the user saves their
 /// password (userUpdated) or signs out.
@@ -76,33 +78,19 @@ final accessContextProvider = FutureProvider<AccessContext?>((ref) async {
   final session = ref.watch(authSessionProvider).value;
   if (session == null) return null;
   final client = ref.watch(supabaseProvider);
+  if (client.auth.currentUser?.id != session.user.id) return null;
 
-  // تثبيت معرّف المستخدم الحالي للكاش فوراً
-  OfflineCache.instance.setCurrentUser(session.user.id);
-
-  try {
-    // 0471-UX: انقطاعات الشبكة اللحظية كانت تُسقط الواجهة إلى صفحة
-    // «تسجيل الخروج» فورًا. نعيد المحاولة بتراجع متزايد قبل الاستسلام —
-    // أغلب الحالات تُحل تلقائيًا خلال ثوانٍ دون إزعاج المستخدم.
-    final response = await retryWithBackoff(
+  return offlineAwareRpc(
+    client: client,
+    rpcCall: () => retryWithBackoff(
       () => rpcWithTimeout(
         client.rpc<dynamic>('get_my_access_context'),
       ),
       maxRetries: 2,
-    );
-    final json = Map<String, dynamic>.from(response as Map<dynamic, dynamic>);
-    unawaited(OfflineCache.instance.put(OfflineCache.accessContext, json));
-    return AccessContext.fromJson(json);
-  } catch (error) {
-    // استرجاع الصلاحيات من الكاش المحلي حتى لا يُسقط الموظف إلى شاشة الخطأ أو الخروج
-    final cached = await OfflineCache.instance.get(
-      OfflineCache.accessContext,
-      allowStale: true,
-    );
-    if (cached != null && cached is Map) {
-      return AccessContext.fromJson(Map<String, dynamic>.from(cached));
-    }
-    rethrow;
-  }
+    ),
+    cacheKey: OfflineCache.accessContext,
+    timeout: const Duration(seconds: 65),
+    parser: (data) => AccessContext.fromJson(Map<String, dynamic>.from(data as Map)),
+  );
 });
 

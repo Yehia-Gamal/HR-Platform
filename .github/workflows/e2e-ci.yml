@@ -10,12 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      # قيم عامة (project URL + publishable/anon key) — آمنة للنشر في الواجهة؛
-      # على مستوى الـ job حتى يبني `vite build` بها (الزر لا يُفعَّل بلا hasSupabaseConfig)
       CI: true
-      VITE_SUPABASE_URL: https://ujzzvqsodyhnnnpkoaml.supabase.co
-      VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_Q5JTOX-mLp5Y9wmxlZyTnQ_QBu5wPC2
-      VITE_ENABLE_DEV_MOCKS: 'true'
     defaults:
       run:
         working-directory: apps/admin_web
@@ -33,9 +28,6 @@ jobs:
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
-
-      - name: Build production bundle
-        run: npm run build --workspace @ahla/admin-web
 
       - name: Run E2E tests
         run: npx playwright test

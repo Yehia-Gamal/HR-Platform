@@ -4,7 +4,6 @@ import 'package:ahla_design_tokens/ahla_design_tokens.dart';
 import 'package:ahla_shabab_management_os/core/config/app_config.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_probe.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
-import 'package:ahla_shabab_management_os/core/network/offline_cache.dart';
 import 'package:ahla_shabab_management_os/core/network/session_cleanup.dart';
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/core/widgets/phone_display.dart';
@@ -226,7 +225,6 @@ class _AuthenticatedGateState extends ConsumerState<_AuthenticatedGate>
         if (value.user.appMetadata['must_change_password'] == true) {
           return const SetPasswordPage();
         }
-        OfflineCache.instance.setCurrentUser(value.user.id);
         // Device registration is non-blocking for the UI but remains observable in Riverpod.
         ref.watch(deviceRegistrationProvider);
         final access = ref.watch(accessContextProvider);

@@ -100,11 +100,11 @@ export class Logger {
     if (this.ctx.userId) entry.user_ref = correlationToken(this.ctx.userId);
 
     if (error != null) {
-      const isProd = this.env === "production";
+      const showErrorDetails = ["development", "dev", "local", "test"].includes(this.env);
       if (error instanceof Error) {
         entry.error_name = error.name;
-        entry.error_message = error.message;
-        if (!isProd) {
+        entry.error_message = showErrorDetails ? error.message : "[redacted-nonprod-only]";
+        if (showErrorDetails) {
           entry.error_stack = error.stack?.split("\n").slice(0, 5).join("\n");
         }
       } else if (typeof error === "object") {
@@ -113,10 +113,10 @@ export class Logger {
         const e = error as { code?: unknown; message?: unknown };
         if (e.code != null) entry.error_name = String(e.code);
         if (e.message != null) {
-          entry.error_message = isProd ? "[redacted-nonprod-only]" : String(e.message);
+          entry.error_message = showErrorDetails ? String(e.message) : "[redacted-nonprod-only]";
         }
       } else {
-        entry.error_message = isProd ? "[redacted-nonprod-only]" : String(error);
+        entry.error_message = showErrorDetails ? String(error) : "[redacted-nonprod-only]";
       }
     }
 

@@ -128,15 +128,15 @@
   {
     "severity": "INFO",
     "category": "rate-limit",
-    "finding": "50 rapid requests: 50 ok, 0 err, 6.144s",
-    "evidence": "~8 req/s",
+    "finding": "50 rapid requests: 50 ok, 0 err, 10.407s",
+    "evidence": "~5 req/s",
     "fix": "Consider edge WAF rules"
   },
   {
     "severity": "INFO",
     "category": "web",
-    "finding": "Admin web fetched",
-    "evidence": "1511 bytes",
+    "finding": "Could not fetch admin web",
+    "evidence": "fetch failed",
     "fix": "—"
   }
 ]

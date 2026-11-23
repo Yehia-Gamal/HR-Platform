@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 const webRoot = fileURLToPath(new URL('.', import.meta.url));
 const playwrightPort = process.env.PLAYWRIGHT_PORT || '4173';
 const playwrightUrl = `http://127.0.0.1:${playwrightPort}`;
+const browserChannel = process.env.PLAYWRIGHT_CHROMIUM_CHANNEL;
 
 /**
  * Playwright E2E configuration — أحلى شباب HR
@@ -15,11 +16,13 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: process.env.CI ? 'github' : 'html',
+  reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : [['html', { open: 'never' }]],
   timeout: 60_000,
 
   use: {
-    baseURL: process.env.BASE_URL || playwrightUrl,
+    baseURL: playwrightUrl,
+    channel: browserChannel,
+    serviceWorkers: 'block',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     locale: 'ar',
@@ -39,14 +42,15 @@ export default defineConfig({
 
   /* Start the same isolated test server locally and in CI. */
   webServer: {
-    command: `npm run preview -- --host 127.0.0.1 --port ${playwrightPort} --strictPort`,
+    command: `npm run build --workspace @ahla/shared-contracts && npm exec -- vite build --outDir dist-e2e && npm run preview -- --outDir dist-e2e --host 127.0.0.1 --port ${playwrightPort} --strictPort`,
     url: playwrightUrl,
     cwd: webRoot,
     reuseExistingServer: false,
     timeout: 180_000,
     env: {
-      VITE_ENABLE_DEV_MOCKS: 'true',
-      VITE_APP_ENVIRONMENT: 'development',
+      VITE_SUPABASE_URL: 'https://supabase.e2e.invalid',
+      VITE_SUPABASE_PUBLISHABLE_KEY: 'e2e-publishable-key',
+      VITE_SENTRY_DSN: '',
     },
   },
 });

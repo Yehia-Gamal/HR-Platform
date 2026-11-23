@@ -4,6 +4,7 @@ import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart
 import 'package:ahla_shabab_management_os/core/formatting/arabic_text.dart';
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
+import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/location_requests_page.dart';
@@ -22,7 +23,6 @@ import 'package:ahla_shabab_management_os/shared/access_context.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class EmployeeHomePage extends ConsumerWidget {
   const EmployeeHomePage({required this.access, super.key});
@@ -928,9 +928,10 @@ class _SyncDetailsSheetState extends ConsumerState<_SyncDetailsSheet> {
   }
 
   Future<void> _loadSyncInfo() async {
-    final items = await OfflineSyncQueue.instance.getAll();
-    final lastSync = await OfflineSyncQueue.instance.lastSyncTime;
-    if (mounted) {
+    final queue = ref.read(offlineSyncQueueProvider);
+    final items = await queue?.getAll() ?? [];
+    final lastSync = await queue?.lastSyncTime;
+    if (mounted && queue == ref.read(offlineSyncQueueProvider)) {
       setState(() {
         _items = items;
         _lastSync = lastSync;
@@ -939,10 +940,13 @@ class _SyncDetailsSheetState extends ConsumerState<_SyncDetailsSheet> {
   }
 
   Future<void> _triggerManualSync() async {
+    final queue = ref.read(offlineSyncQueueProvider);
+    if (queue == null) return;
     setState(() => _isSyncing = true);
     try {
-      final client = Supabase.instance.client;
-      final syncedCount = await OfflineSyncQueue.instance.processQueue(client);
+      final client = ref.read(supabaseProvider);
+      final syncedCount = await queue.processQueue(client);
+      if (!mounted || queue != ref.read(offlineSyncQueueProvider)) return;
       ref.invalidate(employeeHomeProvider);
       await _loadSyncInfo();
       if (mounted) {

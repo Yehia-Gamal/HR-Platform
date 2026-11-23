@@ -46,20 +46,30 @@ class ExpiredJwtRetryClient extends http.BaseClient {
     // نسخة احتياطية قبل الإرسال: الطلب نفسه لا يُرسل مرتين.
     final body = retryable ? request.bodyBytes : null;
     final response = await _inner.send(request);
-    if (!retryable || (response.statusCode != 401 && response.statusCode != 500)) return response;
+    if (!retryable ||
+        (response.statusCode != 401 && response.statusCode != 500)) {
+      return response;
+    }
 
     final bytes = await response.stream.toBytes();
-    final isExpired = _isExpiredJwt(bytes);
+    if (!_isExpiredJwt(bytes)) return _rebuild(response, bytes);
+
     final usedToken = _bearer(request.headers);
+    final sessionId = _sessionId(usedToken);
     final current = currentAccessToken();
-    final tokenAlreadyRefreshed = current != null && current != usedToken;
+    if (sessionId == null || _sessionId(current) != sessionId) {
+      return _rebuild(response, bytes);
+    }
 
-    if (!isExpired && !tokenAlreadyRefreshed) return _rebuild(response, bytes);
-
-    final token = tokenAlreadyRefreshed
+    final token = current != usedToken
         ? current
         : await refreshAccessToken().catchError((Object _) => null);
-    if (token == null || token == usedToken) return _rebuild(response, bytes);
+    if (token == null ||
+        token == usedToken ||
+        _sessionId(token) != sessionId ||
+        _sessionId(currentAccessToken()) != sessionId) {
+      return _rebuild(response, bytes);
+    }
 
     final retry = http.Request(request.method, request.url)
       ..headers.addAll(request.headers)
@@ -78,6 +88,22 @@ class ExpiredJwtRetryClient extends http.BaseClient {
         text.contains('"exp" claim timestamp check failed') ||
         text.contains('jwt malformed') ||
         text.contains('invalid JWT');
+  }
+
+  // This claim only scopes retries to the original session. The server still
+  // validates the signature and authorization of both requests.
+  static String? _sessionId(String? token) {
+    final parts = token?.split('.');
+    if (parts == null || parts.length != 3) return null;
+    try {
+      final claims = jsonDecode(
+        utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
+      );
+      final id = claims is Map<String, dynamic> ? claims['session_id'] : null;
+      return id is String && id.isNotEmpty ? id : null;
+    } on FormatException {
+      return null;
+    }
   }
 
   static String? _bearer(Map<String, String> headers) {

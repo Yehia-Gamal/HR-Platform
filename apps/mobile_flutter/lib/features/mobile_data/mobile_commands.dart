@@ -29,13 +29,13 @@ class MobileCommands {
     String rpcName,
     Map<String, dynamic> params,
   ) async {
+    final client = ref.read(supabaseProvider);
+    final userId = client.auth.currentUser?.id;
     try {
-      await _withTimeout(
-        ref.read(supabaseProvider).rpc<dynamic>(rpcName, params: params),
-      );
+      await _withTimeout(client.rpc<dynamic>(rpcName, params: params));
     } catch (error) {
-      if (_isConnectivityError(error)) {
-        await OfflineSyncQueue.instance.enqueue(action, {
+      if (userId != null && client.auth.currentUser?.id == userId && _isConnectivityError(error)) {
+        await OfflineSyncQueue.forUser(userId).enqueue(action, {
           'rpc_name': rpcName,
           'rpc_params': params,
         });
@@ -907,6 +907,8 @@ class MobileCommands {
   Future<Map<String, dynamic>> punchAttendanceLocal({
     required String eventType,
   }) async {
+    final client = ref.read(supabaseProvider);
+    final userId = client.auth.currentUser?.id;
     final localAuth = LocalAuthentication();
 
     // 1. فحص دعم الجهاز للبصمة أو قفل الشاشة
@@ -987,13 +989,15 @@ class MobileCommands {
     };
     try {
       final rawData = await retryWithBackoff(
-        () => ref
-            .read(supabaseProvider)
-            .rpc<dynamic>(
-              'punch_attendance_local_biometric_v1',
-              params: params,
-            )
-            .timeout(const Duration(seconds: 20)),
+        () {
+          if (client.auth.currentUser?.id != userId) {
+            throw StateError('The active account changed during attendance verification.');
+          }
+          return client.rpc<dynamic>(
+            'punch_attendance_local_biometric_v1',
+            params: params,
+          ).timeout(const Duration(seconds: 20));
+        },
       );
       final data = _asMap(rawData);
       ref.invalidate(attendanceStateProvider);
@@ -1003,8 +1007,8 @@ class MobileCommands {
       ref.invalidate(teamInstantPenaltiesProvider);
       return data;
     } catch (error) {
-      if (_isConnectivityError(error)) {
-        await OfflineSyncQueue.instance.enqueue('punch_attendance', params);
+      if (userId != null && client.auth.currentUser?.id == userId && _isConnectivityError(error)) {
+        await OfflineSyncQueue.forUser(userId).enqueue('punch_attendance', params);
         throw OfflineQueuedException('punch_attendance');
       }
       rethrow;

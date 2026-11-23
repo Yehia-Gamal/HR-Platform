@@ -17,25 +17,17 @@ class OfflineSyncIndicator extends ConsumerStatefulWidget {
 class _OfflineSyncIndicatorState extends ConsumerState<OfflineSyncIndicator> {
   bool _syncing = false;
 
-  @override
-  void initState() {
-    super.initState();
-    // تحميل العدد الأولي.
-    OfflineSyncQueue.instance.initialize();
-  }
-
   Future<void> _autoSync() async {
-    final currentCount = await OfflineSyncQueue.instance.count;
-    if (currentCount == 0) return;
-    await _doSync();
+    final queue = ref.read(offlineSyncQueueProvider);
+    if (queue != null && await queue.count > 0 && mounted) await _doSync(queue);
   }
 
-  Future<void> _doSync() async {
-    if (_syncing) return;
+  Future<void> _doSync(OfflineSyncQueue queue) async {
+    if (_syncing || queue != ref.read(offlineSyncQueueProvider)) return;
     setState(() => _syncing = true);
     try {
       final client = ref.read(supabaseProvider);
-      final succeeded = await OfflineSyncQueue.instance.processQueue(client);
+      final succeeded = await queue.processQueue(client);
       if (mounted && succeeded > 0) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -108,6 +100,8 @@ class _OfflineSyncIndicatorState extends ConsumerState<OfflineSyncIndicator> {
   }
 
   void _showSyncSheet(BuildContext context) {
+    final queue = ref.read(offlineSyncQueueProvider);
+    if (queue == null) return;
     showModalBottomSheet<void>(
       context: context,
       useSafeArea: true,
@@ -116,24 +110,26 @@ class _OfflineSyncIndicatorState extends ConsumerState<OfflineSyncIndicator> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (sheetContext) => _SyncQueueSheet(
-        onSync: _doSync,
+        queue: queue,
+        onSync: () => _doSync(queue),
         syncing: _syncing,
       ),
     );
   }
 }
 
-class _SyncQueueSheet extends StatefulWidget {
-  const _SyncQueueSheet({required this.onSync, required this.syncing});
+class _SyncQueueSheet extends ConsumerStatefulWidget {
+  const _SyncQueueSheet({required this.queue, required this.onSync, required this.syncing});
 
+  final OfflineSyncQueue queue;
   final Future<void> Function() onSync;
   final bool syncing;
 
   @override
-  State<_SyncQueueSheet> createState() => _SyncQueueSheetState();
+  ConsumerState<_SyncQueueSheet> createState() => _SyncQueueSheetState();
 }
 
-class _SyncQueueSheetState extends State<_SyncQueueSheet> {
+class _SyncQueueSheetState extends ConsumerState<_SyncQueueSheet> {
   List<SyncQueueItem> _items = [];
   DateTime? _lastSync;
   bool _loading = true;
@@ -145,8 +141,8 @@ class _SyncQueueSheetState extends State<_SyncQueueSheet> {
   }
 
   Future<void> _loadData() async {
-    final items = await OfflineSyncQueue.instance.getAll();
-    final lastSync = await OfflineSyncQueue.instance.lastSyncTime;
+    final items = await widget.queue.getAll();
+    final lastSync = await widget.queue.lastSyncTime;
     if (mounted) {
       setState(() {
         _items = items;
@@ -158,6 +154,7 @@ class _SyncQueueSheetState extends State<_SyncQueueSheet> {
 
   @override
   Widget build(BuildContext context) {
+    if (ref.watch(offlineSyncQueueProvider) != widget.queue) return const SizedBox.shrink();
     final theme = Theme.of(context);
     return Directionality(
       textDirection: TextDirection.rtl,

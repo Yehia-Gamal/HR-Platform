@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const excludedDirectories = new Set([
-  '.git', 'node_modules', 'dist', 'build', '.dart_tool', '.idea', '.vscode', '.claude', 'scratch',
+  '.git', 'node_modules', 'dist', 'dist-e2e', 'build', '.dart_tool', '.idea', '.vscode', '.claude', 'scratch', '.temp',
 ]);
 const allowedExtensions = new Set([
   '.ts', '.tsx', '.js', '.mjs', '.dart', '.sql', '.json', '.yaml', '.yml',
@@ -61,8 +61,7 @@ async function walk(directory) {
     const relativePath = relative(root, fullPath).replaceAll('\\', '/');
     for (const [kind, pattern] of patterns) {
       if (kind === 'google-api-key' && publicGoogleApiKeyFiles.has(relativePath)) continue;
-      const match = source.match(pattern);
-      if (match) findings.push({ kind, file: relativePath, preview: match[0].slice(0, 32) });
+      if (pattern.test(source)) findings.push({ kind, file: relativePath });
     }
   }
 }
@@ -70,7 +69,7 @@ async function walk(directory) {
 await walk(root);
 if (findings.length) {
   console.error('Potential committed secrets found:');
-  for (const finding of findings) console.error(`- ${finding.kind}: ${finding.file} (${finding.preview}…)`);
+  for (const finding of findings) console.error(`- ${finding.kind}: ${finding.file}`);
   process.exit(1);
 }
 console.log('Secret scan passed: no high-confidence committed credentials found.');

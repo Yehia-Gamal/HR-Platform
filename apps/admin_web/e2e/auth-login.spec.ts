@@ -1,4 +1,6 @@
-import { test, expect } from '@playwright/test';
+import { backend, expect, test } from './fixtures';
+
+const identifier = 'employee@example.test';
 
 /**
  * E2E: مسار تسجيل الدخول — المسار الأكثر أهمية في التطبيق
@@ -56,33 +58,38 @@ test.describe('تسجيل الدخول', () => {
     await expect(page.getByText(/كلمة المرور لا تقل عن 6 أحرف/)).toBeVisible();
   });
 
-  test('يظهر خطأ عند بيانات خاطئة', async ({ page }) => {
+  test('يظهر خطأ عند بيانات خاطئة ويتيح استعادة كلمة المرور', async ({ page }) => {
+    await page.route(`${backend}/functions/v1/identifier-sign-in`, (route) => route.fulfill({ status: 401, json: { error: 'INVALID_CREDENTIALS' } }));
     const identifierInput = page.getByPlaceholder(/البريد|رقم الموظف|الهوية/i);
-    await identifierInput.fill('wrong@test.com');
+    await identifierInput.fill(identifier);
 
     const passwordInput = page.locator('input[type="password"]');
     await passwordInput.fill('WrongPassword123!');
 
     const loginButton = page.getByRole('button', { name: /دخول|تسجيل/i });
+    const loginRequest = page.waitForRequest(`${backend}/functions/v1/identifier-sign-in`);
     await loginButton.click();
 
     // يجب أن يظهر رسالة خطأ (ليس تفاصيل تقنية)
-    const error = page.locator('[role="alert"], .text-red-500, .text-destructive');
-    await expect(error.first()).toBeVisible({ timeout: 10000 });
+    expect((await loginRequest).postDataJSON()).toMatchObject({ identifier });
+    await expect(page.getByText('بيانات الدخول غير صحيحة أو الحساب غير متاح.').first()).toBeVisible();
 
     // التأكد من عدم تسريب معلومات تقنية
     const pageText = await page.textContent('body');
     expect(pageText).not.toContain('SQL');
     expect(pageText).not.toContain('pg_');
     expect(pageText).not.toContain('SQLSTATE');
-  });
+    await page.getByRole('button', { name: 'نسيت كلمة المرور؟' }).click();
+    await expect(page.getByRole('heading', { name: 'استعادة كلمة المرور' })).toBeVisible();
 
-  test('رابط نسيت كلمة المرور يعمل', async ({ page }) => {
-    const forgotLink = page.getByRole('link', { name: /نسيت|استعادة/i });
-    if (await forgotLink.isVisible()) {
-      await forgotLink.click();
-      // يجب أن ينتقل لصفحة استعادة كلمة المرور أو يظهر نموذج
-      await expect(page).toHaveURL(/reset|forgot|password/i, { timeout: 5000 });
-    }
+    const recoveryEndpoint = /^https:\/\/supabase\.e2e\.invalid\/auth\/v1\/recover\?/;
+    await page.route(recoveryEndpoint, (route) => route.fulfill({ json: {} }));
+    await page.getByRole('textbox', { name: 'البريد الإلكتروني' }).fill(identifier);
+    const resetRequest = page.waitForRequest(recoveryEndpoint);
+    await page.getByRole('button', { name: 'إرسال رابط الاستعادة' }).click();
+    const request = await resetRequest;
+    expect(request.postDataJSON()).toMatchObject({ email: identifier });
+    expect(new URL(request.url()).searchParams.get('redirect_to')).toBe(`${new URL(page.url()).origin}/auth/setup-password`);
+    await expect(page.getByText('تم إرسال الرابط')).toBeVisible();
   });
 });

@@ -209,6 +209,8 @@ class MobileStatusPill extends StatelessWidget {
       ),
       child: Text(
         meta.$1,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w900,

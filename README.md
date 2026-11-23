@@ -52,6 +52,7 @@ npm run check:all
 يتطلب Docker:
 
 ```bash
+export SUPABASE_AUTH_SITE_URL=http://127.0.0.1:4173
 npx supabase start
 npx supabase db reset
 npx supabase test db

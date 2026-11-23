@@ -42,8 +42,8 @@ enabled = true
 # NOT localhost — otherwise password-recovery / invite emails point at a dead
 # localhost port and "This site can't be reached" appears when the employee
 # clicks the activation link. site_url is env-driven so `supabase config push`
-# can set the remote value (export SUPABASE_AUTH_SITE_URL=<vercel>) while local
-# `supabase start` keeps the localhost default.
+# can set the remote value (export SUPABASE_AUTH_SITE_URL=<vercel>).
+# For local runs set SUPABASE_AUTH_SITE_URL=http://127.0.0.1:4173.
 site_url = "env(SUPABASE_AUTH_SITE_URL)"
 # SEC: strict allowlist. Wildcards ("/**") let attackers redirect recovery links
 # to attacker-controlled sub-paths. List the exact routes that legitimately
