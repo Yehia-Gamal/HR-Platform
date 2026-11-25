@@ -21,13 +21,13 @@ import { PageHeader } from '../../ui/PageHeader';
 import { useHrReportsSummary } from './useHrReportsSummary';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { cairoTodayIso } from '../../core/cairoTime';
-import { printReport, type PrintableSection } from '../../core/exportUtils';
+import { csvSafeCell, downloadCsv, printReport, type PrintableSection } from '../../core/exportUtils';
 
 /** مساعد لتحويل قسم تقرير إلى صفوف CSV */
 function sectionToCsv(title: string, data: Record<string, number | string | undefined>): string[] {
-  const rows: string[] = [`\n${title}`];
+  const rows: string[] = [`\n${csvSafeCell(title)}`];
   for (const [key, val] of Object.entries(data)) {
-    if (val !== undefined) rows.push(`${key},${val}`);
+    if (val !== undefined) rows.push(`${csvSafeCell(key)},${csvSafeCell(val)}`);
   }
   return rows;
 }
@@ -61,11 +61,7 @@ export function ReportsPage() {
       ...sectionToCsv('الموقع', d.location),
       `\nتاريخ التوليد,${d.generatedAt}`,
     ];
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8' }));
-    a.download = `hr-report-${cairoTodayIso()}.csv`;
-    a.click();
-    URL.revokeObjectURL(a.href);
+    downloadCsv(`hr-report-${cairoTodayIso()}.csv`, '\uFEFF' + lines.join('\n'));
   };
 
   const print = () => {

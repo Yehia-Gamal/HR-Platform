@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Clock, CheckCircle2, AlertTriangle, TrendingUp, Search, Calendar, Download, Flame, ArrowUpDown, RefreshCw, MessageCircle } from 'lucide-react';
+import { downloadCsv, toCsv, type ExportColumn } from '../../core/exportUtils';
 import { shareApproverNudge } from '../../core/whatsappShare';
 import { useApprovalSpeedReport } from './useApprovalSpeedReport';
 
@@ -125,41 +126,19 @@ export function ApprovalSpeedPage() {
 
   const exportCsv = () => {
     if (!approvers.length) return;
-    const header = [
-      'اسم المعتمد',
-      'كود الموظف / الهاتف',
-      'إجمالي القرارات',
-      'مقبول',
-      'مرفوض',
-      'متوسط زمن الرد (ساعات)',
-      'وسيط زمن الرد (ساعات)',
-      'طلبات معلقة',
-      'أقدم معلق (ساعات)',
-      'تم تصعيده',
+    const columns: ExportColumn<(typeof filteredApprovers)[number]>[] = [
+      { key: 'name', header: 'اسم المعتمد', get: (a) => a.name },
+      { key: 'code', header: 'كود الموظف / الهاتف', get: (a) => a.code },
+      { key: 'total_decisions', header: 'إجمالي القرارات', get: (a) => a.total_decisions },
+      { key: 'approved_count', header: 'مقبول', get: (a) => a.approved_count },
+      { key: 'rejected_count', header: 'مرفوض', get: (a) => a.rejected_count },
+      { key: 'avg_hours', header: 'متوسط زمن الرد (ساعات)', get: (a) => a.avg_hours },
+      { key: 'median_hours', header: 'وسيط زمن الرد (ساعات)', get: (a) => a.median_hours },
+      { key: 'pending_count', header: 'طلبات معلقة', get: (a) => a.pending_count },
+      { key: 'oldest_pending_hours', header: 'أقدم معلق (ساعات)', get: (a) => a.oldest_pending_hours },
+      { key: 'escalated_count', header: 'تم تصعيده', get: (a) => a.escalated_count },
     ];
-
-    const rows = filteredApprovers.map((a) => [
-      `"${a.name.replace(/"/g, '""')}"`,
-      `"${a.code}"`,
-      a.total_decisions,
-      a.approved_count,
-      a.rejected_count,
-      a.avg_hours,
-      a.median_hours,
-      a.pending_count,
-      a.oldest_pending_hours,
-      a.escalated_count,
-    ]);
-
-    const csvContent = '\uFEFF' + [header.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `approval_speed_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    downloadCsv(`approval_speed_${new Date().toISOString().slice(0, 10)}.csv`, toCsv(columns, filteredApprovers));
   };
 
   if (isLoading) {

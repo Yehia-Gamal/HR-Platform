@@ -1,4 +1,5 @@
 import type { KpiAdminCatalog } from '@ahla/shared-contracts';
+import { csvSafeCell, downloadCsv as coreDownloadCsv } from '../../core/exportUtils';
 
 interface CycleLike {
   periodMonth?: string;
@@ -108,7 +109,7 @@ export function buildComparisonCsv(points: KpiHistoryPoint[]): string {
   const header = 'الشهر,متوسط الدرجات,المدرجة,المتأخرة,نسبة الإنجاز,الحالة';
   const rows = points.map((p) =>
     [p.monthLabel, p.averageScore ?? '', p.finalized, p.overdue, p.completionRate != null ? `${p.completionRate}%` : '', p.status]
-      .map((v) => `"${String(v ?? '').replaceAll('"', '""')}"`)
+      .map((v) => csvSafeCell(v))
       .join(','),
   );
   return [header, ...rows].join('\n');
@@ -127,11 +128,7 @@ export function toRadarData(catalog: Pick<KpiAdminCatalog, 'templates'> | null |
 
 /** قائمة أزرار CSV — مساعدة للتصدير */
 export function downloadCsv(filename: string, csv: string) {
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }));
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(link.href);
+  coreDownloadCsv(filename, csv.startsWith('\uFEFF') ? csv : `\uFEFF${csv}`);
 }
 
 /** مدخلات لوحة المقارنة — ملائم لصنف KpiAdminCatalog */

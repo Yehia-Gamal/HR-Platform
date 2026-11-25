@@ -100,4 +100,21 @@ describe('kpiHistory — formatMonthLabel / buildComparisonCsv', () => {
     expect(csv).toContain('متوسط الدرجات');
     expect(csv.split('\n')).toHaveLength(4);
   });
+
+  it('يُحيّد صيغ Excel الضارة عند التصدير (CSV Formula Injection)', () => {
+    const csv = buildComparisonCsv([
+      {
+        monthKey: '2026-07',
+        monthLabel: '=CMD|" /C calc"!A0',
+        averageScore: 90,
+        finalized: 1,
+        evaluations: 1,
+        overdue: 0,
+        completionRate: 100,
+        status: '+active',
+      },
+    ]);
+    expect(csv).toContain(`'=CMD|`);
+    expect(csv).toContain(`'+active`);
+  });
 });

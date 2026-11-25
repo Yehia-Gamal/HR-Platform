@@ -26,6 +26,7 @@ import { UserAvatar } from '../../ui/UserAvatar';
 import { useKpiAdmin, useKpiAdminCommands } from './useAdvancedOperations';
 import { KpiComparisonCharts } from './KpiComparisonCharts';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { csvSafeCell, downloadCsv } from '../../core/exportUtils';
 import { useToast } from '../../ui/Toast';
 import { cairoMonthIso, cairoTodayIso } from '../../core/cairoTime';
 
@@ -146,15 +147,11 @@ export function KpiCyclesPage() {
         'الموظف,الكود,المرحلة,الحالة,النتيجة,التقدير',
         ...rows.map((row) =>
           [row.employeeName, row.employeeCode, row.stage, row.workflowStatus, row.finalScore, row.finalRating]
-            .map((value) => `"${String(value ?? '').replaceAll('"', '""')}"`)
+            .map((value) => csvSafeCell(value as string | number | null | undefined))
             .join(','),
         ),
       ].join('\n');
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
-      link.download = `kpi-${month}.csv`;
-      link.click();
-      URL.revokeObjectURL(link.href);
+      downloadCsv(`kpi-${month}.csv`, '\uFEFF' + csv);
     } catch (err) {
       toast({ message: safeErrorMessage(err), tone: 'error' });
     }

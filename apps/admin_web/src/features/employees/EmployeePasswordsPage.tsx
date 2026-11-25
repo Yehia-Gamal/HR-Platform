@@ -21,6 +21,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import type { EmployeeSummary } from '@ahla/shared-contracts';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { downloadCsv, toCsv, type ExportColumn } from '../../core/exportUtils';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
@@ -370,26 +371,17 @@ export function EmployeePasswordsPage() {
 
   // تصدير كشف بيانات الحسابات وحالات كلمة المرور
   const handleExport = () => {
-    const headers = ['كود الموظف', 'الاسم', 'الإدارة', 'المسمى الوظيفي', 'الهاتف', 'حالة الحساب', 'كلمة المرور المؤقتة المحددة'];
-    const rows = filteredEmployees.map((emp) => [
-      emp.employeeCode,
-      emp.fullNameAr,
-      emp.department ?? '—',
-      emp.jobTitle ?? '—',
-      emp.phoneE164 ?? '—',
-      emp.status,
-      sessionPasswords[emp.id] ?? 'مشفرة في الخادم',
-    ]);
+    const columns: ExportColumn<EmployeeSummary>[] = [
+      { key: 'employeeCode', header: 'كود الموظف', get: (emp) => emp.employeeCode },
+      { key: 'fullNameAr', header: 'الاسم', get: (emp) => emp.fullNameAr },
+      { key: 'department', header: 'الإدارة', get: (emp) => emp.department ?? '—' },
+      { key: 'jobTitle', header: 'المسمى الوظيفي', get: (emp) => emp.jobTitle ?? '—' },
+      { key: 'phoneE164', header: 'الهاتف', get: (emp) => emp.phoneE164 ?? '—' },
+      { key: 'status', header: 'حالة الحساب', get: (emp) => emp.status },
+      { key: 'password', header: 'كلمة المرور المؤقتة المحددة', get: (emp) => sessionPasswords[emp.id] ?? 'مشفرة في الخادم' },
+    ];
 
-    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `employee-passwords-audit-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadCsv(`employee-passwords-audit-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(columns, filteredEmployees));
     toast({ message: 'تم تصدير كشف الحسابات بنجاح', tone: 'success' });
   };
 

@@ -14,7 +14,8 @@
     "npm:@peculiar/asn1-schema@^2.6.0": "2.9.5",
     "npm:@peculiar/asn1-x509@^2.6.1": "2.9.5",
     "npm:@peculiar/x509@^1.14.3": "1.14.3",
-    "npm:@supabase/supabase-js@2": "2.117.2"
+    "npm:@supabase/supabase-js@2": "2.117.2",
+    "npm:zod@4.6.7": "4.6.7"
   },
   "jsr": {
     "@simplewebauthn/server@13.3.2": {
@@ -258,6 +259,9 @@
       "dependencies": [
         "tslib@1.14.1"
       ]
+    },
+    "zod@4.6.7": {
+      "integrity": "sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg=="
     }
   },
   "workspace": {

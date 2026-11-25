@@ -72,23 +72,22 @@ export function AttendancePage() {
         backgroundColor: '#0b1329',
         windowWidth: element.scrollWidth,
       });
-      canvas.toBlob((blob: Blob | null) => {
-        if (!blob) {
-          setToastMessage('تعذر التقاط لقطة الشاشة');
-          setTimeout(() => setToastMessage(null), 3000);
-          return;
-        }
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `لوحة_الحضور_${dateIso}.png`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 10_000);
-        setToastMessage('تم تنزيل لقطة الشاشة بنجاح ✅');
-        setTimeout(() => setToastMessage(null), 3500);
-      }, 'image/png');
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+      if (!blob) {
+        setToastMessage('تعذر التقاط لقطة الشاشة');
+        setTimeout(() => setToastMessage(null), 3000);
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `لوحة_الحضور_${dateIso}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      setToastMessage('تم تنزيل لقطة الشاشة بنجاح ✅');
+      setTimeout(() => setToastMessage(null), 3500);
     } catch (err) {
       console.error('Failed to capture screenshot', err);
       setToastMessage('تعذر التقاط لقطة الشاشة.');
@@ -239,11 +238,7 @@ export function AttendancePage() {
         {/* اختيار الفرع */}
         <label className="flex flex-col gap-1.5 text-xs font-bold text-[var(--text-muted)] min-w-[180px] flex-1 sm:flex-none">
           <span>الفرع</span>
-          <select
-            className="select !h-10 text-xs font-bold rounded-xl py-1.5"
-            value={branchId ?? ''}
-            onChange={(e) => setBranchId(e.target.value || null)}
-          >
+          <select className="select !h-10 text-xs font-bold rounded-xl py-1.5" value={branchId ?? ''} onChange={(e) => setBranchId(e.target.value || null)}>
             <option value="">كل الفروع</option>
             {lookups.data?.branches.map((b) => (
               <option key={b.id} value={b.id}>

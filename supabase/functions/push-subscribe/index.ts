@@ -19,10 +19,10 @@ Deno.serve(
     if (!authHeader?.startsWith('Bearer ')) return respond(req, { error: 'UNAUTHORIZED' }, 401);
 
     const url = Deno.env.get('SUPABASE_URL');
-    const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!url || !key) return respond(req, { error: 'SERVER_CONFIGURATION' }, 500);
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY');
+    if (!url || !anonKey) return respond(req, { error: 'SERVER_CONFIGURATION' }, 500);
 
-    const supabase = createClient(url, key, {
+    const supabase = createClient(url, anonKey, {
       auth: { persistSession: false },
       global: { headers: { Authorization: authHeader } },
     });
@@ -35,7 +35,13 @@ Deno.serve(
 
     if (req.method === 'POST') {
       const body = (await req.json()) as SubscribeBody;
-      if (!body?.endpoint || !body?.keys?.p256dh || !body?.keys?.auth) {
+      let validEndpoint = false;
+      try {
+        validEndpoint = typeof body?.endpoint === 'string' && new URL(body.endpoint).protocol === 'https:';
+      } catch {
+        validEndpoint = false;
+      }
+      if (!validEndpoint || !body?.keys?.p256dh || !body?.keys?.auth) {
         return respond(req, { error: 'INVALID_SUBSCRIPTION' }, 400);
       }
 

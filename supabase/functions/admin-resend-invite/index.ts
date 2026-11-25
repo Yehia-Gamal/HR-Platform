@@ -58,6 +58,14 @@ Deno.serve(createHandler({ functionName: "admin-resend-invite", version: "1.0.0"
     }, 400);
   }
 
+  // حتى لا يستطيع مشرف النطاق الواحد تأكيد بريد أو إعادة إرسال دعوة موظف خارج نطاقه.
+  const { data: canAccess, error: scopeError } = await userClient.rpc("can_access_employee", {
+    p_employee_id: input.employeeId,
+    p_code: "people.employee.create",
+  });
+  if (scopeError) return json(req, { error: "permission_check_failed" }, 500);
+  if (canAccess !== true) return json(req, { error: "forbidden" }, 403);
+
   // Resolve the auth user linked to this employee (profiles.id === auth.users.id).
   const { data: profile, error: profileError } = await admin
     .from("profiles")

@@ -222,19 +222,21 @@ Deno.serve(createHandler({ functionName: 'identifier-sign-in', version: '1.0.0' 
       } else if (/^01\d{9}$/.test(normalized.value)) {
         variants.add('+20' + normalized.value.slice(1));
       }
-      const variantList = [...variants];
-      const orFilter = variantList.map((v) => `phone_e164.eq."${v}",employee_code.eq."${v}"`).join(',');
-      employeeQuery = employeeQuery.or(orFilter);
-      const { data: employee } = await employeeQuery.maybeSingle();
-      if (employee?.id) {
-        const { data: profile } = await admin
-          .from('profiles')
-          .select('id')
-          .eq('employee_id', employee.id)
-          .maybeSingle();
-        if (profile?.id) {
-          const { data: userResult } = await admin.auth.admin.getUserById(profile.id);
-          resolvedEmail = userResult.user?.email ?? null;
+      const variantList = [...variants].filter((v) => !/["\\,();]/.test(v));
+      if (variantList.length > 0) {
+        const orFilter = variantList.map((v) => `phone_e164.eq."${v}",employee_code.eq."${v}"`).join(',');
+        employeeQuery = employeeQuery.or(orFilter);
+        const { data: employee } = await employeeQuery.maybeSingle();
+        if (employee?.id) {
+          const { data: profile } = await admin
+            .from('profiles')
+            .select('id')
+            .eq('employee_id', employee.id)
+            .maybeSingle();
+          if (profile?.id) {
+            const { data: userResult } = await admin.auth.admin.getUserById(profile.id);
+            resolvedEmail = userResult.user?.email ?? null;
+          }
         }
       }
     }

@@ -11,6 +11,7 @@ import { ListSkeleton, MetricSkeletonRow } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
 import { UserAvatar } from '../../ui/UserAvatar';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { downloadCsv, toCsv, type ExportColumn } from '../../core/exportUtils';
 import { isPhoneLikeCode } from '../../ui/phoneDisplay';
 import { useAdminLeaveDecision, useAdminLeaves } from './useLeaves';
 
@@ -62,36 +63,19 @@ function formatDate(iso: string) {
 }
 
 function exportToCsv(rows: LeaveAdminRow[], year: number) {
-  const headers = ['#', 'الموظف', 'الكود', 'نوع الإجازة', 'الحالة', 'من', 'إلى', 'المدة', 'بأجر', 'السبب'];
-  const escape = (v: string | null | number) => {
-    const s = String(v ?? '');
-    return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
-  };
-  const csvRows = [
-    headers.join(','),
-    ...rows.map((r, i) =>
-      [
-        i + 1,
-        escape(r.employeeName),
-        escape(r.employeeCode),
-        escape(LEAVE_TYPE_LABELS[r.leaveTypeCode] ?? r.leaveTypeName),
-        escape(STATUS_AR[r.status] ?? r.status),
-        r.startDate,
-        r.endDate,
-        escape(formatDuration(r)),
-        r.isPaid ? 'نعم' : 'لا',
-        escape(r.reason),
-      ].join(','),
-    ),
+  const columns: ExportColumn<LeaveAdminRow>[] = [
+    { key: 'index', header: '#', get: (r) => rows.indexOf(r) + 1 },
+    { key: 'employeeName', header: 'الموظف', get: (r) => r.employeeName },
+    { key: 'employeeCode', header: 'الكود', get: (r) => r.employeeCode },
+    { key: 'leaveType', header: 'نوع الإجازة', get: (r) => LEAVE_TYPE_LABELS[r.leaveTypeCode] ?? r.leaveTypeName },
+    { key: 'status', header: 'الحالة', get: (r) => STATUS_AR[r.status] ?? r.status },
+    { key: 'startDate', header: 'من', get: (r) => r.startDate },
+    { key: 'endDate', header: 'إلى', get: (r) => r.endDate },
+    { key: 'duration', header: 'المدة', get: (r) => formatDuration(r) },
+    { key: 'isPaid', header: 'بأجر', get: (r) => (r.isPaid ? 'نعم' : 'لا') },
+    { key: 'reason', header: 'السبب', get: (r) => r.reason },
   ];
-  const bom = '﻿';
-  const blob = new Blob([bom + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `إجازات-${year}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  downloadCsv(`إجازات-${year}.csv`, toCsv(columns, rows));
 }
 
 function formatDuration(row: LeaveAdminRow) {
