@@ -136,6 +136,8 @@ void main() {
       // التحقق من زر سياسة الدوام وفتحه
       final policyButton = find.text('السياسة');
       expect(policyButton, findsOneWidget);
+      await tester.ensureVisible(policyButton);
+      await tester.pumpAndSettle();
       await tester.tap(policyButton);
       await tester.pumpAndSettle();
 
@@ -148,6 +150,8 @@ void main() {
       // النقر على زر تغيير الفترة لفتح نافذة الاختيار السلسة
       final changeButton = find.text('تغيير الفترة');
       expect(changeButton, findsOneWidget);
+      await tester.ensureVisible(changeButton);
+      await tester.pumpAndSettle();
       await tester.tap(changeButton);
       await tester.pumpAndSettle();
 

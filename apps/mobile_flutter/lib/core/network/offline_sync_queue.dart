@@ -65,6 +65,16 @@ class OfflineQueuedException implements Exception {
       'وستُرسل تلقائياً عند عودة الاتصال.';
 }
 
+/// استثناء يُرمى عند محاولة تسجيل بصمة حضور/انصراف بدون اتصال مباشر بالخادم.
+/// البصمات لا تُخزّن offline حتى لا تُحتسب بوقت المزامنة المتأخر كـ تأخير/غرامة.
+class AttendanceOfflineException implements Exception {
+  const AttendanceOfflineException();
+
+  @override
+  String toString() =>
+      'لا يوجد اتصال، حاول لاحقاً — يلزم اتصال مباشر بالإنترنت لتسجيل البصمة بوقت الخادم.';
+}
+
 /// طابور مزامنة يخزن العمليات الفاشلة/غير المتصلة في FlutterSecureStorage
 /// ويعيد تنفيذها عند عودة الاتصال.
 ///
@@ -101,7 +111,13 @@ class OfflineSyncQueue {
   }
 
   /// أضف عملية جديدة إلى الطابور.
+  /// يُرفض تسجيل البصمات (`punch_attendance`) هنا لحماية الموظف من احتسابها بوقت المزامنة.
   Future<void> enqueue(String action, Map<String, dynamic> payload) {
+    if (action == 'punch_attendance') {
+      throw UnsupportedError(
+        'لا يمكن تخزين بصمة الحضور بدون اتصال — يلزم اتصال مباشر بالخادم.',
+      );
+    }
     final generation = _generation;
     return _serialize(() async {
       if (generation != _generation) throw StateError('The queue was cleared.');
@@ -169,6 +185,13 @@ class OfflineSyncQueue {
       if (generation != _generation || client.auth.currentUser?.id != _userId) {
         break;
       }
+      // حماية للعناصر المخزنة من إصدارات أقدم: لا نعيد إرسال بصمة متأخرة بوقت المزامنة.
+      if (item.action == 'punch_attendance') {
+        items.remove(item);
+        droppedNotifier.value = item;
+        await _save(items);
+        continue;
+      }
       try {
         await _executeAction(client, item);
         items.remove(item);
@@ -211,12 +234,7 @@ class OfflineSyncQueue {
   Future<void> _executeAction(SupabaseClient client, SyncQueueItem item) async {
     switch (item.action) {
       case 'punch_attendance':
-        await client
-            .rpc<dynamic>(
-              'punch_attendance_local_biometric_v1',
-              params: item.payload,
-            )
-            .timeout(const Duration(seconds: 20));
+        throw StateError('تم إيقاف مزامنة البصمة غير المتصلة لحماية دقة وقت الخادم.');
       default:
         // أنواع أخرى مستقبلية — ننفذها كـ RPC عام.
         final rpcName = item.payload['rpc_name'] as String?;

@@ -349,6 +349,15 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
         ] else ...[
           if (value.todayCheckInAt != null)
             _PenaltyCompensateBanner(state: value, checkInAt: value.todayCheckInAt),
+          _PrePunchReadinessStrip(
+            state: value,
+            preflight: ref.watch(gpsPreflightProvider),
+            onRefresh: () {
+              ref.invalidate(gpsPreflightProvider);
+              ref.invalidate(attendanceStateProvider);
+            },
+          ),
+          const SizedBox(height: 10),
           _PunchCard(
             actionLabel: actionLabel,
             actionIcon: actionIcon,
@@ -761,29 +770,43 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
             ),
           );
         } else {
+          final serverTimeText = _formatServerRecordedAt(result['recordedAt']);
+          final distanceRaw = result['distanceMeters'];
+          final distanceText = distanceRaw is num
+              ? ' (${distanceRaw.round()} م من النطاق)'
+              : '';
+          final baseText = action == 'CHECK_IN'
+              ? 'تم تسجيل الحضور بنجاح ✓'
+              : 'تم تسجيل الانصراف بنجاح ✓';
+          final receiptText = serverTimeText != null
+              ? '$baseText — وقت الخادم: $serverTimeText$distanceText'
+              : '$baseText$distanceText';
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                action == 'CHECK_IN'
-                    ? 'تم تسجيل الحضور بنجاح ✓'
-                    : 'تم تسجيل الانصراف بنجاح ✓',
-              ),
+              content: Text(receiptText),
               backgroundColor: AppColors.statusSuccess,
+              duration: const Duration(seconds: 5),
             ),
           );
         }
+      }
+    } on AttendanceOfflineException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: AppColors.statusDanger,
+            duration: const Duration(seconds: 5),
+          ),
+        );
       }
     } on OfflineQueuedException {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              action == 'CHECK_IN'
-                  ? 'تم تسجيل الحضور محلياً بنجاح — ستتم المزامنة تلقائياً عند عودة الإنترنت ⏳'
-                  : 'تم تسجيل الانصراف محلياً بنجاح — ستتم المزامنة تلقائياً عند عودة الإنترنت ⏳',
-            ),
-            backgroundColor: AppColors.brandPrimaryStrong,
-            duration: const Duration(seconds: 4),
+            content: Text(const AttendanceOfflineException().toString()),
+            backgroundColor: AppColors.statusDanger,
+            duration: const Duration(seconds: 5),
           ),
         );
       }
@@ -1249,6 +1272,164 @@ class _PendingRetry {
 
 /// نوع مشكلة الموقع — يحدد سلوك إعادة المحاولة التلقائية.
 enum _LocationIssueKind { gpsOff, deniedForever }
+
+String? _formatServerRecordedAt(dynamic raw) {
+  if (raw == null) return null;
+  final parsed = raw is DateTime ? raw : DateTime.tryParse(raw.toString());
+  if (parsed == null) return null;
+  final cairo = parsed.toUtc().add(const Duration(hours: 2));
+  return DateFormat('h:mm a', 'ar').format(cairo);
+}
+
+/// بطاقة فحص جاهزية البصمة قبل الضغط:
+/// تعرض حالة GPS والدقة والنطاق الجغرافي وحالة الجهاز المسجّل.
+class _PrePunchReadinessStrip extends StatelessWidget {
+  const _PrePunchReadinessStrip({
+    required this.state,
+    required this.preflight,
+    required this.onRefresh,
+  });
+
+  final AttendanceState state;
+  final AsyncValue<GpsPreflightResult> preflight;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final gpsResult = preflight.asData?.value;
+    final gpsReady = gpsResult?.isReady ?? false;
+    final accuracy = gpsResult?.accuracyMeters;
+    final isMocked = gpsResult?.isMocked == true;
+
+    final String gpsLabel;
+    final Color gpsColor;
+    if (preflight.isLoading) {
+      gpsLabel = 'GPS: جارٍ الفحص...';
+      gpsColor = scheme.onSurfaceVariant;
+    } else if (!gpsReady) {
+      gpsLabel = gpsResult?.arabicSummary ?? 'GPS: غير جاهز';
+      gpsColor = AppColors.statusDanger;
+    } else if (isMocked) {
+      gpsLabel = 'تحذير: موقع مزيّف مفعّل';
+      gpsColor = AppColors.statusDanger;
+    } else if (accuracy != null) {
+      final ok = accuracy <= 150;
+      gpsLabel = 'GPS جاهز · دقة ${accuracy.round()} م (الحد 150 م)';
+      gpsColor = ok ? AppColors.statusSuccess : AppColors.statusWarning;
+    } else {
+      gpsLabel = 'GPS جاهز (تُقاس الدقة عند البصمة)';
+      gpsColor = AppColors.statusSuccess;
+    }
+
+    final String deviceLabel;
+    final Color deviceColor;
+    if (state.hasActiveLocalDevice) {
+      deviceLabel = 'الجهاز: مسجّل ومفعّل ✓';
+      deviceColor = AppColors.statusSuccess;
+    } else if (state.localDeviceStatus == 'pending') {
+      deviceLabel = 'الجهاز: بانتظار موافقة المسؤول';
+      deviceColor = AppColors.statusWarning;
+    } else {
+      deviceLabel = 'الجهاز: غير مسجّل بعد';
+      deviceColor = AppColors.statusDanger;
+    }
+
+    final String geofenceLabel;
+    final Color geofenceColor;
+    if (state.lastEventStatus == 'accepted') {
+      geofenceLabel = 'النطاق: آخر بصمة داخل النطاق المعتمد ✓';
+      geofenceColor = AppColors.statusSuccess;
+    } else if (state.lastEventStatus == 'rejected' ||
+        state.lastEventStatus == 'flagged') {
+      geofenceLabel = 'النطاق: يتطلب مراجعة — سجّل من داخل المقر';
+      geofenceColor = AppColors.statusWarning;
+    } else {
+      geofenceLabel = 'النطاق: يُتحقق من المجمع على الخادم لحظة البصمة';
+      geofenceColor = scheme.primary;
+    }
+
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.shield_outlined, size: 17, color: scheme.primary),
+                const SizedBox(width: 6),
+                const Expanded(
+                  child: Text(
+                    'جاهزية البصمة قبل التسجيل',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+                  ),
+                ),
+                IconButton(
+                  onPressed: onRefresh,
+                  tooltip: 'تحديث الجاهزية',
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            _ReadinessRow(
+              icon: Icons.gps_fixed_rounded,
+              label: gpsLabel,
+              color: gpsColor,
+            ),
+            const SizedBox(height: 4),
+            _ReadinessRow(
+              icon: Icons.location_searching_rounded,
+              label: geofenceLabel,
+              color: geofenceColor,
+            ),
+            const SizedBox(height: 4),
+            _ReadinessRow(
+              icon: Icons.phonelink_lock_rounded,
+              label: deviceLabel,
+              color: deviceColor,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReadinessRow extends StatelessWidget {
+  const _ReadinessRow({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 15, color: color),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // بطاقة البصمة الرئيسية — إجراء واحد واضح

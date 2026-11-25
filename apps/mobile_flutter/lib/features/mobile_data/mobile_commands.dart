@@ -890,6 +890,10 @@ class MobileCommands {
     }
   }
 
+  /// مسار WebAuthn Passkey عبر Edge Function `verify-attendance-punch`.
+  /// غير مفعّل افتراضياً في واجهة الحضور الحالية (التي تعتمد `punchAttendanceLocal`
+  /// لضمان عمل جميع أجهزة أندرويد)، ويُحتفظ به هنا لاتخاذ قرار التوحيد عند اكتمال
+  /// تسجيل مفاتيح المرور (Passkeys) لكل الموظفين.
   Future<Map<String, dynamic>> punchAttendance({
     required String eventType,
   }) async {
@@ -1007,9 +1011,9 @@ class MobileCommands {
       ref.invalidate(teamInstantPenaltiesProvider);
       return data;
     } catch (error) {
-      if (userId != null && client.auth.currentUser?.id == userId && _isConnectivityError(error)) {
-        await OfflineSyncQueue.forUser(userId).enqueue('punch_attendance', params);
-        throw OfflineQueuedException('punch_attendance');
+      if (_isConnectivityError(error)) {
+        // لا نُدرج البصمة في طابور offline حتى لا تُسجّل بوقت المزامنة المتأخر كـ تأخير/غرامة.
+        throw const AttendanceOfflineException();
       }
       rethrow;
     }

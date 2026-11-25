@@ -20,10 +20,14 @@ class GpsPreflightResult {
   const GpsPreflightResult({
     required this.serviceEnabled,
     required this.permission,
+    this.accuracyMeters,
+    this.isMocked,
   });
 
   final bool serviceEnabled;
   final LocationPermission permission;
+  final double? accuracyMeters;
+  final bool? isMocked;
 
   bool get isReady =>
       serviceEnabled &&
@@ -37,6 +41,9 @@ class GpsPreflightResult {
 
   bool get isDeniedForever =>
       permission == LocationPermission.deniedForever;
+
+  bool get hasAcceptableAccuracy =>
+      accuracyMeters == null || accuracyMeters! <= 150;
 
   /// ملخص بالعربية للحالة.
   String get arabicSummary {
@@ -81,12 +88,40 @@ class LocationService {
 
   /// فحص جاهزية GPS بدون طلب صلاحية — مناسب للـ preflight.
   static Future<GpsPreflightResult> preflight() async {
-    final enabled = await Geolocator.isLocationServiceEnabled();
-    final permission = await Geolocator.checkPermission();
-    return GpsPreflightResult(
-      serviceEnabled: enabled,
-      permission: permission,
-    );
+    try {
+      final enabled = await Geolocator.isLocationServiceEnabled();
+      final permission = await Geolocator.checkPermission();
+      double? accuracyMeters;
+      bool? isMocked;
+      if (enabled &&
+          (permission == LocationPermission.always ||
+              permission == LocationPermission.whileInUse)) {
+        try {
+          final lastKnown = await Geolocator.getLastKnownPosition()
+              .timeout(const Duration(seconds: 2));
+          if (lastKnown != null) {
+            final age = DateTime.now().difference(lastKnown.timestamp);
+            if (age < const Duration(minutes: 5)) {
+              accuracyMeters = lastKnown.accuracy;
+              isMocked = lastKnown.isMocked;
+            }
+          }
+        } catch (_) {
+          // قراءة الدقة المسبقة اختيارية — القراءة الفعلية تحدث عند البصمة.
+        }
+      }
+      return GpsPreflightResult(
+        serviceEnabled: enabled,
+        permission: permission,
+        accuracyMeters: accuracyMeters,
+        isMocked: isMocked,
+      );
+    } catch (_) {
+      return const GpsPreflightResult(
+        serviceEnabled: false,
+        permission: LocationPermission.denied,
+      );
+    }
   }
 
   /// يجلب الموقع الحالي مع فحص دقيق للحالة.
