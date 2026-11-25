@@ -11,7 +11,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { rpc } from '../../core/rpc';
 import { useAuth } from '../auth/AuthProvider';
-import { mockCatalog, mockDetail, mockMyTasks, mockPickers } from './projectMocks';
+import { loadProjectMocks } from './loadProjectMocks';
 
 const KEY = 'association-projects';
 
@@ -30,16 +30,16 @@ function useProjectMutation<TInput>(rpcCall: (input: TInput) => Promise<unknown>
 }
 
 /** [refetchMs]: وضع العرض على الشاشة الكبيرة يحدّث كل دقيقة. */
-export function useAssociationProjects(refetchMs = 5 * 60_000) {
+export function useAssociationProjects(refetchMs = 5 * 60_000, refetchInBackground = false) {
   const a = useAuth();
   return useQuery({
     queryKey: [KEY, a.isMock],
     enabled: a.status === 'authenticated',
-    // اللمبة تعتمد على الزمن — نُحدّث اللوحة دورياً ما دامت مفتوحة.
+    // اللمبة تعتمد على الزمن — نُحدّث اللوحة دورياً ما دامت مفتوحة (وتتوقف في الخلفية لغير شاشة العرض).
     refetchInterval: refetchMs,
-    refetchIntervalInBackground: true,
+    refetchIntervalInBackground: refetchInBackground,
     queryFn: async (): Promise<AssociationProjectsCatalog> => {
-      if (a.isMock) return mockCatalog();
+      if (import.meta.env.DEV && a.isMock) return (await loadProjectMocks()).mockCatalog();
       return associationProjectsCatalogSchema.parse(await rpc('get_association_projects'));
     },
   });
@@ -51,7 +51,7 @@ export function useAssociationProjectDetail(projectId: string | null) {
     queryKey: [KEY, 'detail', projectId, a.isMock],
     enabled: a.status === 'authenticated' && !!projectId,
     queryFn: async (): Promise<AssociationProjectDetail> => {
-      if (a.isMock) return mockDetail(projectId ?? '');
+      if (import.meta.env.DEV && a.isMock) return (await loadProjectMocks()).mockDetail(projectId ?? '');
       return associationProjectDetailSchema.parse(await rpc('get_association_project_detail', { p_project_id: projectId }));
     },
   });
@@ -65,7 +65,7 @@ export function useProjectPickers(enabled = true) {
     enabled: enabled && a.status === 'authenticated',
     staleTime: 10 * 60_000,
     queryFn: async (): Promise<AssociationProjectPickers> => {
-      if (a.isMock) return mockPickers();
+      if (import.meta.env.DEV && a.isMock) return (await loadProjectMocks()).mockPickers();
       return associationProjectPickersSchema.parse(await rpc('get_association_project_pickers'));
     },
   });
@@ -124,7 +124,7 @@ export function useMyProjectTasks() {
     enabled: a.status === 'authenticated',
     refetchInterval: 5 * 60_000,
     queryFn: async (): Promise<MyProjectTask[]> => {
-      if (a.isMock) return mockMyTasks();
+      if (import.meta.env.DEV && a.isMock) return (await loadProjectMocks()).mockMyTasks();
       return myProjectTasksSchema.parse(await rpc('get_my_project_tasks'));
     },
   });

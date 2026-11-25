@@ -1,6 +1,6 @@
 import { cairoTodayIso } from '../../core/cairoTime';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import {
   AlertTriangle,
   Ban,
@@ -125,6 +125,8 @@ function StatusIcon({ status }: { status: string }) {
 
 export function InstantPenaltiesPage() {
   const { toast } = useToast();
+  const { pathname } = useLocation();
+  const fellowshipFundPath = pathname.startsWith('/hr') ? '/hr/fellowship-fund' : '/admin/fellowship-fund';
   const [search, setSearch] = useState('');
   const [dateFilterMode, setDateFilterMode] = useState<'today' | 'yesterday' | 'specific' | 'all'>('today');
   const [specificDate, setSpecificDate] = useState<string>(cairoTodayIso());
@@ -325,19 +327,8 @@ export function InstantPenaltiesPage() {
   }
 
   function sendEmployeeRadarWhatsApp(emp: { employeeName: string; phone: string | null; count: number; totalAmount: number; dates: string[] }) {
-    let cleanPhone = (emp.phone ?? '').replace(/[^0-9]/g, '');
-    if (cleanPhone.startsWith('01')) {
-      cleanPhone = '20' + cleanPhone.substring(1);
-    } else if (!cleanPhone.startsWith('20') && cleanPhone.length === 10) {
-      cleanPhone = '20' + cleanPhone;
-    }
     const text = `*رسالة تقدير وتنبيه ودي من الموارد البشرية (أحلى شباب)* 🌸\n\nالسلام عليكم ورحمة الله، أستاذ ${emp.employeeName} العزيز 🌺\n\nنود لفت عنايتكم الكريمة إلى أنه تم رصد تكرار تأخير خلال الفترة الأخيرة بواقع (${emp.count} مرات).\n\nحرصاً منا على مصلحتكم وتفادياً لتراكم أي غرامات إضافية أو تعليق الحساب، نرجو التكرم بالحرص على الحضور بالموعد المحدد (10:00 ص)، ونحن جاهزون للاستماع لأي ظرف قد يواجهكم ومساعدتكم دائماً.\n\nتمنياتنا لكم بكل التوفيق والتميز! 🌟`;
-
-    if (cleanPhone) {
-      window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
-    } else {
-      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
-    }
+    openWhatsApp(text, emp.phone);
   }
 
   // ─── تفنيط وإحصائيات شرائح الغرامات ──────────────────────────────────
@@ -983,7 +974,7 @@ export function InstantPenaltiesPage() {
 
     const text = `*📊 التقرير الأسبوعي لغرامات الحضور — أحلى شباب*\n*الفترة:* ${weekAgoIso} → ${cairoTodayIso()}\n\n📌 *الملخص:*\n• إجمالي الغرامات: ${thisWeek.length} غرامة\n• إجمالي المبالغ: ${formatCurrency(totalAmount)}\n• المدفوع: ${paidThisWeek.length} (${formatCurrency(paidAmount)})\n• بانتظار السداد: ${pendingThisWeek.length} (${formatCurrency(pendingAmount)})\n• المضاعفة: ${doubledThisWeek.length}\n• المعلّقة: ${suspendedThisWeek.length}\n• الملغاة (أعذار مقبولة): ${cancelledThisWeek.length}\n\n📈 *نسبة التحصيل:* ${collectionRate}%\n💰 *رصيد صندوق الزمالة:* ${formatCurrency(fundBalance)}\n\n${topLate.length > 0 ? `⚠️ *الأكثر تأخراً هذا الأسبوع:*\n${topLate.map((e, i) => `${i + 1}. ${e.name} — ${e.count} مرات`).join('\n')}\n` : '✅ لا يوجد تكرار تأخير ملحوظ هذا الأسبوع.\n'}\n🤝 *تذكير:* جميع حصيلة الغرامات تذهب كاملة لصندوق الزمالة والتكافل لدعم الزملاء.\n\n_تقرير آلي من منظومة أحلى شباب — مجاني بدون رسوم_ ✨`;
 
-    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+    openWhatsApp(text);
   };
 
   // ─── إحصائيات نسبة التحصيل ────────────────────────────────────────
@@ -1974,7 +1965,7 @@ export function InstantPenaltiesPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Link
-                      to="/admin/fellowship-fund"
+                      to={fellowshipFundPath}
                       className="btn-primary !py-2 !px-4 text-xs font-bold whitespace-nowrap bg-emerald-600 hover:bg-emerald-700"
                       onClick={() => setActiveModalTier(null)}
                     >

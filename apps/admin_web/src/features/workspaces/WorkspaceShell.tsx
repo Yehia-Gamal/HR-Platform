@@ -68,6 +68,15 @@ interface NavSection {
   items: NavItem[];
 }
 
+const DOCUMENTS_READ_PERMISSIONS = [
+  'documents.employee.manage',
+  'documents.employee.read',
+  'documents.read',
+  'assets.inventory.manage',
+  'assets.assignment.manage',
+  'offboarding.case.manage',
+];
+
 const hrSections: NavSection[] = [
   {
     title: 'نظرة عامة',
@@ -86,8 +95,8 @@ const hrSections: NavSection[] = [
       { label: 'إدارة الإجازات', to: '/hr/leaves', icon: CalendarDays, permission: 'requests.request.read' },
       { label: 'أدوات الإجازات والتكليفات', to: '/hr/leave-tools', icon: TimerReset, permission: 'requests.leave.balance.adjust' },
       { label: 'العطل الرسمية', to: '/hr/holidays', icon: CalendarClock, permission: 'holidays.manage' },
-      { label: 'غرامات الحضور والانصراف', to: '/admin/finance?tab=instant-penalties', icon: AlertOctagon },
-      { label: 'صندوق الزمالة والتكافل', to: '/admin/fellowship-fund', icon: HeartHandshake },
+      { label: 'غرامات الحضور والانصراف', to: '/hr/finance?tab=instant-penalties', icon: AlertOctagon },
+      { label: 'صندوق الزمالة والتكافل', to: '/hr/fellowship-fund', icon: HeartHandshake },
     ],
   },
   {
@@ -101,7 +110,7 @@ const hrSections: NavSection[] = [
       { label: 'تهيئة الموظفين', to: '/hr/onboarding', icon: ListChecks, permission: 'onboarding.journey.read' },
       { label: 'دورة حياة الموظف', to: '/hr/lifecycle', icon: PackageCheck, featureFlag: 'lifecycle' },
       { label: 'كلمات المرور والحسابات', to: '/hr/passwords', icon: KeyRound, permission: 'people.employee.read' },
-      { label: 'المستندات', to: '/hr/documents', icon: FileSignature, featureFlag: 'documents' },
+      { label: 'المستندات', to: '/hr/documents', icon: FileSignature, permission: DOCUMENTS_READ_PERMISSIONS, featureFlag: 'documents' },
     ],
   },
   {
@@ -135,7 +144,7 @@ const adminSections: NavSection[] = [
       { label: 'دورة حياة الموظف', to: '/admin/hr/lifecycle', icon: PackageCheck, permission: 'people.employee.read' },
       { label: 'تهيئة الموظفين', to: '/admin/hr/onboarding', icon: ListChecks, permission: 'onboarding.journey.read' },
       { label: 'التوظيف', to: '/admin/hr/recruitment', icon: BriefcaseBusiness, permission: 'recruitment.requisition.read' },
-      { label: 'المستندات', to: '/admin/hr/documents', icon: FileSignature, permission: 'documents.document.read' },
+      { label: 'المستندات', to: '/admin/hr/documents', icon: FileSignature, permission: DOCUMENTS_READ_PERMISSIONS, featureFlag: 'documents' },
     ],
   },
   {
@@ -404,7 +413,7 @@ export function WorkspaceShell({ workspace }: { workspace: WorkspaceId }) {
                 <span className="header-breadcrumb-separator">/</span>
                 <span className="truncate text-[var(--brand-primary)]">{currentItem?.label ?? 'الرئيسية'}</span>
               </div>
-              <h1 className="truncate text-base font-black sm:text-lg">{currentItem?.label ?? currentWorkspaceLabel}</h1>
+              <p className="truncate text-base font-black sm:text-lg">{currentItem?.label ?? currentWorkspaceLabel}</p>
             </div>
           </div>
 

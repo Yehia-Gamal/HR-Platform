@@ -13,7 +13,7 @@ export function useEmployees(search?: string, status?: string) {
     queryKey: ['employees', search, status, auth.isMock],
     enabled: auth.status === 'authenticated',
     queryFn: async (): Promise<EmployeeSummary[]> => {
-      if (auth.isMock) return (await loadDomainMocks()).mockDevelopmentEmployees;
+      if (import.meta.env.DEV && auth.isMock) return (await loadDomainMocks()).mockDevelopmentEmployees;
 
       const data = await rpc('get_employees_enriched', {
         p_search: search?.trim() || null,
@@ -34,7 +34,7 @@ export function useEmployee360(employeeId: string | undefined) {
     enabled: auth.status === 'authenticated' && Boolean(employeeId),
     queryFn: async (): Promise<Employee360> => {
       if (!employeeId) throw new Error('معرف الموظف غير موجود.');
-      if (auth.isMock) {
+      if (import.meta.env.DEV && auth.isMock) {
         const devEmployees = (await loadDomainMocks()).mockDevelopmentEmployees;
         const source = devEmployees.find((item) => item.id === employeeId) ?? devEmployees[0];
         return employee360Schema.parse({

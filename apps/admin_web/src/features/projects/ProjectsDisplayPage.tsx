@@ -166,7 +166,7 @@ function formatAgo(ms: number): string {
 
 export function ProjectsDisplayPage() {
   const navigate = useNavigate();
-  const { data, error, dataUpdatedAt } = useAssociationProjects(REFRESH_MS);
+  const { data, error, dataUpdatedAt } = useAssociationProjects(REFRESH_MS, true);
   const now = useNow(1_000);
   const { width, height } = useViewport();
   const online = useOnline();

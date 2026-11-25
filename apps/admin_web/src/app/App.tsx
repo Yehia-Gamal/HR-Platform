@@ -608,9 +608,20 @@ function HrWorkspaceRoutes() {
       <Route
         path="documents"
         element={
-          <RequirePermission perm="documents.document.read">
-            <DocumentsHubPage />
-          </RequirePermission>
+          <FeatureGate feature="documents">
+            <RequirePermission
+              perm={[
+                'documents.employee.manage',
+                'documents.employee.read',
+                'documents.read',
+                'assets.inventory.manage',
+                'assets.assignment.manage',
+                'offboarding.case.manage',
+              ]}
+            >
+              <DocumentsHubPage />
+            </RequirePermission>
+          </FeatureGate>
         }
       />
       <Route path="documents/studio" element={<Navigate to="../documents?tab=studio" replace />} />

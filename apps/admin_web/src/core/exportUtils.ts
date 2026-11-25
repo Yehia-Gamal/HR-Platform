@@ -2,6 +2,8 @@
  * أدوات تصدير البيانات — CSV (يفتح في Excel) وطباعة PDF.
  * لا تعتمد على مكتبات خارجية؛ CSV بترميز UTF-8 مع BOM يفتح بالعربية في Excel.
  */
+import { captureError } from './sentry';
+import { emitToast } from '../ui/Toast';
 
 export interface ExportColumn<T> {
   key: string;
@@ -645,7 +647,9 @@ export function printReport(sections: PrintableSection[], documentTitle: string,
       downloadHtmlAsPdf(html, documentTitle, pdfFileName(`${documentTitle}_${new Date().toISOString().slice(0, 10)}`)),
     )
     .catch((err) => {
-      console.error('Failed to export report PDF:', err);
+      captureError(err, { action: 'printReport', documentTitle });
+      if (import.meta.env.DEV) console.error('Failed to export report PDF:', err);
+      emitToast({ message: 'تعذر تصدير التقرير بصيغة PDF.', tone: 'error' });
     });
 }
 

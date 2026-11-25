@@ -6,7 +6,8 @@ import { env, hasSupabaseConfig } from '../../core/env';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { getSupabase } from '../../core/supabase';
 import { loadAccessContext } from './accessService';
-import { mockContexts, type MockPersona } from './mockContexts';
+import { loadMockContexts } from './loadMockContexts';
+import type { MockPersona } from './mockContexts';
 
 const authObservability = attachAuthObservability();
 
@@ -71,7 +72,7 @@ export function AuthProvider({ children, clearSessionData }: PropsWithChildren<{
     // Local preview/E2E must stay deterministic even when a developer has a
     // real Supabase `.env.local`. Otherwise startup waits on getSession() and
     // the login screen intermittently remains behind the loading splash.
-    if (env.devMocksEnabled) {
+    if (import.meta.env.DEV && env.devMocksEnabled) {
       setStatus('anonymous');
       return;
     }
@@ -266,12 +267,22 @@ export function AuthProvider({ children, clearSessionData }: PropsWithChildren<{
   const signInMock = useCallback(
     (persona: MockPersona) => {
       clearSessionData?.();
-      if (!env.devMocksEnabled) return;
-      setIsMock(true);
-      setSession(null);
-      setAccess(mockContexts[persona]);
-      setError(null);
-      setStatus('authenticated');
+      if (!import.meta.env.DEV || !env.devMocksEnabled) return;
+      const version = sessionVersion.current;
+      void loadMockContexts()
+        .then(({ mockContexts }) => {
+          if (version !== sessionVersion.current) return;
+          setIsMock(true);
+          setSession(null);
+          setAccess(mockContexts[persona]);
+          setError(null);
+          setStatus('authenticated');
+        })
+        .catch(() => {
+          if (version !== sessionVersion.current) return;
+          setError('تعذر تحميل بيانات المعاينة المحلية.');
+          setStatus('anonymous');
+        });
     },
     [clearSessionData],
   );

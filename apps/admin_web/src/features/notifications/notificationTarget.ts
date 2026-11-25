@@ -160,6 +160,7 @@ const PAGES: Record<NotificationWorkspace, Partial<Record<PageKey, string>>> = {
     performance: '/hr/performance',
     officialFeed: '/hr/official-feed',
     dailyReports: '/hr/daily-reports',
+    finance: '/hr/finance',
     devices: '/hr/devices',
     employees: '/hr/employees',
     documents: '/hr/documents',

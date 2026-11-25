@@ -150,11 +150,13 @@ describe('notificationTargetPath', () => {
   it('يفتح الغرامة الفورية نفسها في تبويبها', () => {
     for (const et of ['instant_penalty', 'instant_penalty_doubled', 'instant_penalty_suspended', 'instant_penalty_reinstated', 'instant_penalty_lifted']) {
       expect(notificationTargetPath(item({ entityType: et, entityId: 'p1' }), 'admin')).toBe('/admin/finance?tab=instant-penalties&focus=p1');
+      expect(notificationTargetPath(item({ entityType: et, entityId: 'p1' }), 'hr')).toBe('/hr/finance?tab=instant-penalties&focus=p1');
     }
   });
 
   it('يفتح حركة صندوق الزمالة نفسها', () => {
     expect(notificationTargetPath(item({ entityType: 'fellowship_fund', entityId: 'f1' }), 'admin')).toBe('/admin/finance?tab=fellowship-fund&focus=f1');
+    expect(notificationTargetPath(item({ entityType: 'fellowship_fund', entityId: 'f1' }), 'hr')).toBe('/hr/finance?tab=fellowship-fund&focus=f1');
   });
 
   it('يفتح تقييم KPI المحدد من metadata.evaluationId', () => {
