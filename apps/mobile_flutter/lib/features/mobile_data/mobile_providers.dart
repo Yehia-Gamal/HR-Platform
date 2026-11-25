@@ -704,10 +704,26 @@ final myInstantPenaltiesProvider =
         context: 'my_instant_penalties_rpc_fallback',
       ),
     );
+    // ملاحظة أمان: الجدول محمي بـ RLS (سياسة instant_penalties_select) التي
+    // تقصر نتائج الموظف على سجلاته الخاصة حصراً. نضيف فلتر صريح كطبقة حماية
+    // إضافية (defense-in-depth) للتأكد من أن المسار الاحتياطي لا يرجع
+    // غرامات موظف آخر حتى لو تغيّرت سياسة RLS مستقبلاً.
+    final currentUserId = client.auth.currentUser?.id;
+    if (currentUserId == null) rethrow;
+    final employeeRows = await rpcWithTimeout(
+      client
+          .from('employees')
+          .select('id')
+          .eq('user_id', currentUserId)
+          .eq('is_deleted', false),
+    );
+    final employeeId = _asList(employeeRows).firstOrNull?['id'] as String?;
+    if (employeeId == null) rethrow;
     data = await rpcWithTimeout(
       client
           .from('instant_attendance_penalties')
           .select()
+          .eq('employee_id', employeeId)
           .order('work_date', ascending: false)
           .order('created_at', ascending: false),
     );

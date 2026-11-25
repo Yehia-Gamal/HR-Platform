@@ -6,6 +6,18 @@ import { normalizePhone, validateHrIssuedPassword } from "../_shared/phone.ts";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const PUBLISHABLE_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
+// سجّال هيكلي خفيف للدالة (لا createHandler متاح هنا)
+// يستخدم console.error مع حقل fn دائم لتسهيل التصفية في Supabase Logs.
+function structuredLog(
+  level: "error" | "warn" | "info",
+  message: string,
+  meta?: Record<string, unknown>,
+): void {
+  // لا نُدرج بيانات المستخدم (PII) في السجلات — المرسِل يتحمل المسؤولية
+  // عن إزالة أي قيم حساسة قبل تمريرها لـ meta.
+  console[level](JSON.stringify({ fn: "admin-create-employee", level, message, ...meta }));
+}
 // Where the activation email link should redirect after Supabase verifies the
 // token. Points to the web "mobile redirect" page which then tries to open the
 // Flutter app via the ahlashabab:// custom scheme. This two-step approach works
@@ -248,7 +260,7 @@ Deno.serve(async (req: Request) => {
 
   // استعادة من حساب يتيم: حذف ثم إعادة إنشاء
   if (createError && isDuplicateError(createError)) {
-    console.error("auth.createUser duplicate detected — attempting orphan recovery", {
+    structuredLog("warn", "auth.createUser duplicate detected — attempting orphan recovery", {
       status: (createError as { status?: number }).status,
     });
 
@@ -276,14 +288,14 @@ Deno.serve(async (req: Request) => {
       }
 
       // حذف اليتيم وإعادة المحاولة
-      console.error("deleting orphaned auth user for recovery");
+      structuredLog("warn", "deleting orphaned auth user for recovery");
       await admin.auth.admin.deleteUser(orphanId).catch(() => undefined);
       ({ data: created, error: createError } = await tryCreateAuthUser());
     }
   }
 
   if (createError || !created?.user) {
-    console.error("auth.createUser failed", {
+    structuredLog("error", "auth.createUser failed", {
       status: (createError as { status?: number })?.status,
       name: (createError as { name?: string })?.name,
     });
@@ -334,7 +346,7 @@ Deno.serve(async (req: Request) => {
       await admin.auth.admin.deleteUser(userId).catch(() => undefined);
     }
     if (deleteError) {
-      console.error("orphaned auth user cleanup failed", { code: (deleteError as { code?: string })?.code });
+      structuredLog("error", "orphaned auth user cleanup failed", { code: (deleteError as { code?: string })?.code });
     }
     return json(req, { error: errorCode }, 500);
   }
@@ -346,7 +358,7 @@ Deno.serve(async (req: Request) => {
     invitationSent: input.sendInvite,
   }, 201);
   } catch (err) {
-    console.error("admin-create-employee unhandled error", err instanceof Error ? err.constructor.name : typeof err);
+    structuredLog("error", "admin-create-employee unhandled error", { kind: err instanceof Error ? err.constructor.name : typeof err });
     return json(req, { error: "INTERNAL_ERROR" }, 500);
   }
 });
