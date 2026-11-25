@@ -16,7 +16,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
-import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 
 class LocationRequestsPage extends ConsumerWidget {
   const LocationRequestsPage({required this.access, super.key});
@@ -346,7 +345,7 @@ class _PastRequestTile extends StatelessWidget {
     final when = DateFormat(
       'd MMM · h:mm a',
       'ar',
-    ).format(AppTime.toCairo(request.requestedAt));
+    ).format(request.requestedAt.toLocal());
     final reason = request.reason.trim();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -735,7 +734,7 @@ class _RequestCardState extends ConsumerState<_RequestCard>
                     value: DateFormat(
                       'd MMM · h:mm a',
                       'ar',
-                    ).format(AppTime.toCairo(request.requestedAt)),
+                    ).format(request.requestedAt.toLocal()),
                   ),
                 ],
               ),

@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:ahla_shabab_management_os/core/config/app_config.dart';
+import 'package:ahla_shabab_management_os/core/observability/crash_reporter.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
+import 'package:ahla_shabab_management_os/features/mobile_data/models/json_parse.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart' show debugPrint, kDebugMode, kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -49,22 +51,20 @@ class MobileReleasePolicy {
 
   factory MobileReleasePolicy.fromJson(Map<String, dynamic> json) {
     return MobileReleasePolicy(
-      action: MobileReleaseAction.fromWire(json['action'] as String? ?? 'none'),
-      platform: json['platform'] as String? ?? _platformName,
-      environment: json['environment'] as String? ?? AppConfig.environment,
-      currentVersion: json['currentVersion'] as String? ?? '0.0.0',
-      currentBuild: (json['currentBuild'] as num?)?.toInt() ?? 0,
-      latestVersion: json['latestVersion'] as String? ?? '0.0.0',
-      latestBuild: (json['latestBuild'] as num?)?.toInt() ?? 0,
-      minSupportedVersion: json['minSupportedVersion'] as String? ?? '0.0.0',
-      minSupportedBuild: (json['minSupportedBuild'] as num?)?.toInt() ?? 0,
-      forceUpdate: json['forceUpdate'] as bool? ?? false,
-      maintenance: json['maintenance'] as bool? ?? false,
-      messageAr: json['messageAr'] as String?,
-      storeUrl: json['storeUrl'] as String?,
-      checkedAt:
-          DateTime.tryParse(json['checkedAt'] as String? ?? '') ??
-          DateTime.now().toUtc(),
+      action: MobileReleaseAction.fromWire(asString(json['action'], 'none')),
+      platform: asString(json['platform'], _platformName),
+      environment: asString(json['environment'], AppConfig.environment),
+      currentVersion: asString(json['currentVersion'], '0.0.0'),
+      currentBuild: asInt(json['currentBuild'], 0),
+      latestVersion: asString(json['latestVersion'], '0.0.0'),
+      latestBuild: asInt(json['latestBuild'], 0),
+      minSupportedVersion: asString(json['minSupportedVersion'], '0.0.0'),
+      minSupportedBuild: asInt(json['minSupportedBuild'], 0),
+      forceUpdate: asBool(json['forceUpdate'], false),
+      maintenance: asBool(json['maintenance'], false),
+      messageAr: asNullableString(json['messageAr']),
+      storeUrl: asNullableString(json['storeUrl']),
+      checkedAt: optDate(json['checkedAt']) ?? DateTime.now().toUtc(),
     );
   }
 
@@ -102,10 +102,44 @@ class MobileReleasePolicy {
   final String? storeUrl;
   final DateTime checkedAt;
 
-  bool get blocksApplication =>
-      action == MobileReleaseAction.updateRequired ||
-      action == MobileReleaseAction.maintenance ||
-      action == MobileReleaseAction.blocked;
+  static int compareSemver(String a, String b) {
+    List<int> parse(String v) => v
+        .split('+')
+        .first
+        .split('.')
+        .map((part) => int.tryParse(part.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0)
+        .toList();
+    final pa = parse(a);
+    final pb = parse(b);
+    final len = pa.length > pb.length ? pa.length : pb.length;
+    for (var i = 0; i < len; i++) {
+      final va = i < pa.length ? pa[i] : 0;
+      final vb = i < pb.length ? pb[i] : 0;
+      if (va != vb) return va.compareTo(vb);
+    }
+    return 0;
+  }
+
+  bool get blocksApplication {
+    if (action == MobileReleaseAction.updateRequired ||
+        action == MobileReleaseAction.maintenance ||
+        action == MobileReleaseAction.blocked ||
+        forceUpdate ||
+        maintenance) {
+      return true;
+    }
+    if (minSupportedBuild > 0 &&
+        currentBuild > 0 &&
+        currentBuild < minSupportedBuild) {
+      return true;
+    }
+    if (minSupportedVersion != '0.0.0' &&
+        currentVersion != '0.0.0' &&
+        compareSemver(currentVersion, minSupportedVersion) < 0) {
+      return true;
+    }
+    return false;
+  }
 }
 
 const _secureStorage = FlutterSecureStorage();
@@ -182,9 +216,7 @@ final releasePolicyProvider = FutureProvider<MobileReleasePolicy>((ref) async {
       'get_public_release_policy',
       params: params,
     );
-    return MobileReleasePolicy.fromJson(
-      Map<String, dynamic>.from(response as Map<dynamic, dynamic>),
-    );
+    return MobileReleasePolicy.fromJson(asMap(response));
   } on PostgrestException catch (e) {
     if (e.code == 'PGRST303') {
       try {
@@ -193,9 +225,7 @@ final releasePolicyProvider = FutureProvider<MobileReleasePolicy>((ref) async {
           'get_public_release_policy',
           params: params,
         );
-        return MobileReleasePolicy.fromJson(
-          Map<String, dynamic>.from(retryResponse as Map<dynamic, dynamic>),
-        );
+        return MobileReleasePolicy.fromJson(asMap(retryResponse));
       } catch (_) {
         // Refresh or retry failed — fall through safely without signing out.
       }
@@ -207,8 +237,15 @@ final releasePolicyProvider = FutureProvider<MobileReleasePolicy>((ref) async {
     return MobileReleasePolicy.continueAction();
   } on TimeoutException {
     return MobileReleasePolicy.continueAction();
-  } catch (_) {
-    // أي استثناء آخر (DNS، SSL، ClientException…) → لا نحجب التطبيق.
+  } catch (error, stackTrace) {
+    // أي استثناء آخر (DNS، SSL، ClientException…) → نسجله ولا نحجب التطبيق.
+    unawaited(
+      CrashReporter.instance.captureError(
+        error,
+        stackTrace,
+        context: 'release_policy_fetch',
+      ),
+    );
     return MobileReleasePolicy.continueAction();
   }
 });

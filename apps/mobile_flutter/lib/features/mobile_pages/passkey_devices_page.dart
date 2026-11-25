@@ -30,25 +30,33 @@ class _PasskeyDevicesPageState extends ConsumerState<PasskeyDevicesPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('أجهزة البصمة الموثوقة'),
+        title: const Text('أجهزتي وأجهزة البصمة الموثوقة'),
         actions: [
           if (hasActiveDevice)
-            IconButton(
-              onPressed: _replacingDevice ? null : _requestReplacement,
-              tooltip: 'فقدت هاتفي — طلب استبدال',
-              icon: const Icon(Icons.phonelink_erase_outlined),
+            Semantics(
+              button: true,
+              label: 'فقدت هاتفي — طلب استبدال الجهاز النشط',
+              child: IconButton(
+                onPressed: _replacingDevice ? null : _requestReplacement,
+                tooltip: 'فقدت هاتفي — طلب استبدال',
+                icon: const Icon(Icons.phonelink_erase_outlined),
+              ),
             ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _registering ? null : _register,
-        icon: _registering
-            ? const SizedBox.square(
-                dimension: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Icon(Icons.add_moderator_outlined),
-        label: const Text('تسجيل هذا الجهاز'),
+      floatingActionButton: Semantics(
+        button: true,
+        label: 'تسجيل هذا الجهاز كبصمة موثوقة',
+        child: FloatingActionButton.extended(
+          onPressed: _registering ? null : _register,
+          icon: _registering
+              ? const SizedBox.square(
+                  dimension: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.add_moderator_outlined),
+          label: const Text('تسجيل هذا الجهاز'),
+        ),
       ),
       body: SafeArea(
         child: RefreshIndicator(

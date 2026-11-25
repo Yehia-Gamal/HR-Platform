@@ -11,6 +11,7 @@ import 'package:ahla_shabab_management_os/core/widgets/phone_display.dart';
 import 'package:ahla_shabab_management_os/core/theme/theme_mode_controller.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/location_service.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/battery_notifications_guide_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/passkey_devices_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/my_team_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/employee_profile_page.dart';
@@ -132,6 +133,36 @@ class MobileProfilePage extends ConsumerWidget {
                     useSafeArea: true,
                     isScrollControlled: true,
                     builder: (context) => const _ChangePasswordDialog(),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.battery_saver_rounded),
+                  title: const Text('إعدادات البطارية والإشعارات'),
+                  subtitle: const Text('ضمان وصول الإشعارات حسب نوع هاتفك'),
+                  trailing: const Icon(Icons.chevron_left_rounded),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const BatteryNotificationsGuidePage(),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.phonelink_lock_rounded),
+                  title: const Text('أجهزتي الموثوقة'),
+                  subtitle: const Text('عرض أو حذف أو استبدال جهاز البصمة'),
+                  trailing: const Icon(Icons.chevron_left_rounded),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const PasskeyDevicesPage(),
+                    ),
                   ),
                 ),
               ),

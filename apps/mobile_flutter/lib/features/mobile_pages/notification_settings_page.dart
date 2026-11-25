@@ -1,4 +1,5 @@
 import 'package:ahla_shabab_management_os/core/notifications/notification_preferences.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/battery_notifications_guide_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -181,6 +182,26 @@ class _NotificationSettingsPageState
               ),
               subtitle: const Text(
                 'إشعار أمان بشاشة كاملة — يتجاوز الكتم وساعات الهدوء دائماً.',
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Card(
+            child: ListTile(
+              leading: Icon(Icons.battery_saver_rounded, color: scheme.primary),
+              title: const Text(
+                'إعدادات البطارية والإشعارات حسب نوع الهاتف',
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
+              subtitle: const Text(
+                'خطوات شاومي وسامسونج وأوبو وهواوي لضمان عدم حظر الإشعارات.',
+              ),
+              trailing: const Icon(Icons.chevron_left_rounded),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const BatteryNotificationsGuidePage(),
+                ),
               ),
             ),
           ),

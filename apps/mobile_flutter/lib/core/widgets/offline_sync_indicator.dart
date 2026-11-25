@@ -6,7 +6,6 @@ import 'package:ahla_shabab_management_os/core/observability/crash_reporter.dart
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 
 /// مؤشر صغير يعرض عدد العمليات المعلقة في طابور المزامنة.
 /// عند الضغط يعرض BottomSheet بتفاصيل العمليات وزر مزامنة يدوية.
@@ -270,7 +269,7 @@ class _SyncQueueSheetState extends ConsumerState<_SyncQueueSheet> {
                           style: const TextStyle(fontSize: 14),
                         ),
                         subtitle: Text(
-                          'محاولة ${item.retryCount}/5 · ${_formatTime(AppTime.toCairo(DateTime.parse(item.createdAt)))}',
+                          'محاولة ${item.retryCount}/5 · ${_formatTime(DateTime.parse(item.createdAt).toLocal())}',
                           style: TextStyle(
                             fontSize: 11,
                             color: Colors.grey.shade600,
@@ -311,7 +310,7 @@ class _SyncQueueSheetState extends ConsumerState<_SyncQueueSheet> {
   }
 
   String _formatTime(DateTime dt) {
-    final local = AppTime.toCairo(dt);
+    final local = dt.toLocal();
     final h = local.hour.toString().padLeft(2, '0');
     final m = local.minute.toString().padLeft(2, '0');
     final d = local.day.toString().padLeft(2, '0');

@@ -65,6 +65,8 @@ class _AuthenticatedGate extends ConsumerStatefulWidget {
 
 class _AuthenticatedGateState extends ConsumerState<_AuthenticatedGate>
     with WidgetsBindingObserver {
+  DateTime _lastReleaseCheckAt = DateTime.now();
+
   @override
   void initState() {
     super.initState();
@@ -80,6 +82,11 @@ class _AuthenticatedGateState extends ConsumerState<_AuthenticatedGate>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      if (DateTime.now().difference(_lastReleaseCheckAt) >=
+          const Duration(minutes: 30)) {
+        _lastReleaseCheckAt = DateTime.now();
+        ref.invalidate(releasePolicyProvider);
+      }
       _handleAppResumed();
     }
   }
