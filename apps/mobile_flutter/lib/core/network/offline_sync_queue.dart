@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:ahla_shabab_management_os/core/observability/crash_reporter.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -138,7 +139,14 @@ class OfflineSyncQueue {
   Future<List<SyncQueueItem>> getAll() async {
     try {
       return await _load();
-    } catch (_) {
+    } catch (error, stackTrace) {
+      unawaited(
+        CrashReporter.instance.captureError(
+          error,
+          stackTrace,
+          context: 'offline_sync_queue_get_all',
+        ),
+      );
       return [];
     }
   }
@@ -152,7 +160,14 @@ class OfflineSyncQueue {
       final ts = await _storage.read(key: _lastSyncKey);
       if (ts == null) return null;
       return DateTime.parse(ts);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      unawaited(
+        CrashReporter.instance.captureError(
+          error,
+          stackTrace,
+          context: 'offline_sync_queue_last_sync_read',
+        ),
+      );
       return null;
     }
   }
@@ -164,8 +179,14 @@ class OfflineSyncQueue {
         key: _lastSyncKey,
         value: DateTime.now().toUtc().toIso8601String(),
       );
-    } catch (_) {
-      // Best-effort.
+    } catch (error, stackTrace) {
+      unawaited(
+        CrashReporter.instance.captureError(
+          error,
+          stackTrace,
+          context: 'offline_sync_queue_last_sync_write',
+        ),
+      );
     }
   }
 

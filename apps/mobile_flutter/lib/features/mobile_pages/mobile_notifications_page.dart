@@ -21,6 +21,7 @@ import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 
 enum _NotifFilter { all, unread }
 
@@ -1057,11 +1058,11 @@ String _notificationCategoryLabel(String category) => switch (category) {
 
 /// الساعة وحدها داخل البطاقة — اليوم في عنوان المجموعة.
 String _notificationClock(DateTime time) =>
-    DateFormat('h:mm a', 'ar').format(time.toLocal());
+    DateFormat('h:mm a', 'ar').format(AppTime.toCairo(time));
 
 /// عنوان مجموعة: اليوم، أمس، اسم اليوم خلال الأسبوع، ثم التاريخ.
 String _notificationDayLabel(DateTime time) {
-  final local = time.toLocal();
+  final local = AppTime.toCairo(time);
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
   final diff = today.difference(DateTime(local.year, local.month, local.day)).inDays;
@@ -1194,7 +1195,7 @@ class NotificationDetailSheet extends ConsumerWidget {
                       const SizedBox(height: 4),
                       Text(
                         DateFormat('d MMMM yyyy — hh:mm a', 'ar')
-                            .format(item.createdAt.toLocal()),
+                            .format(AppTime.toCairo(item.createdAt)),
                         style: TextStyle(
                           fontSize: 12,
                           color: scheme.onSurfaceVariant,

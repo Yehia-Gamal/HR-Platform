@@ -15,6 +15,7 @@ import 'package:ahla_shabab_management_os/shared/permission_gate.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' show DateFormat;
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 
 /// اعتماد طلبات الفريق: الإجازات والمأموريات والأذونات وتغيير الفترة وتصحيحات
 /// البصمة — الأحدث أولًا، مع اعتماد/رفض سريع وفتح التفاصيل.
@@ -1168,7 +1169,7 @@ class _CorrectionCard extends StatelessWidget {
   };
 
   String _time(DateTime? dt) =>
-      dt == null ? '' : DateFormat('h:mm a', 'ar').format(dt.toLocal());
+      dt == null ? '' : DateFormat('h:mm a', 'ar').format(AppTime.toCairo(dt));
 
   @override
   Widget build(BuildContext context) {

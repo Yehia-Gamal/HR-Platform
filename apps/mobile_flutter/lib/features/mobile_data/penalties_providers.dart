@@ -2,6 +2,7 @@ import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 
 /// غرامات الحضور الفورية للموظفين بأسمائهم — get_instant_penalties (0642):
 /// الإدارة وHR والمالية يرون الجميع، والمدير فريقه المباشر، والموظف نفسه.
@@ -128,7 +129,7 @@ class FellowshipFundTransaction {
         isInflow: (_str(j['transactionType']) ?? 'inflow') == 'inflow',
         amount: _num(j['amount']),
         createdAt:
-            DateTime.tryParse('${j['createdAt'] ?? ''}')?.toLocal() ??
+            AppTime.tryToCairo(DateTime.tryParse('${j['createdAt'] ?? ''}')) ??
             DateTime.now(),
         sourceType: _str(j['sourceType']),
         category: _str(j['category']),

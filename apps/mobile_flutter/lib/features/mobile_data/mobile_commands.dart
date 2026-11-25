@@ -1392,7 +1392,7 @@ extension MobileSelfServiceCommands on MobileCommands {
     DateTime? checkOut,
     String? requestedStatus,
   }) async {
-    final localWorkDate = workDate.toLocal();
+    final localWorkDate = AppTime.toCairo(workDate);
     String date(DateTime value) =>
         '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
     await _rpcQueued('request_correction', 'request_attendance_correction', {

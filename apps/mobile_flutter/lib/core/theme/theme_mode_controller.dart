@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:ahla_shabab_management_os/core/observability/crash_reporter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -20,7 +23,14 @@ String serializeThemeMode(ThemeMode mode) => switch (mode) {
 Future<ThemeMode> loadSavedThemeMode() async {
   try {
     return parseThemeMode(await _themeStorage.read(key: _themeModeKey));
-  } catch (_) {
+  } catch (error, stackTrace) {
+    unawaited(
+      CrashReporter.instance.captureError(
+        error,
+        stackTrace,
+        context: 'theme_mode_load',
+      ),
+    );
     return ThemeMode.system;
   }
 }
@@ -44,8 +54,15 @@ class ThemeModeController extends Notifier<ThemeMode> {
         key: _themeModeKey,
         value: serializeThemeMode(mode),
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
       // The in-memory preference remains active when device storage is unavailable.
+      unawaited(
+        CrashReporter.instance.captureError(
+          error,
+          stackTrace,
+          context: 'theme_mode_save',
+        ),
+      );
     }
   }
 }

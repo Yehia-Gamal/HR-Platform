@@ -22,6 +22,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 
 class MobileAttendancePage extends ConsumerStatefulWidget {
   const MobileAttendancePage({super.key});
@@ -92,6 +93,14 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
   /// عند العودة من إعدادات الموقع أو التطبيق — إعادة المحاولة تلقائياً.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
+      _refreshTimer?.cancel();
+      _refreshTimer = null;
+      return;
+    }
     if (state == AppLifecycleState.resumed) {
       _startAutoRefresh();
       _checkDeviceSecurity();
@@ -1972,7 +1981,7 @@ class _MissionInProgressCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final startedLabel = startedAt == null
         ? null
-        : DateFormat('h:mm a', 'ar').format(startedAt!.toLocal());
+        : DateFormat('h:mm a', 'ar').format(AppTime.toCairo(startedAt!));
     return Card(
       clipBehavior: Clip.antiAlias,
       elevation: 2,
@@ -2170,7 +2179,7 @@ class _DayCompletedCard extends StatelessWidget {
                   label: 'الحضور',
                   value: checkIn == null
                       ? '—'
-                      : formatter.format(checkIn!.toLocal()),
+                      : formatter.format(AppTime.toCairo(checkIn!)),
                   valueColor: AppColors.statusSuccess,
                 ),
                 const SizedBox(height: 8),
@@ -2179,7 +2188,7 @@ class _DayCompletedCard extends StatelessWidget {
                   label: 'الانصراف',
                   value: checkOut == null
                       ? '—'
-                      : formatter.format(checkOut!.toLocal()),
+                      : formatter.format(AppTime.toCairo(checkOut!)),
                   valueColor: AppColors.statusSuccess,
                 ),
               ],
@@ -2302,7 +2311,7 @@ class _TodayStatusCard extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             state.todayCheckInAt != null
-                                ? formatter.format(state.todayCheckInAt!.toLocal())
+                                ? formatter.format(AppTime.toCairo(state.todayCheckInAt!))
                                 : 'لم يُسجل بعد',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -2401,7 +2410,7 @@ class _TodayStatusCard extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             state.todayCheckOutAt != null
-                                ? formatter.format(state.todayCheckOutAt!.toLocal())
+                                ? formatter.format(AppTime.toCairo(state.todayCheckOutAt!))
                                 : (state.todayCheckInAt != null ? 'قيد العمل الآن' : '—'),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -2648,7 +2657,7 @@ class _TodayStatusCard extends StatelessWidget {
                 label: 'آخر عملية',
                 value:
                     '${state.lastEventType == 'CHECK_IN' ? 'حضور' : 'انصراف'}'
-                    '${state.lastEventAt != null ? ' · ${formatter.format(state.lastEventAt!.toLocal())}' : ''}',
+                    '${state.lastEventAt != null ? ' · ${formatter.format(AppTime.toCairo(state.lastEventAt!))}' : ''}',
               ),
             ],
 
@@ -3890,7 +3899,7 @@ _ShiftDisciplineMetric _computeShiftDisciplineMetric({
   final startH = startParts.length >= 2 ? (int.tryParse(startParts[0]) ?? 10) : 10;
   final startM = startParts.length >= 2 ? (int.tryParse(startParts[1]) ?? 0) : 0;
 
-  final referenceDate = todayCheckInAt?.toLocal() ?? current;
+  final referenceDate = AppTime.tryToCairo(todayCheckInAt) ?? current;
   var todayStart = DateTime(referenceDate.year, referenceDate.month, referenceDate.day, startH, startM);
 
   // إذا كان الموظف لديه إذن معتمد/قيد المراجعة ولم يكن توقيت البداية قد عُدّل بالفعل، يتم إضافة دقائق الإذن
@@ -3901,7 +3910,7 @@ _ShiftDisciplineMetric _computeShiftDisciplineMetric({
   final todayGraceEnd = todayStart.add(Duration(minutes: graceInMinutes));
 
   if (todayCheckInAt != null) {
-    final checkIn = todayCheckInAt.toLocal();
+    final checkIn = AppTime.toCairo(todayCheckInAt);
 
     // فحص ما إذا كان الموظف قد استوفى 8 ساعات عمل (480 دقيقة)
     final totalWorkMins = (workMinutes != null && workMinutes > 0)
@@ -5131,8 +5140,8 @@ class _CorrectionsSectionState extends ConsumerState<_CorrectionsSection> {
                                     ),
                                     child: Text(
                                       c.requestedCheckIn != null
-                                          ? 'المطلوب: ${DateFormat('h:mm a', 'ar').format(c.requestedCheckIn!.toLocal())}'
-                                          : 'المطلوب: ${DateFormat('h:mm a', 'ar').format(c.requestedCheckOut!.toLocal())}',
+                                          ? 'المطلوب: ${DateFormat('h:mm a', 'ar').format(AppTime.toCairo(c.requestedCheckIn!))}'
+                                          : 'المطلوب: ${DateFormat('h:mm a', 'ar').format(AppTime.toCairo(c.requestedCheckOut!))}',
                                       style: TextStyle(
                                         fontSize: 10.5,
                                         fontWeight: FontWeight.w700,
@@ -5547,11 +5556,11 @@ class _PenaltyCompensateBanner extends ConsumerWidget {
 
     final effectiveCheckIn = state.todayCheckInAt ?? checkInAt ?? DateTime.now();
     final checkInStr = state.todayCheckInTime ??
-        DateFormat('h:mm a', 'ar').format(effectiveCheckIn.toLocal());
+        DateFormat('h:mm a', 'ar').format(AppTime.toCairo(effectiveCheckIn));
     final targetCheckout = state.targetCheckoutAt ??
         effectiveCheckIn.add(const Duration(hours: 8));
     final targetStr = state.targetCheckoutTime ??
-        DateFormat('h:mm a', 'ar').format(targetCheckout.toLocal());
+        DateFormat('h:mm a', 'ar').format(AppTime.toCairo(targetCheckout));
 
     final penaltyAmount = activePen?.currentAmount ?? state.estimatedLatePenaltyAmount;
     final lateMins = activePen?.lateMinutes ?? state.lateMinutes;

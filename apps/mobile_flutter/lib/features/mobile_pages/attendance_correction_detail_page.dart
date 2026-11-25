@@ -7,6 +7,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/team_requests_pa
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 
 /// صفحة مراجعة تفاصيل طلب تصحيح البصمة (للمدير والموظف).
 class AttendanceCorrectionDetailPage extends ConsumerStatefulWidget {
@@ -25,7 +26,7 @@ class _AttendanceCorrectionDetailPageState
 
   String _formatTime(DateTime? dt) {
     if (dt == null) return '—';
-    return DateFormat('hh:mm a', 'ar').format(dt.toLocal());
+    return DateFormat('hh:mm a', 'ar').format(AppTime.toCairo(dt));
   }
 
   String _typeLabel(String type) => switch (type) {
@@ -425,7 +426,7 @@ class _AttendanceCorrectionDetailPageState
                                   context,
                                   icon: Icons.access_time_rounded,
                                   label: 'تاريخ القرار',
-                                  value: DateFormat('d MMM y - hh:mm a', 'ar').format(detail.reviewedAt!.toLocal()),
+                                  value: DateFormat('d MMM y - hh:mm a', 'ar').format(AppTime.toCairo(detail.reviewedAt!)),
                                 ),
                                 const SizedBox(height: 8),
                               ],

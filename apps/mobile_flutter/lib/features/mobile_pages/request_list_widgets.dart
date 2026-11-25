@@ -8,6 +8,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/request_display.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' show DateFormat;
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 
 /// عناصر قوائم الطلبات المشتركة بين «الطلبات» و«طلباتي» (الخدمة الذاتية).
 
@@ -431,7 +432,7 @@ class RequestMonthSummary extends StatelessWidget {
     final now = DateTime.now();
     final month = requests
         .where((r) {
-          final t = r.createdAt.toLocal();
+          final t = AppTime.toCairo(r.createdAt);
           return t.year == now.year && t.month == now.month;
         })
         .toList(growable: false);

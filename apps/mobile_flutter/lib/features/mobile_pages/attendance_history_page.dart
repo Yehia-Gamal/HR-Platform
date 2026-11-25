@@ -6,6 +6,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.d
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 
 /// سجل الحضور والانصراف: يوم واحد = بطاقة واحدة (حضور، انصراف، مدة العمل)،
 /// الأحدث أولًا — بدل بطاقة لكل عملية بشرائح مبهمة («21 م» = متر أم مساءً؟).
@@ -114,7 +115,7 @@ class _HistoryList extends StatelessWidget {
     // اليوم بترتيبها الزمني (حضور ثم انصراف).
     final byDay = <String, List<AttendanceHistoryItem>>{};
     for (final item in items) {
-      (byDay[_dayKey(item.eventAt.toLocal())] ??= []).add(item);
+      (byDay[_dayKey(AppTime.toCairo(item.eventAt))] ??= []).add(item);
     }
     final days = byDay.keys.toList()..sort((a, b) => b.compareTo(a));
     for (final list in byDay.values) {
@@ -123,7 +124,7 @@ class _HistoryList extends StatelessWidget {
 
     final checkIns = items.where((e) => e.eventType == 'CHECK_IN').toList();
     final attendedDays = {
-      for (final e in checkIns) _dayKey(e.eventAt.toLocal()),
+      for (final e in checkIns) _dayKey(AppTime.toCairo(e.eventAt)),
     }.length;
     final lateIns = checkIns.where((e) => e.lateMinutes > 0).toList();
     final lateMinutes = lateIns.fold<int>(0, (s, e) => s + e.lateMinutes);
@@ -430,7 +431,7 @@ class _EventRow extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      DateFormat('h:mm a', 'ar').format(item.eventAt.toLocal()),
+                      DateFormat('h:mm a', 'ar').format(AppTime.toCairo(item.eventAt)),
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w900,

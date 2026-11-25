@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -5,6 +6,8 @@ import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart
 import 'package:ahla_shabab_management_os/core/network/offline_aware_provider.dart';
 import 'package:ahla_shabab_management_os/core/network/offline_cache.dart';
 import 'package:ahla_shabab_management_os/core/network/offline_sync_queue.dart';
+import 'package:ahla_shabab_management_os/core/observability/crash_reporter.dart';
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/location_service.dart';
 import 'package:geolocator/geolocator.dart';
@@ -31,7 +34,15 @@ Map<String, dynamic> _asMap(dynamic value) {
     try {
       final decoded = jsonDecode(value);
       if (decoded is Map) return Map<String, dynamic>.from(decoded);
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      unawaited(
+        CrashReporter.instance.captureError(
+          error,
+          stackTrace,
+          context: 'mobile_providers_as_map_json',
+        ),
+      );
+    }
   }
   return const {};
 }
@@ -567,8 +578,15 @@ final myPermitBalanceProvider = FutureProvider<MobilePermitBalance>((ref) async 
     if (data is Map) {
       return MobilePermitBalance.fromJson(Map<String, dynamic>.from(data));
     }
-  } catch (_) {
+  } catch (error, stackTrace) {
     // خطة احتياطية عند انقطاع الاتصال أو تعذر الاستجابة
+    unawaited(
+      CrashReporter.instance.captureError(
+        error,
+        stackTrace,
+        context: 'my_permit_balance_rpc_fallback',
+      ),
+    );
   }
 
   // حساب احتياطي من الطلبات المحلية المسجلة
@@ -678,7 +696,14 @@ final myInstantPenaltiesProvider =
     data = await rpcWithTimeout(
       client.rpc<dynamic>('get_my_instant_penalties'),
     );
-  } catch (_) {
+  } catch (error, stackTrace) {
+    unawaited(
+      CrashReporter.instance.captureError(
+        error,
+        stackTrace,
+        context: 'my_instant_penalties_rpc_fallback',
+      ),
+    );
     data = await rpcWithTimeout(
       client
           .from('instant_attendance_penalties')

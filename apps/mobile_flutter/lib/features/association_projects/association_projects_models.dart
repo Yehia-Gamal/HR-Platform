@@ -1,13 +1,15 @@
 // نماذج مشاريع الجمعية (0553 + فريق المشروع 0645) — مطابقة لعقد الويب في
 // packages/shared-contracts/src/associationProjects.ts.
 
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
+
 String _str(Object? v, [String fallback = '']) => v == null ? fallback : v.toString();
 String? _strOrNull(Object? v) => v == null || v.toString().isEmpty ? null : v.toString();
 int _int(Object? v) => v is num ? v.toInt() : int.tryParse(_str(v)) ?? 0;
 int? _intOrNull(Object? v) => v == null ? null : (v is num ? v.toInt() : int.tryParse(v.toString()));
 double _double(Object? v) => v is num ? v.toDouble() : double.tryParse(_str(v)) ?? 0;
 bool _bool(Object? v) => v == true;
-DateTime? _date(Object? v) => v == null ? null : DateTime.tryParse(v.toString())?.toLocal();
+DateTime? _date(Object? v) => v == null ? null : AppTime.tryToCairo(DateTime.tryParse(v.toString()));
 List<Map<String, dynamic>> _list(Object? v) =>
     v is List ? v.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList() : const [];
 

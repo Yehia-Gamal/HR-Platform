@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 
+import 'package:ahla_shabab_management_os/core/observability/crash_reporter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// تفضيلات الإشعارات المحلية (بند 8): كتم قنوات + ساعات هدوء.
@@ -117,7 +119,14 @@ class NotificationPreferences {
       return NotificationPreferences.fromJson(
         Map<String, dynamic>.from(jsonDecode(raw) as Map<dynamic, dynamic>),
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      unawaited(
+        CrashReporter.instance.captureError(
+          error,
+          stackTrace,
+          context: 'notification_preferences_load',
+        ),
+      );
       return const NotificationPreferences();
     }
   }

@@ -5,6 +5,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.d
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 
 /// قسم «طلبات التصحيح» القابل لإعادة الاستخدام — يُعرض داخل صفحة الحضور
 /// وصفحة «جدولي وتصحيحات الحضور».
@@ -87,9 +88,9 @@ class AttendanceCorrectionsSection extends ConsumerWidget {
                 final isHighlighted = item.id == highlightId;
                 final scheme = Theme.of(context).colorScheme;
                 final timeText = item.requestedCheckIn != null
-                    ? 'وقت الحضور المطلوب: ${DateFormat('hh:mm a', 'ar').format(item.requestedCheckIn!.toLocal())}'
+                    ? 'وقت الحضور المطلوب: ${DateFormat('hh:mm a', 'ar').format(AppTime.toCairo(item.requestedCheckIn!))}'
                     : item.requestedCheckOut != null
-                        ? 'وقت الانصراف المطلوب: ${DateFormat('hh:mm a', 'ar').format(item.requestedCheckOut!.toLocal())}'
+                        ? 'وقت الانصراف المطلوب: ${DateFormat('hh:mm a', 'ar').format(AppTime.toCairo(item.requestedCheckOut!))}'
                         : null;
                 return Card(
                   shape: RoundedRectangleBorder(
@@ -488,7 +489,7 @@ Future<void> showAttendanceCorrectionSheet(
     DateTime? checkIn;
     DateTime? checkOut;
     if (effectiveActualTime != null) {
-      final localDate = effectiveWorkDate.toLocal();
+      final localDate = AppTime.toCairo(effectiveWorkDate);
       final base = DateTime(
         localDate.year,
         localDate.month,

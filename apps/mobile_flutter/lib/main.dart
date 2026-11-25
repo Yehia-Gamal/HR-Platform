@@ -6,6 +6,7 @@ import 'package:ahla_shabab_management_os/core/network/expired_jwt_retry_client.
 import 'package:ahla_shabab_management_os/core/observability/crash_reporter.dart';
 import 'package:ahla_shabab_management_os/core/security/secure_session_storage.dart';
 import 'package:ahla_shabab_management_os/core/theme/theme_mode_controller.dart';
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/push_service.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -21,6 +22,7 @@ Future<void> main() async {
   // تكتب ٢٠٢٦ و١٠:٣٧ بجوار أرقام لاتينية في البطاقة نفسها.
   DateFormat.useNativeDigitsByDefaultFor('ar', false);
   DateFormat.useNativeDigitsByDefaultFor('ar_EG', false);
+  AppTime.initialize();
 
   // رصد الأخطاء العالمي — يُرسل لـ observability_events عبر edge function
   setupGlobalErrorHandlers();

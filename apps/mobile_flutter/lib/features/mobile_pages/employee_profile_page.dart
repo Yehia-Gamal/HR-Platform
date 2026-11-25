@@ -15,6 +15,7 @@ import 'package:ahla_shabab_management_os/shared/hierarchy_sort.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' show DateFormat;
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 
 /// ملف الموظف — get_employee_360.
 ///
@@ -1428,7 +1429,7 @@ class _RequestTile extends StatelessWidget {
     final meta = [
       if (title != type) type,
       if (request.requestNumber > 0) 'رقم ${request.requestNumber}',
-      _fmtDate(request.createdAt.toLocal()),
+      _fmtDate(AppTime.toCairo(request.createdAt)),
     ].join(' · ');
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -1572,7 +1573,7 @@ class TodayStatusSection extends StatelessWidget {
 
   String _fmtTime(DateTime? dt) {
     if (dt == null) return '—';
-    return DateFormat('hh:mm a', 'ar').format(dt.toLocal());
+    return DateFormat('hh:mm a', 'ar').format(AppTime.toCairo(dt));
   }
 
   /// "10:15" → «10:15 ص».

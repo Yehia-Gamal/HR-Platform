@@ -15,6 +15,7 @@ import 'package:ahla_design_tokens/ahla_design_tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 
 class ExecutiveBriefPage extends ConsumerStatefulWidget {
   const ExecutiveBriefPage({super.key});
@@ -366,7 +367,7 @@ class _ExecutiveBriefPageState extends ConsumerState<ExecutiveBriefPage> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '${item.sourceLabel} · ${DateFormat('h:mm a', 'ar').format(item.generatedAt.toLocal())}',
+                    '${item.sourceLabel} · ${DateFormat('h:mm a', 'ar').format(AppTime.toCairo(item.generatedAt))}',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),

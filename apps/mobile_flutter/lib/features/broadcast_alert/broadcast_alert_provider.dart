@@ -1,8 +1,10 @@
 import 'dart:async';
 
+import 'package:ahla_shabab_management_os/core/observability/crash_reporter.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
@@ -40,13 +42,35 @@ class BroadcastAlert {
 /// تنبيه بمعرّف جديد.
 class BroadcastAlertNotifier extends Notifier<BroadcastAlert?> {
   Timer? _timer;
+  AppLifecycleListener? _lifecycleListener;
+  bool _inBackground = false;
   String? _dismissedAlertId;
 
   @override
   BroadcastAlert? build() {
     _startPolling();
-    ref.onDispose(_stopPolling);
+    _lifecycleListener = AppLifecycleListener(
+      onPause: _onBackground,
+      onHide: _onBackground,
+      onInactive: _onBackground,
+      onResume: _onForeground,
+    );
+    ref.onDispose(() {
+      _stopPolling();
+      _lifecycleListener?.dispose();
+    });
     return null;
+  }
+
+  void _onBackground() {
+    _inBackground = true;
+    _stopPolling();
+  }
+
+  void _onForeground() {
+    if (!_inBackground) return;
+    _inBackground = false;
+    _startPolling();
   }
 
   void dismiss() {
@@ -55,8 +79,12 @@ class BroadcastAlertNotifier extends Notifier<BroadcastAlert?> {
   }
 
   void _startPolling() {
-    _pollOnce();
-    _timer = Timer.periodic(const Duration(seconds: 20), (_) => _pollOnce());
+    if (_inBackground) return;
+    _stopPolling();
+    unawaited(_pollOnce());
+    _timer = Timer.periodic(const Duration(seconds: 20), (_) {
+      if (!_inBackground) unawaited(_pollOnce());
+    });
   }
 
   void _stopPolling() {
@@ -77,8 +105,14 @@ class BroadcastAlertNotifier extends Notifier<BroadcastAlert?> {
       if (alert.id == _dismissedAlertId) return;
       if (state?.id == alert.id && state != null) return;
       state = alert;
-    } catch (_) {
-      // لا شبكة أو جلسة غير جاهزة — تُعاد المحاولة في الدورة التالية.
+    } catch (error, stackTrace) {
+      unawaited(
+        CrashReporter.instance.captureError(
+          error,
+          stackTrace,
+          context: 'broadcast_alert_poll',
+        ),
+      );
     }
   }
 }

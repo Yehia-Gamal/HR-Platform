@@ -20,6 +20,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 
 /// تفاصيل الطلب: الحالة وصاحب الطلب، بيانات الطلب وسببه، تنفيذ المأمورية،
 /// مسار الاعتماد وسجله، وقرار المعتمِد أو إجراءات صاحب الطلب.
@@ -434,17 +435,38 @@ class _SlaCountdownBanner extends StatefulWidget {
   State<_SlaCountdownBanner> createState() => _SlaCountdownBannerState();
 }
 
-class _SlaCountdownBannerState extends State<_SlaCountdownBanner> {
-  late Timer _timer;
+class _SlaCountdownBannerState extends State<_SlaCountdownBanner>
+    with WidgetsBindingObserver {
+  Timer? _timer;
   Duration _remaining = Duration.zero;
+
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) setState(_updateRemaining);
+    });
+  }
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _updateRemaining();
-    _timer = Timer.periodic(const Duration(seconds: 30), (_) {
+    _startTimer();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
+      _timer?.cancel();
+      _timer = null;
+    } else if (state == AppLifecycleState.resumed) {
       if (mounted) setState(_updateRemaining);
-    });
+      _startTimer();
+    }
   }
 
   void _updateRemaining() {
@@ -457,7 +479,8 @@ class _SlaCountdownBannerState extends State<_SlaCountdownBanner> {
 
   @override
   void dispose() {
-    _timer.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    _timer?.cancel();
     super.dispose();
   }
 
@@ -2065,7 +2088,7 @@ class _MissionExecutionCard extends ConsumerWidget {
     // مأمورية «قيد التنفيذ» انقضى يومها دون إنهاء: إنهاؤها اليوم يسجّل حضورًا
     // وانصرافًا لليوم الحالي، فلا يُعرض زر الإنهاء لها.
     final lastDay =
-        requestLastDay(request.payload) ?? execution?.startedAt?.toLocal();
+        requestLastDay(request.payload) ?? AppTime.tryToCairo(execution?.startedAt);
     final today = DateUtils.dateOnly(DateTime.now());
     final stale =
         inProgress &&
@@ -2088,7 +2111,7 @@ class _MissionExecutionCard extends ConsumerWidget {
         'أغلق النظام $_noun لانقضاء يومها دون إنهاء',
         isOwner
             ? (canWriteReport
-                  ? 'اكتب ما أنجزته قبل ${arDay(reportDeadline.toLocal())} — لا يغيّر ذلك حضور يومها.'
+                  ? 'اكتب ما أنجزته قبل ${arDay(AppTime.toCairo(reportDeadline))} — لا يغيّر ذلك حضور يومها.'
                   : 'انتهت مهلة كتابة التقرير.')
             : 'لم يسجّل الموظف إنهاءها وتقريرها في يومها.',
       ),

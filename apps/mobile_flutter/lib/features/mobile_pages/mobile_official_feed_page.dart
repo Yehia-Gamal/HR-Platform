@@ -11,6 +11,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.d
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 
 class MobileOfficialFeedPage extends ConsumerWidget {
   const MobileOfficialFeedPage({
@@ -337,7 +338,7 @@ class _FeedCard extends StatelessWidget {
                             DateFormat(
                               'd MMM',
                               'ar',
-                            ).format(item.publishedAt!.toLocal()),
+                            ).format(AppTime.toCairo(item.publishedAt!)),
                             style: Theme.of(context).textTheme.labelSmall,
                           ),
                           const SizedBox(width: 8),
@@ -354,7 +355,7 @@ class _FeedCard extends StatelessWidget {
                               title: item.title,
                               body: item.body,
                               publishedDate: item.publishedAt != null
-                                  ? DateFormat('d MMMM yyyy', 'ar').format(item.publishedAt!.toLocal())
+                                  ? DateFormat('d MMMM yyyy', 'ar').format(AppTime.toCairo(item.publishedAt!))
                                   : null,
                             );
                           },

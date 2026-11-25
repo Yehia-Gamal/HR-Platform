@@ -12,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 
 /// غرامات الحضور الفورية وصندوق الزمالة:
 /// «غراماتي» لكل موظف، و«غرامات الموظفين» بأسمائهم للإدارة وHR والمديرين
@@ -606,7 +607,7 @@ class _PenaltyCard extends ConsumerWidget {
         : notes.reasons.join('، ');
     final active = _isUnpaid(item.status);
     final escalated = item.currentAmount != item.originalAmount;
-    final deadline = item.createdAt.toLocal().add(const Duration(hours: 24));
+    final deadline = AppTime.toCairo(item.createdAt).add(const Duration(hours: 24));
     final remaining = deadline.difference(DateTime.now());
 
     final cancelled = item.status == 'cancelled';
@@ -2826,7 +2827,7 @@ class _FundTxTile extends StatelessWidget {
           tx.reason != tx.category &&
           tx.reason != tx.employeeName)
         tx.reason!,
-      '${DateFormat('d MMMM y', 'ar').format(tx.createdAt.toLocal())} · ${DateFormat('h:mm a', 'ar').format(tx.createdAt.toLocal())}',
+      '${DateFormat('d MMMM y', 'ar').format(AppTime.toCairo(tx.createdAt))} · ${DateFormat('h:mm a', 'ar').format(AppTime.toCairo(tx.createdAt))}',
     ];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -3035,13 +3036,13 @@ class _TodayCompensationProposalBanner extends ConsumerWidget {
             ? DateFormat(
                 'h:mm a',
                 'ar',
-              ).format(state!.todayCheckInAt!.toLocal())
+              ).format(AppTime.toCairo(state!.todayCheckInAt!))
             : null);
     final targetStr =
         state?.targetCheckoutTime ??
         (state?.todayCheckInAt != null
             ? DateFormat('h:mm a', 'ar').format(
-                state!.todayCheckInAt!.add(const Duration(hours: 8)).toLocal(),
+                AppTime.toCairo(state!.todayCheckInAt!.add(const Duration(hours: 8))),
               )
             : null);
     final remainingMins = state?.compensationRemainingMinutes ?? 0;
@@ -3320,14 +3321,14 @@ String _duration(Duration d) {
 }
 
 String _dateTime(DateTime t) {
-  final local = t.toLocal();
+  final local = AppTime.toCairo(t);
   return '${DateFormat('d MMMM y', 'ar').format(local)} · ${DateFormat('h:mm a', 'ar').format(local)}';
 }
 
 /// وقت تسجيل الغرامة: الساعة وحدها إن كانت يوم العمل نفسه (الغالب)، وإلا
 /// التاريخ معها.
 String _registeredAt(DateTime createdAt, DateTime? workDate) {
-  final local = createdAt.toLocal();
+  final local = AppTime.toCairo(createdAt);
   final time = DateFormat('h:mm a', 'ar').format(local);
   final sameDay =
       workDate != null &&

@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 
 class PasskeyDevicesPage extends ConsumerStatefulWidget {
   const PasskeyDevicesPage({super.key});
@@ -442,15 +443,15 @@ class _DeviceCard extends StatelessWidget {
               ],
             ),
             const Divider(height: 24),
-            Text('أضيف: ${formatter.format(device.createdAt.toLocal())}'),
+            Text('أضيف: ${formatter.format(AppTime.toCairo(device.createdAt))}'),
             if (device.approvedAt != null)
               Text(
-                'وُوفق عليه: ${formatter.format(device.approvedAt!.toLocal())}',
+                'وُوفق عليه: ${formatter.format(AppTime.toCairo(device.approvedAt!))}',
               ),
             Text(
               device.lastUsedAt == null
                   ? 'لم يُستخدم بعد'
-                  : 'آخر استخدام: ${formatter.format(device.lastUsedAt!.toLocal())}',
+                  : 'آخر استخدام: ${formatter.format(AppTime.toCairo(device.lastUsedAt!))}',
             ),
             if (device.revocationSource != null &&
                 device.revocationSource!.isNotEmpty)

@@ -6,6 +6,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/monthly_achievem
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 
 class MobileDailyReportsPage extends ConsumerWidget {
   const MobileDailyReportsPage({this.employeeId, this.employeeName, super.key});
@@ -374,7 +375,7 @@ class _ReportCard extends StatelessWidget {
                 DateFormat(
                   'd MMM y، h:mm a',
                   'ar',
-                ).format(item.reviewedAt!.toLocal()),
+                ).format(AppTime.toCairo(item.reviewedAt!)),
                 style: Theme.of(context).textTheme.labelSmall,
               ),
             ],

@@ -7,6 +7,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.d
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 
 class MobileFeedDetailPage extends ConsumerStatefulWidget {
   const MobileFeedDetailPage({
@@ -163,7 +164,7 @@ class _FeedDetailContent extends ConsumerWidget {
                               DateFormat(
                                 'd MMMM y',
                                 'ar',
-                              ).format(item.publishedAt!.toLocal()),
+                              ).format(AppTime.toCairo(item.publishedAt!)),
                               style: theme.textTheme.labelMedium?.copyWith(
                                 color: colorScheme.onSurfaceVariant,
                               ),
@@ -849,7 +850,7 @@ class _AnnouncementEngagementSheetState
   String _timeLabel(Object? value) {
     if (value == null) return '';
     try {
-      final dt = DateTime.parse(value as String).toLocal();
+      final dt = AppTime.toCairo(DateTime.parse(value as String));
       return DateFormat('d MMM، h:mm a', 'ar').format(dt);
     } catch (_) {
       return '';

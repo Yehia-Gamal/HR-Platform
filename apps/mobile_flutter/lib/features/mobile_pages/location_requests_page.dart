@@ -16,6 +16,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 
 class LocationRequestsPage extends ConsumerWidget {
   const LocationRequestsPage({required this.access, super.key});
@@ -345,7 +346,7 @@ class _PastRequestTile extends StatelessWidget {
     final when = DateFormat(
       'd MMM · h:mm a',
       'ar',
-    ).format(request.requestedAt.toLocal());
+    ).format(AppTime.toCairo(request.requestedAt));
     final reason = request.reason.trim();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -460,15 +461,19 @@ class _RequestCardState extends ConsumerState<_RequestCard>
   /// يحدّث عدّاد «ينتهي خلال» وحالة الانتهاء دون انتظار تحديث القائمة.
   Timer? _ticker;
 
+  void _startTicker() {
+    if (widget.request.status != 'pending') return;
+    _ticker?.cancel();
+    _ticker = Timer.periodic(const Duration(seconds: 15), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    if (widget.request.status == 'pending') {
-      _ticker = Timer.periodic(const Duration(seconds: 15), (_) {
-        if (mounted) setState(() {});
-      });
-    }
+    _startTicker();
   }
 
   @override
@@ -481,14 +486,24 @@ class _RequestCardState extends ConsumerState<_RequestCard>
   /// عند العودة من إعدادات الموقع أو التطبيق — إعادة المحاولة تلقائياً.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed &&
-        _issueKind != null &&
-        !busy) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
+      _ticker?.cancel();
+      _ticker = null;
+      return;
+    }
+    if (state == AppLifecycleState.resumed) {
+      _startTicker();
+      if (mounted) setState(() {});
+      if (_issueKind != null && !busy) {
       Future<void>.delayed(const Duration(milliseconds: 600), () {
         if (mounted && !busy && _issueKind != null) {
           _recheckAndRetry();
         }
       });
+      }
     }
   }
 
@@ -720,7 +735,7 @@ class _RequestCardState extends ConsumerState<_RequestCard>
                     value: DateFormat(
                       'd MMM · h:mm a',
                       'ar',
-                    ).format(request.requestedAt.toLocal()),
+                    ).format(AppTime.toCairo(request.requestedAt)),
                   ),
                 ],
               ),

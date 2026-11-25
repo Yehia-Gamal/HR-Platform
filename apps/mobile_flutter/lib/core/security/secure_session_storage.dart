@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:ahla_shabab_management_os/core/observability/crash_reporter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -33,8 +36,15 @@ class SecureSessionStorage extends LocalStorage {
       if (_session == null && legacyValue != null && legacyValue.isNotEmpty) {
         await persistSession(legacyValue);
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
       // Keystore might be temporarily inaccessible during cold boot.
+      unawaited(
+        CrashReporter.instance.captureError(
+          error,
+          stackTrace,
+          context: 'secure_session_storage_init',
+        ),
+      );
     }
     if (legacyValue != null) await _legacy.removePersistedSession();
   }
@@ -58,7 +68,14 @@ class SecureSessionStorage extends LocalStorage {
         () =>
             _secure.write(key: persistSessionKey, value: persistSessionString),
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      unawaited(
+        CrashReporter.instance.captureError(
+          error,
+          stackTrace,
+          context: 'secure_session_storage_write',
+        ),
+      );
       if (kDebugMode) {
         debugPrint('[SecureSessionStorage] Secure session write failed.');
       }

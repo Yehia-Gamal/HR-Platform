@@ -6,6 +6,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/monthly_achievem
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 
 /// صفحة التقارير اليومية العامة — يراها كل المستخدمين.
 /// تعرض بطاقات/فقاعات لكل تقرير مع: الصورة، الاسم، المسمى، الإدارة،
@@ -1238,7 +1239,7 @@ class _CommentBubble extends StatelessWidget {
     // الطابع الزمني من الخادم UTC — يُعرض بتوقيت الجهاز (كان متأخرًا 3 ساعات)
     final timeLabel = created == null
         ? null
-        : DateFormat('d MMM، h:mm a', 'ar').format(created.toLocal());
+        : DateFormat('d MMM، h:mm a', 'ar').format(AppTime.toCairo(created));
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -1451,7 +1452,7 @@ class _EngagementSheet extends ConsumerWidget {
   String _timeLabel(Object? value) {
     if (value == null) return '';
     try {
-      final dt = DateTime.parse(value as String).toLocal();
+      final dt = AppTime.toCairo(DateTime.parse(value as String));
       return DateFormat('d MMM، h:mm a', 'ar').format(dt);
     } catch (_) {
       return '';

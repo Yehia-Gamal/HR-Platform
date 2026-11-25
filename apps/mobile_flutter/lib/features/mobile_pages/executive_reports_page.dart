@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 
 class ExecutiveReportsPage extends ConsumerStatefulWidget {
   const ExecutiveReportsPage({super.key});
@@ -345,7 +346,7 @@ class _ExecutiveReportsPageState extends ConsumerState<ExecutiveReportsPage> {
                       child: Text(
                         schedule.nextRunAt == null
                             ? '${_scheduleKind(schedule.scheduleKind)} · بلا موعد قادم'
-                            : '${_scheduleKind(schedule.scheduleKind)} · القادم: ${DateFormat('d MMMM y، h:mm a', 'ar').format(schedule.nextRunAt!.toLocal())}',
+                            : '${_scheduleKind(schedule.scheduleKind)} · القادم: ${DateFormat('d MMMM y، h:mm a', 'ar').format(AppTime.toCairo(schedule.nextRunAt!))}',
                         style: TextStyle(
                           fontSize: 11.5,
                           color: scheme.onSurfaceVariant,
@@ -447,7 +448,7 @@ class _ExecutiveReportsPageState extends ConsumerState<ExecutiveReportsPage> {
                         DateFormat(
                           'd MMMM y، h:mm a',
                           'ar',
-                        ).format(report.createdAt.toLocal()),
+                        ).format(AppTime.toCairo(report.createdAt)),
                       ),
                     ),
                     if (report.errorDetail != null) ...[
@@ -645,7 +646,7 @@ class _ExecutiveReportsPageState extends ConsumerState<ExecutiveReportsPage> {
     if (text.contains('T') && text.length > 10) {
       final date = DateTime.tryParse(text);
       if (date != null) {
-        return DateFormat('d MMMM y، h:mm a', 'ar').format(date.toLocal());
+        return DateFormat('d MMMM y، h:mm a', 'ar').format(AppTime.toCairo(date));
       }
     }
     return _summaryValueLabels[text] ?? text;
@@ -851,7 +852,7 @@ class _ReportRunCard extends StatelessWidget {
                           DateFormat(
                             'd MMM، h:mm a',
                             'ar',
-                          ).format(item.createdAt.toLocal()),
+                          ).format(AppTime.toCairo(item.createdAt)),
                           style: TextStyle(
                             fontSize: 11,
                             color: scheme.onSurfaceVariant.withValues(

@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:ahla_shabab_management_os/core/observability/crash_reporter.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -69,8 +72,15 @@ class NotificationBadgeController extends Notifier<int> {
       ]);
       // إبطال القائمة لإعادة الحساب.
       ref.invalidate(myNotificationsProvider);
-    } catch (_) {
-      // فشل صامت — لا نكسر الواجهة.
+    } catch (error, stackTrace) {
+      // فشل مسجّل — لا نكسر الواجهة.
+      unawaited(
+        CrashReporter.instance.captureError(
+          error,
+          stackTrace,
+          context: 'notification_mark_as_read',
+        ),
+      );
     }
   }
 
@@ -81,8 +91,14 @@ class NotificationBadgeController extends Notifier<int> {
       ref.invalidate(myNotificationsProvider);
       // تحديث فوري للشارة.
       state = 0;
-    } catch (_) {
-      // فشل صامت.
+    } catch (error, stackTrace) {
+      unawaited(
+        CrashReporter.instance.captureError(
+          error,
+          stackTrace,
+          context: 'notification_mark_all_read',
+        ),
+      );
     }
   }
 

@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 
+import 'package:ahla_shabab_management_os/core/observability/crash_reporter.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Simple JSON cache backed by FlutterSecureStorage.
@@ -38,7 +40,16 @@ class OfflineCache {
         key: _tsKey(userId, cacheKey),
         value: DateTime.now().toIso8601String(),
       );
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      unawaited(
+        CrashReporter.instance.captureError(
+          error,
+          stackTrace,
+          context: 'offline_cache_put',
+          metadata: {'cacheKey': cacheKey},
+        ),
+      );
+    }
   }
 
   /// يُرجع البيانات المخزّنة إن لم تنتهِ صلاحيتها (خلال [_maxAge]).
@@ -58,7 +69,15 @@ class OfflineCache {
       final json = await _storage.read(key: _dataKey(userId, cacheKey));
       if (json == null) return null;
       return jsonDecode(json);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      unawaited(
+        CrashReporter.instance.captureError(
+          error,
+          stackTrace,
+          context: 'offline_cache_get',
+          metadata: {'cacheKey': cacheKey},
+        ),
+      );
       return null;
     }
   }
@@ -73,7 +92,15 @@ class OfflineCache {
           await _storage.delete(key: key);
         }
       }
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      unawaited(
+        CrashReporter.instance.captureError(
+          error,
+          stackTrace,
+          context: 'offline_cache_clear',
+        ),
+      );
+    }
   }
 
   static const attendanceState = 'attendance_state';

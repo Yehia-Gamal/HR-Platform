@@ -10,6 +10,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/executive_locati
 import 'package:ahla_shabab_management_os/shared/hierarchy_sort.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:intl/intl.dart';
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 
 /// فئات الفلترة المتاحة — تُطابق حالات الحضور.
 enum _FilterCategory {
@@ -830,7 +831,7 @@ class _AttendanceCardState extends ConsumerState<_AttendanceCard> {
         case 'late':
           if (widget.employee.firstCheckIn != null) {
             parts.add(
-              'دخول ${DateFormat('h:mm a', 'ar').format(widget.employee.firstCheckIn!.toLocal())}',
+              'دخول ${DateFormat('h:mm a', 'ar').format(AppTime.toCairo(widget.employee.firstCheckIn!))}',
             );
           }
           if (widget.employee.lateMinutes > 0) {
@@ -838,7 +839,7 @@ class _AttendanceCardState extends ConsumerState<_AttendanceCard> {
           }
           if (widget.employee.lastCheckOut != null) {
             parts.add(
-              'خروج ${DateFormat('h:mm a', 'ar').format(widget.employee.lastCheckOut!.toLocal())}',
+              'خروج ${DateFormat('h:mm a', 'ar').format(AppTime.toCairo(widget.employee.lastCheckOut!))}',
             );
           }
           break;
@@ -864,7 +865,7 @@ class _AttendanceCardState extends ConsumerState<_AttendanceCard> {
         (widget.employee.attendanceStatus == 'present' ||
             widget.employee.attendanceStatus == 'late')) {
       parts.add(
-        'آخر موقع ${DateFormat('h:mm a', 'ar').format(widget.employee.lastRecordedAt!.toLocal())}',
+        'آخر موقع ${DateFormat('h:mm a', 'ar').format(AppTime.toCairo(widget.employee.lastRecordedAt!))}',
       );
     }
     if (parts.isEmpty) return const SizedBox.shrink();

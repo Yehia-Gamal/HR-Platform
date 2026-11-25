@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 
 /// طلب الموقع من الموظفين — صفحة مستقلة بشريطها (تُفتح من ملف الموظف).
 /// كانت تضم تبويب «حضور اليوم» نسخةً مكررة من تبويب الحضور، بعنوان ثالث فوقه.
@@ -543,7 +544,7 @@ class _EmployeeLocationCardState extends ConsumerState<_EmployeeLocationCard> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'آخر رصد: ${DateFormat('d MMMM · h:mm a', 'ar').format(widget.employee.lastRecordedAt!.toLocal())}',
+                              'آخر رصد: ${DateFormat('d MMMM · h:mm a', 'ar').format(AppTime.toCairo(widget.employee.lastRecordedAt!))}',
                               style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,

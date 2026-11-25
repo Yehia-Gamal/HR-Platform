@@ -26,6 +26,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 
 class MobileProfilePage extends ConsumerWidget {
   const MobileProfilePage({super.key});
@@ -722,7 +723,7 @@ class _MyDailyStatusCard extends ConsumerWidget {
 
   String _fmtTime(DateTime? dt) {
     if (dt == null) return '—';
-    return DateFormat('hh:mm a', 'ar').format(dt.toLocal());
+    return DateFormat('hh:mm a', 'ar').format(AppTime.toCairo(dt));
   }
 
   Widget _statusPlaceholder(BuildContext context, {required Widget child}) {
@@ -1722,13 +1723,13 @@ class _DeviceSecuritySectionState
                             ),
                             const Divider(height: 18),
                             Text(
-                              'أضيف: ${formatter.format(device.createdAt.toLocal())}',
+                              'أضيف: ${formatter.format(AppTime.toCairo(device.createdAt))}',
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                             Text(
                               device.lastUsedAt == null
                                   ? 'لم يُستخدم بعد'
-                                  : 'آخر استخدام: ${formatter.format(device.lastUsedAt!.toLocal())}',
+                                  : 'آخر استخدام: ${formatter.format(AppTime.toCairo(device.lastUsedAt!))}',
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                             if (active) ...[

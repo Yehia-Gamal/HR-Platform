@@ -23,6 +23,7 @@ import 'package:ahla_shabab_management_os/shared/access_context.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 
 class EmployeeHomePage extends ConsumerWidget {
   const EmployeeHomePage({required this.access, super.key});
@@ -1089,7 +1090,7 @@ class _SyncDetailsSheetState extends ConsumerState<_SyncDetailsSheet> {
                       _lastSync != null
                           ? DateFormat(
                               'HH:mm  yyyy/MM/dd',
-                            ).format(_lastSync!.toLocal())
+                            ).format(AppTime.toCairo(_lastSync!))
                           : 'لم تسجل بعد',
                       style: const TextStyle(
                         fontSize: 12,

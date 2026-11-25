@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:ahla_shabab_management_os/core/network/connectivity_probe.dart';
+import 'package:ahla_shabab_management_os/core/observability/crash_reporter.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:ahla_shabab_management_os/core/network/connectivity_probe.dart';
 
 enum ConnectivityState { online, offline, reconnecting, serverUnavailable }
 
@@ -15,34 +18,118 @@ final connectivityProvider =
     );
 
 class ConnectivityNotifier extends Notifier<ConnectivityState> {
-  Timer? _timer;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  AppLifecycleListener? _lifecycleListener;
+  Timer? _offlineRetryTimer;
+  bool _inBackground = false;
+  bool _checking = false;
   bool _wasOffline = false;
+
   /// عدد الفشل المتتالي — نعتبره offline بعد فشلين متتاليين
   /// حتى لا يظهر البانر عند خطأ DNS مؤقت واحد.
   int _consecutiveFailures = 0;
   static const _failThreshold = 2;
+  static const _offlineRetryInterval = Duration(seconds: 30);
 
   @override
   ConnectivityState build() {
     _start();
     ref.onDispose(() {
-      _timer?.cancel();
+      _offlineRetryTimer?.cancel();
+      _offlineRetryTimer = null;
+      unawaited(_connectivitySub?.cancel());
+      _lifecycleListener?.dispose();
     });
     return ConnectivityState.online;
   }
 
   void _start() {
     unawaited(_check());
-    _timer = Timer.periodic(const Duration(seconds: 15), (_) => _check());
+    try {
+      _connectivitySub = Connectivity().onConnectivityChanged.listen(
+        _onConnectivityEvent,
+        onError: (Object error, StackTrace stackTrace) {
+          unawaited(
+            CrashReporter.instance.captureError(
+              error,
+              stackTrace,
+              context: 'connectivity_stream',
+            ),
+          );
+        },
+      );
+    } on MissingPluginException {
+      // بيئات الاختبار بدون قناة منصة: يكتفي بالفحص المباشر عند الاستدعاء.
+    } catch (error, stackTrace) {
+      unawaited(
+        CrashReporter.instance.captureError(
+          error,
+          stackTrace,
+          context: 'connectivity_subscribe',
+        ),
+      );
+    }
+
+    _lifecycleListener = AppLifecycleListener(
+      onPause: _onBackground,
+      onHide: _onBackground,
+      onInactive: _onBackground,
+      onDetach: _onBackground,
+      onResume: _onForeground,
+    );
+  }
+
+  void _onBackground() {
+    _inBackground = true;
+    _offlineRetryTimer?.cancel();
+    _offlineRetryTimer = null;
+  }
+
+  void _onForeground() {
+    if (!_inBackground) return;
+    _inBackground = false;
+    unawaited(_check());
+  }
+
+  void _onConnectivityEvent(List<ConnectivityResult> results) {
+    final hasInterface = results.any((r) => r != ConnectivityResult.none);
+    if (!hasInterface) {
+      _consecutiveFailures = _failThreshold;
+      _wasOffline = true;
+      state = ConnectivityState.offline;
+      _ensureOfflineRetryTimer();
+      return;
+    }
+    if (!_inBackground) {
+      unawaited(_check());
+    }
+  }
+
+  void _ensureOfflineRetryTimer() {
+    if (_inBackground || _offlineRetryTimer != null) return;
+    // نتحقق كل 30 ثانية فقط أثناء الانقطاع وفي الواجهة، وليس عندما يكون الاتصال مستقراً.
+    _offlineRetryTimer = Timer.periodic(_offlineRetryInterval, (_) {
+      if (!_inBackground && state == ConnectivityState.offline) {
+        unawaited(_check());
+      } else {
+        _offlineRetryTimer?.cancel();
+        _offlineRetryTimer = null;
+      }
+    });
   }
 
   Future<void> _check() async {
+    if (_inBackground || _checking) return;
+    _checking = true;
     try {
       final connected = await hasNetworkConnection().timeout(
         const Duration(seconds: 8),
       );
+      if (!ref.mounted) return;
       if (connected) {
         _consecutiveFailures = 0;
+        _offlineRetryTimer?.cancel();
+        _offlineRetryTimer = null;
         if (_wasOffline) {
           state = ConnectivityState.reconnecting;
           _wasOffline = false;
@@ -59,16 +146,27 @@ class ConnectivityNotifier extends Notifier<ConnectivityState> {
       _onFailure();
     } on TimeoutException {
       _onFailure();
-    } catch (_) {
+    } catch (error, stackTrace) {
+      unawaited(
+        CrashReporter.instance.captureError(
+          error,
+          stackTrace,
+          context: 'connectivity_check',
+        ),
+      );
       _onFailure();
+    } finally {
+      _checking = false;
     }
   }
 
   void _onFailure() {
+    if (!ref.mounted) return;
     _consecutiveFailures++;
     if (_consecutiveFailures >= _failThreshold) {
       _wasOffline = true;
       state = ConnectivityState.offline;
+      _ensureOfflineRetryTimer();
     }
   }
 

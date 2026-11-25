@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 
 /// ملف موقع موظف للمدير التنفيذي — يعرض آخر نقطة مسجّلة + سجلّ الأماكن
 /// (نقاط الموقع) + سجلّ طلبات الموقع، مع زر عرض الخريطة لكل نقطة.
@@ -308,7 +309,7 @@ class _ExecutiveLocationEmployeeFilePageState
               subtitle: Text(
                 [
                   if (last.recordedAt != null)
-                    f.format(last.recordedAt!.toLocal()),
+                    f.format(AppTime.toCairo(last.recordedAt!)),
                   if (last.accuracy != null)
                     'دقة ${last.accuracy!.round()} متر',
                   if (last.isMock) 'بيانات محاكاة',
@@ -395,7 +396,7 @@ class _ExecutiveLocationEmployeeFilePageState
                       subtitle: Text(
                         [
                           if (r.requestedAt != null)
-                            f.format(r.requestedAt!.toLocal()),
+                            f.format(AppTime.toCairo(r.requestedAt!)),
                           if (r.requestedByName?.isNotEmpty == true)
                             'من ${r.requestedByName}',
                           if (r.pointCount > 0) '${r.pointCount} نقاط',
@@ -484,7 +485,7 @@ class _PointTile extends StatelessWidget {
       ),
       subtitle: Text(
         [
-          if (point.recordedAt != null) f.format(point.recordedAt!.toLocal()),
+          if (point.recordedAt != null) f.format(AppTime.toCairo(point.recordedAt!)),
           if (point.accuracy != null) 'دقة ${point.accuracy!.round()} م',
           if (point.isMock) 'محاكاة',
           if (point.requestMode != null &&

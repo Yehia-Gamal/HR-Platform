@@ -13,6 +13,7 @@ import 'package:ahla_shabab_management_os/shared/hierarchy_sort.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 
 /// طريقة عرض صفحة الفريق: إدارة فريقي / ملفات أعضاء الفريق / جداول الحضور.
 enum TeamPageMode {
@@ -425,7 +426,7 @@ class _MemberCard extends StatelessWidget {
     final checkIn = member.firstCheckIn;
     final time = checkIn == null
         ? null
-        : DateFormat('h:mm a', 'ar').format(checkIn.toLocal());
+        : DateFormat('h:mm a', 'ar').format(AppTime.toCairo(checkIn));
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(12),

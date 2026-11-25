@@ -3,6 +3,7 @@ import 'package:ahla_shabab_management_os/core/formatting/arabic_text.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show DateFormat;
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 
 /// عرض موحّد للطلبات في كل الشاشات (التفاصيل، طلباتي، اعتماد طلبات الفريق،
 /// صندوق الإجراءات): أسماء الأنواع والحالات ومراحل الاعتماد والأزمنة بالعربية.
@@ -416,7 +417,7 @@ String arDay(DateTime date) {
 
 /// «اليوم · 10:20 ص» / «أمس · 4:15 م» / «الأحد 5 أكتوبر · 10:20 ص».
 String arDateTime(DateTime t) {
-  final local = t.toLocal();
+  final local = AppTime.toCairo(t);
   final now = DateTime.now();
   final day = DateTime(local.year, local.month, local.day);
   if (day == DateTime(now.year, now.month, now.day)) {
@@ -430,7 +431,7 @@ String arDateTime(DateTime t) {
 
 /// عنوان مجموعة زمنية للقوائم: «اليوم»، «أمس»، «الأحد 4 أكتوبر»، «سبتمبر».
 String requestGroupLabel(DateTime t) {
-  final local = t.toLocal();
+  final local = AppTime.toCairo(t);
   final now = DateTime.now();
   final day = DateTime(local.year, local.month, local.day);
   final diff = DateTime(now.year, now.month, now.day).difference(day).inDays;

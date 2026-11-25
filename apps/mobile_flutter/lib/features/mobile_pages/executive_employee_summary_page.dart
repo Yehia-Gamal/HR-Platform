@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 
 class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
   const ExecutiveEmployeeSummaryPage({
@@ -378,7 +379,7 @@ class ExecutiveEmployeeSummaryPage extends ConsumerWidget {
         ],
         const SizedBox(height: 12),
         Text(
-          'آخر تحديث ${DateFormat('d MMM، h:mm a', 'ar').format(item.lastUpdatedAt.toLocal())}',
+          'آخر تحديث ${DateFormat('d MMM، h:mm a', 'ar').format(AppTime.toCairo(item.lastUpdatedAt))}',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodySmall,
         ),
