@@ -5,7 +5,7 @@ import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 
-const traceabilityPath = path.resolve(__dirname, '../../../../TRACEABILITY.md');
+const traceabilityPath = path.resolve(__dirname, '../../../../docs/archive/TRACEABILITY.md');
 const source = fs.readFileSync(traceabilityPath, 'utf-8');
 
 // استخراج جميع صفوف المتطلبات (تبدأ بـ | رقم.رقم |)

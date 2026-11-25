@@ -10,9 +10,11 @@ import path from 'path';
 
 const root = path.resolve(__dirname, '../../../..');
 
+const traceabilityPath = path.join(root, 'docs', 'archive', 'TRACEABILITY.md');
+
 describe('V23 §15.1: Wave 0 — Discovery + baselines', () => {
   it('§15.1.1: TRACEABILITY.md موجود', () => {
-    expect(fs.existsSync(path.join(root, 'TRACEABILITY.md'))).toBe(true);
+    expect(fs.existsSync(traceabilityPath)).toBe(true);
   });
 
   it('§15.1.2: CLAUDE.md موجود (دليل المشروع)', () => {
@@ -41,13 +43,13 @@ describe('V23 §15.1: Wave 0 — Discovery + baselines', () => {
   });
 
   it('§15.1.6: 74 متطلب مُوثّق في مصفوفة التتبع', () => {
-    const source = fs.readFileSync(path.join(root, 'TRACEABILITY.md'), 'utf-8');
+    const source = fs.readFileSync(traceabilityPath, 'utf-8');
     const requirementRows = source.split('\n').filter((line) => /^\| \d+\.\d+ \|/.test(line));
     expect(requirementRows.length).toBeGreaterThanOrEqual(74);
   });
 
   it('§15.1.7: لا يوجد متطلب بحالة DISCOVERED (جميعها تجاوزت الاستكشاف)', () => {
-    const source = fs.readFileSync(path.join(root, 'TRACEABILITY.md'), 'utf-8');
+    const source = fs.readFileSync(traceabilityPath, 'utf-8');
     const requirementRows = source.split('\n').filter((line) => /^\| \d+\.\d+ \|/.test(line));
     const discoveredRows = requirementRows.filter((r) => r.includes('DISCOVERED'));
     expect(discoveredRows.length).toBe(0);

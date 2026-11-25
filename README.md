@@ -33,12 +33,13 @@
 
 | المكوّن | العدد |
 |---|---|
-| Migrations | 285 |
-| pgTAP tests (assertions) | 102 ملف (1483 assertion) |
-| Edge Functions | 14 + مجلد `_shared` مشترك |
-| Dart files | 90 |
-| TypeScript/TSX files (web) | 204 |
-| اختبارات كود (web + contracts + Flutter) | 809 اختبار عبر 88 ملف ويب/عقود + 142 اختبار Flutter عبر 12 ملف |
+| Migrations | 735 (الأرقام `0001–0738` + ملفان في `_v23_parking`) |
+| pgTAP tests | 206 ملفات SQL في `supabase/tests/` |
+| Edge Functions | 15 دالة + مجلد `_shared` مشترك |
+| Dart files | 181 ملفاً في `lib/` (643 كلاساً) + 49 ملف اختبار |
+| TypeScript/TSX files (web) | 285 ملف مصدر + 166 ملف اختبار |
+| الاختبارات المؤتمتة المُتحقّق منها | 208 اختبار عقود (`shared-contracts`) + كامل دفعات Vitest للويب + 340 اختبار Flutter |
+| إصدارات الحزم | Web & Contracts: `0.10.0` · Mobile Flutter: `0.13.37+58` |
 
 ## فحص المصدر
 

@@ -35,15 +35,21 @@ staging_generated_secrets.local.txt
 supabase/.branches/
 supabase/.temp/
 .temp/
+.tmp/
 tmp_*
 .claude/worktrees/
+_cleanup_quarantine/
+**/.gradle/
+.next/
 *.apk
 
 # Test / debug output (never commit)
+*.log
 lint.log
 playwright-report/
 test-results/
 COMBINED_PUSH_*.sql
+security_assessment_report.json
 debug-artifacts/
 __pycache__/
 *.pyc

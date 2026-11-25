@@ -8,7 +8,7 @@ const PARKING_DIRS = [
   path.resolve(process.cwd(), 'supabase', 'migrations', '_v23_parking'),
   path.resolve(process.cwd(), '_v23_parking'),
 ];
-const REGISTRY_FILE = path.resolve(process.cwd(), 'MIGRATION_REGISTRY.md');
+const REGISTRY_FILE = path.resolve(process.cwd(), 'docs', 'archive', 'MIGRATION_REGISTRY.md');
 
 const ACCEPTABLE_GAPS = new Set([
   // 0267 → أُعيد ترقيمه إلى 0277 (fix_deep_link_action_routing) ضمن إعادة

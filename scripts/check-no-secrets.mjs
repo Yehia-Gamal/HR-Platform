@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const excludedDirectories = new Set([
-  '.git', 'node_modules', 'dist', 'dist-e2e', 'build', '.dart_tool', '.idea', '.vscode', '.claude', 'scratch', '.temp',
+  '.git', 'node_modules', 'dist', 'dist-e2e', 'build', '.dart_tool', '.idea', '.vscode', '.claude', 'scratch', '.temp', '_cleanup_quarantine',
 ]);
 const allowedExtensions = new Set([
   '.ts', '.tsx', '.js', '.mjs', '.dart', '.sql', '.json', '.yaml', '.yml',
