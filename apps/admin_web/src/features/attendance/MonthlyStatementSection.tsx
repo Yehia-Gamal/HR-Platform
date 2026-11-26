@@ -14,6 +14,7 @@ import {
   Search,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { CORE_MESSAGES } from '../../core/messages';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { SkeletonCard } from '../../ui/Skeletons';
@@ -97,7 +98,7 @@ export function MonthlyStatementSection({ employeeId }: { employeeId: string }) 
       </div>
 
       {query.isError ? (
-        <ErrorState description="تعذر تحميل كشف الحضور. أعد المحاولة أو تواصل مع الدعم." onRetry={() => void query.refetch()} />
+        <ErrorState description={CORE_MESSAGES.loadAttendanceStatementFailed} onRetry={() => void query.refetch()} />
       ) : query.isLoading ? (
         <SkeletonCard className="h-64" />
       ) : !query.data ? (

@@ -37,7 +37,7 @@
 | pgTAP tests | 207 ملفات SQL في `supabase/tests/` |
 | Edge Functions | 15 دالة + مجلد `_shared` مشترك |
 | Dart files | 181 ملفاً في `lib/` (643 كلاساً) + 49 ملف اختبار |
-| TypeScript/TSX files (web) | 292 ملف مصدر + 167 ملف اختبار |
+| TypeScript/TSX files (web) | 299 ملف مصدر + 167 ملف اختبار |
 | الاختبارات المؤتمتة المُتحقّق منها | 208 اختبار عقود (`shared-contracts`) + كامل دفعات Vitest للويب + 340 اختبار Flutter |
 | إصدارات الحزم | Web & Contracts: `0.10.0` · Mobile Flutter: `0.13.37+58` |
 

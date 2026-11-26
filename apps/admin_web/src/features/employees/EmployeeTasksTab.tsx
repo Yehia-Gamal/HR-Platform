@@ -1,3 +1,4 @@
+import { CORE_MESSAGES } from '../../core/messages';
 import { useEmployeeTasks } from './useEmployeeDossier';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
@@ -11,7 +12,7 @@ export function EmployeeTasksTab({ employeeId }: { employeeId: string }) {
   const rows = query.data ?? [];
 
   if (query.isError) {
-    return <ErrorState title="تعذر تحميل المهام" description="أعد المحاولة أو تواصل مع الدعم." onRetry={() => void query.refetch()} />;
+    return <ErrorState title="تعذر تحميل المهام" description={CORE_MESSAGES.retryOrSupport} onRetry={() => void query.refetch()} />;
   }
   if (query.isLoading) return <SkeletonCard className="h-56" />;
   if (rows.length === 0) {

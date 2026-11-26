@@ -1,3 +1,5 @@
+import { CORE_MESSAGES } from './messages';
+
 /**
  * V23 — خريطة أخطاء عربية
  * يُحوّل رسائل الأخطاء التقنية (Supabase / Zod / HTTP / شبكة) إلى رسائل عربية آمنة
@@ -108,7 +110,7 @@ const ERROR_PATTERNS: Array<[RegExp, string]> = [
 /** يبدأ بحرف عربي — رسالة موجهة للمستخدم من دوال قاعدة البيانات. */
 const SERVER_ARABIC_MESSAGE = /^[؀-ۿ]/;
 
-const FALLBACK_MESSAGE = 'حدث خطأ غير متوقع. أعد المحاولة أو تواصل مع الدعم.';
+const FALLBACK_MESSAGE = CORE_MESSAGES.unexpectedRetryOrSupport;
 
 /** رمز تتبع قصير (8 أحرف) — مطابق لنمط AppErrorBoundary */
 function correlationId(): string {

@@ -1,4 +1,5 @@
 import { LEAVE_TYPE_LABELS } from '@ahla/shared-contracts';
+import { CORE_MESSAGES } from '../../core/messages';
 import { useAdminLeaves } from '../leaves/useLeaves';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
@@ -12,7 +13,7 @@ export function EmployeeLeaveTab({ employeeId }: { employeeId: string }) {
   const rows = query.data?.rows ?? [];
 
   if (query.isError) {
-    return <ErrorState title="تعذر تحميل الإجازات" description="أعد المحاولة أو تواصل مع الدعم." onRetry={() => void query.refetch()} />;
+    return <ErrorState title="تعذر تحميل الإجازات" description={CORE_MESSAGES.retryOrSupport} onRetry={() => void query.refetch()} />;
   }
   if (query.isLoading) return <SkeletonCard className="h-56" />;
   if (rows.length === 0) {

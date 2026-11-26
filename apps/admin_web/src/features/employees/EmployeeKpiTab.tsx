@@ -1,4 +1,5 @@
 import { useEmployeeKpiEvaluations } from './useEmployeeDossier';
+import { CORE_MESSAGES } from '../../core/messages';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { SkeletonCard } from '../../ui/Skeletons';
@@ -25,7 +26,7 @@ export function EmployeeKpiTab({ employeeId }: { employeeId: string }) {
   const rows = query.data ?? [];
 
   if (query.isError) {
-    return <ErrorState title="تعذر تحميل تقييمات الأداء" description="أعد المحاولة أو تواصل مع الدعم." onRetry={() => void query.refetch()} />;
+    return <ErrorState title="تعذر تحميل تقييمات الأداء" description={CORE_MESSAGES.retryOrSupport} onRetry={() => void query.refetch()} />;
   }
   if (query.isLoading) return <SkeletonCard className="h-56" />;
   if (rows.length === 0) {
