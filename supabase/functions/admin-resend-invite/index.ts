@@ -3,6 +3,7 @@ import { createLogger } from "../_shared/logger.ts";
 import { z } from "zod";
 import { json, preflight } from "../_shared/cors.ts";
 import { generateSecureTemporaryPassword } from "../_shared/phone.ts";
+import { checkTargetAccountPrivilege } from "../_shared/targetPrivilege.ts";
 import { createHandler } from "../_shared/withHandler.ts";
 const log = createLogger({ functionName: "admin-resend-invite", version: "1.0.0" });
 
@@ -74,6 +75,12 @@ Deno.serve(createHandler({ functionName: "admin-resend-invite", version: "1.0.0"
     .maybeSingle();
   if (profileError) return json(req, { error: "lookup_failed" }, 500);
   if (!profile?.id) return json(req, { error: "no_linked_account" }, 404);
+
+  // SEC: منع إعادة إرسال رابط استرداد/تفعيل لحساب أدمن أو دور مرتفع من غير full_access.
+  const targetPrivilege = await checkTargetAccountPrivilege(userClient, admin, userData.user.id, profile.id);
+  if (!targetPrivilege.allowed) {
+    return json(req, { error: targetPrivilege.reason ?? "protected_account_forbidden" }, targetPrivilege.reason === "permission_check_failed" ? 500 : 403);
+  }
 
   const { data: authUser, error: getUserError } = await admin.auth.admin.getUserById(profile.id);
   if (getUserError || !authUser.user?.email) return json(req, { error: "account_email_missing" }, 404);

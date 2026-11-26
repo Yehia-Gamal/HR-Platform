@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { corsHeaders, json, preflight } from "../_shared/cors.ts";
 import { normalizePhone, validateHrIssuedPassword } from "../_shared/phone.ts";
+import { ELEVATED_TARGET_ROLES } from "../_shared/targetPrivilege.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const PUBLISHABLE_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -46,15 +47,7 @@ const STANDARD_EMPLOYEE_ROLES = new Set([
   "clinics-manager",
 ]);
 
-const ELEVATED_EMPLOYEE_ROLES = new Set([
-  "hr-specialist",
-  "hr-manager",
-  "executive-director",
-  "executive",
-  "committee-member",
-  "committee-chair",
-  "committee-secretary",
-]);
+const ELEVATED_EMPLOYEE_ROLES = ELEVATED_TARGET_ROLES;
 
 const ALLOWED_EMPLOYEE_ROLES = new Set([
   ...STANDARD_EMPLOYEE_ROLES,

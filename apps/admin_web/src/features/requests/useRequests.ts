@@ -21,7 +21,7 @@ export function useRequests() {
     queryKey: ['requests', auth.isMock],
     enabled: auth.status === 'authenticated',
     queryFn: async (): Promise<RequestSummary[]> => {
-      if (auth.isMock) return (await loadDomainMocks()).mockRequests;
+      if (import.meta.env.DEV && auth.isMock) return (await loadDomainMocks()).mockRequests;
       const data = await rpc('get_request_inbox', { p_limit: 100 });
       if (!Array.isArray(data)) return [];
       const parsed: RequestSummary[] = [];
@@ -149,7 +149,7 @@ export function useMyLeaveBalances(year = new Date().getFullYear()) {
     queryKey: ['leave-balances', year, auth.isMock],
     enabled: auth.status === 'authenticated',
     queryFn: async () => {
-      if (auth.isMock) return (await loadDomainMocks()).mockLeaveBalances;
+      if (import.meta.env.DEV && auth.isMock) return (await loadDomainMocks()).mockLeaveBalances;
       const data = await rpc<Record<string, unknown>[]>('get_my_leave_balances', { p_year: year });
       return leaveBalanceSchema.array().parse(
         (data ?? []).map((row: Record<string, unknown>) => ({

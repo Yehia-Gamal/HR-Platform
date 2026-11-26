@@ -202,6 +202,7 @@ export function AttendancePage() {
             </button>
             <input
               type="date"
+              aria-label="تاريخ الحضور"
               value={dateIso}
               onChange={(e) => setDateIso(e.target.value || cairoTodayIso())}
               className="input !h-10 text-xs font-bold rounded-xl flex-1 px-3"

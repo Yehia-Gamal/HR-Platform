@@ -122,6 +122,19 @@ check('بناء الإنتاج (Vite build)', () => {
   run('npm run build');
 });
 
+// 4b. Production bundle mock leak guard (audit Phase 9)
+check('خلو حزمة الإنتاج من بيانات المعاينة التجريبية', () => {
+  const assetsDir = join(ROOT, 'apps', 'admin_web', 'dist', 'assets');
+  const jsFiles = sourceFiles(assetsDir, ['.js']);
+  const leaked = firstMatches(
+    jsFiles,
+    /DEV-001|mockContexts|mockCatalog|mockRequests|mockDevelopmentEmployees|الإدارة التجريبية|موظف تجريبي/,
+  );
+  if (leaked.length > 0) {
+    throw new Error(`وُجدت بيانات معاينة تجريبية في حزمة الإنتاج:\n${leaked.join('\n')}`);
+  }
+});
+
 // 5. Secret scan
 check('فحص الأسرار', () => {
   run('npm run check:secrets');

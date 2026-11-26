@@ -81,6 +81,7 @@ export function useEmployee360(employeeId: string | undefined) {
 // خريطة أخطاء Edge Function → رسائل عربية
 const INVITE_ERROR_MESSAGES: Record<string, string> = {
   forbidden: 'ليس لديك صلاحية لإرسال الدعوات.',
+  protected_account_forbidden: 'لا يمكن تنفيذ هذا الإجراء على حساب بصلاحيات إدارية عليا.',
   no_linked_account: 'الموظف ليس لديه حساب مربوط بعد.',
   account_email_missing: 'لا يوجد بريد إلكتروني مسجّل للموظف.',
   too_many_requests: 'أُرسلت دعوة مؤخرًا. انتظر دقيقة ثم أعد المحاولة.',
@@ -120,6 +121,7 @@ export function useResendInvite() {
 // في admin-set-password Edge Function + errors العامة.
 const SET_PASSWORD_ERROR_MESSAGES: Record<string, string> = {
   forbidden: 'ليس لديك صلاحية تعيين كلمة مرور هذا الموظف.',
+  protected_account_forbidden: 'لا يمكن تغيير كلمة مرور حساب بصلاحيات إدارية عليا.',
   no_linked_account: 'الموظف ليس لديه حساب مربوط بعد.',
   account_lookup_failed: 'تعذر العثور على حساب الموظف.',
   password_update_failed: 'تعذر تحديث كلمة المرور. أعد المحاولة لاحقًا.',
@@ -173,6 +175,7 @@ export function useSetEmployeePassword() {
 // خريطة أخطاء تعديل البريد الإلكتروني → رسائل عربية
 const UPDATE_EMAIL_ERROR_MESSAGES: Record<string, string> = {
   forbidden: 'ليس لديك صلاحية تعديل بريد الموظف.',
+  protected_account_forbidden: 'لا يمكن تعديل بريد حساب بصلاحيات إدارية عليا.',
   no_linked_account: 'الموظف ليس لديه حساب مربوط بعد.',
   account_lookup_failed: 'تعذر العثور على حساب الموظف.',
   email_already_exists: 'هذا البريد الإلكتروني مستخدم لحساب آخر.',

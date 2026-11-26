@@ -38,28 +38,36 @@ import { useEmployees, useResendInvite, useSetEmployeePassword } from './useEmpl
  * تفتح حساب الموظف مباشرة دون تعقيد
  * تشمل أحرفاً كبيرة وصغيرة وأرقاماً واضحة، وتستبعد الأحرف الملتبسة (O, 0, l, 1, I)
  */
+function secureRandomIndex(max: number): number {
+  const limit = Math.floor(0x1_0000_0000 / max) * max;
+  const buf = new Uint32Array(1);
+  do {
+    crypto.getRandomValues(buf);
+  } while (buf[0] >= limit);
+  return buf[0] % max;
+}
+
 export function generateSecurePassword(): string {
   const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
   const lower = 'abcdefghjkmnpqrstuvwxyz';
   const numbers = '23456789';
 
-  let pwd = '';
-  // 3 أحرف كبيرة
-  pwd += upper[Math.floor(Math.random() * upper.length)];
-  pwd += upper[Math.floor(Math.random() * upper.length)];
-  pwd += upper[Math.floor(Math.random() * upper.length)];
-  // 3 أحرف صغيرة
-  pwd += lower[Math.floor(Math.random() * lower.length)];
-  pwd += lower[Math.floor(Math.random() * lower.length)];
-  pwd += lower[Math.floor(Math.random() * lower.length)];
-  // 2 أرقام
-  pwd += numbers[Math.floor(Math.random() * numbers.length)];
-  pwd += numbers[Math.floor(Math.random() * numbers.length)];
+  const chars: string[] = [
+    upper[secureRandomIndex(upper.length)],
+    upper[secureRandomIndex(upper.length)],
+    upper[secureRandomIndex(upper.length)],
+    lower[secureRandomIndex(lower.length)],
+    lower[secureRandomIndex(lower.length)],
+    lower[secureRandomIndex(lower.length)],
+    numbers[secureRandomIndex(numbers.length)],
+    numbers[secureRandomIndex(numbers.length)],
+  ];
 
-  return pwd
-    .split('')
-    .sort(() => 0.5 - Math.random())
-    .join('');
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = secureRandomIndex(i + 1);
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+  return chars.join('');
 }
 
 interface ResetPasswordDialogProps {
