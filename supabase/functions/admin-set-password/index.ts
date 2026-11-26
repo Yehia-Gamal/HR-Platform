@@ -1,8 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 import { createLogger } from "../_shared/logger.ts";
 import { z } from "zod";
-import { corsHeaders, json, preflight } from "../_shared/cors.ts";
+import { json, preflight } from "../_shared/cors.ts";
 import { validateHrIssuedPassword } from "../_shared/phone.ts";
+import { enforceSensitiveOpQuota } from "../_shared/rateLimit.ts";
 import { checkTargetAccountPrivilege } from "../_shared/targetPrivilege.ts";
 import { createHandler } from "../_shared/withHandler.ts";
 const log = createLogger({ functionName: "admin-set-password", version: "1.0.0" });
@@ -64,29 +65,6 @@ Deno.serve(createHandler({ functionName: "admin-set-password", version: "1.0.0" 
   if (scopeError) return json(req, { error: "permission_check_failed" }, 500);
   if (canAccess !== true) return json(req, { error: "forbidden" }, 403);
 
-  // ─── Rate limit: 5 تعيينات كلمة مرور في 5 دقائق لكل مشرف ───
-  const fiveMinutesAgo = new Date(Date.now() - 5 * 60_000).toISOString();
-  const { count: opsCount, error: rlError } = await admin
-    .from("admin_sensitive_ops_log")
-    .select("id", { count: "exact", head: true })
-    .eq("actor_id", userData.user.id)
-    .eq("op_type", "set_password")
-    .gte("created_at", fiveMinutesAgo);
-  if (rlError) return json(req, { error: "rate_limit_check_failed" }, 500);
-  if ((opsCount ?? 0) >= 5) {
-    return new Response(
-      JSON.stringify({ error: "too_many_requests", retryAfterSeconds: 300 }),
-      {
-        status: 429,
-        headers: {
-          ...corsHeaders(req),
-          "Content-Type": "application/json; charset=utf-8",
-          "Retry-After": "300",
-        },
-      },
-    );
-  }
-
   // Resolve the auth user linked to this employee (profiles.id === auth.users.id).
   const { data: profile, error: profileError } = await admin
     .from("profiles")
@@ -124,6 +102,16 @@ Deno.serve(createHandler({ functionName: "admin-set-password", version: "1.0.0" 
     const reason = (pwdCheck as { ok: false; reason: string }).reason;
     return json(req, { error: reason }, 400);
   }
+
+  // ─── Rate limit ذري: 5 تعيينات كلمة مرور في 5 دقائق لكل مشرف ───
+  const quotaBlocked = await enforceSensitiveOpQuota(req, admin, {
+    opType: "set_password",
+    actorId: userData.user.id,
+    employeeId: input.employeeId,
+    maxCount: 5,
+    windowSeconds: 300,
+  });
+  if (quotaBlocked) return quotaBlocked;
 
   // نضبط كلمة المرور ونُجبر التغيير عند أول دخول. لا نسجّل كلمة المرور أبدًا.
   // نستخدم GoTRUE REST API مباشرة (نمط admin-create-employee) بدلاً من
@@ -190,24 +178,17 @@ Deno.serve(createHandler({ functionName: "admin-set-password", version: "1.0.0" 
     ctx.log.error("admin-set-password activation unhandled error", activationErr);
   }
 
-  // سجل العملية للـ rate-limit والتدقيق
-  await Promise.all([
-    admin.from("admin_sensitive_ops_log").insert({
-      op_type: "set_password",
-      actor_id: userData.user.id,
-      employee_id: input.employeeId,
-    }),
-    admin.rpc("log_audit_event", {
-      p_event_type: "employee.password_updated",
-      p_category: "security",
-      p_severity: "info",
-      p_target_table: "employees",
-      p_target_id: input.employeeId,
-      p_summary_ar: "تعيين كلمة مرور موظف من لوحة الإدارة",
-      p_description: `admin-set-password: password reset by admin, must_change_password=${input.mustChangePassword ?? false}`,
-      p_metadata: { actor: userData.user.id, employee_id: input.employeeId },
-    }),
-  ]);
+  // سجل التدقيق (حصة الـ rate-limit تم تسجيلها ذرياً عبر consume_admin_sensitive_op_quota)
+  await admin.rpc("log_audit_event", {
+    p_event_type: "employee.password_updated",
+    p_category: "security",
+    p_severity: "info",
+    p_target_table: "employees",
+    p_target_id: input.employeeId,
+    p_summary_ar: "تعيين كلمة مرور موظف من لوحة الإدارة",
+    p_description: `admin-set-password: password reset by admin, must_change_password=${input.mustChangePassword ?? false}`,
+    p_metadata: { actor: userData.user.id, employee_id: input.employeeId },
+  });
 
   return json(req, { updated: true }, 200);
 }));

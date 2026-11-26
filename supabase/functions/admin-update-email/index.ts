@@ -3,6 +3,7 @@ import { createLogger } from "../_shared/logger.ts";
 import { z } from "zod";
 import { json, preflight } from "../_shared/cors.ts";
 import { checkTargetAccountPrivilege } from "../_shared/targetPrivilege.ts";
+import { enforceSensitiveOpQuota } from "../_shared/rateLimit.ts";
 import { createHandler } from "../_shared/withHandler.ts";
 const log = createLogger({ functionName: "admin-update-email", version: "1.0.0" });
 
@@ -65,19 +66,6 @@ Deno.serve(createHandler({ functionName: "admin-update-email", version: "1.0.0" 
   if (scopeError) return json(req, { error: "permission_check_failed" }, 500);
   if (canAccess !== true) return json(req, { error: "forbidden" }, 403);
 
-  // ─── Rate limit: 5 تغييرات بريد في 5 دقائق لكل مشرف ───
-  const fiveMinutesAgo = new Date(Date.now() - 5 * 60_000).toISOString();
-  const { count: opsCount, error: rlError } = await admin
-    .from("admin_sensitive_ops_log")
-    .select("id", { count: "exact", head: true })
-    .eq("actor_id", userData.user.id)
-    .eq("op_type", "update_email")
-    .gte("created_at", fiveMinutesAgo);
-  if (rlError) return json(req, { error: "rate_limit_check_failed" }, 500);
-  if ((opsCount ?? 0) >= 5) {
-    return json(req, { error: "too_many_requests", retryAfterSeconds: 300 }, 429);
-  }
-
   // Resolve the auth user linked to this employee (profiles.id === auth.users.id).
   const { data: profile, error: profileError } = await admin
     .from("profiles")
@@ -111,6 +99,16 @@ Deno.serve(createHandler({ functionName: "admin-update-email", version: "1.0.0" 
   const conflict = existingUsers.find((u) => u.id !== profile.id);
   if (conflict) return json(req, { error: "email_already_exists" }, 409);
 
+  // ─── Rate limit ذري: 5 تغييرات بريد في 5 دقائق لكل مشرف ───
+  const quotaBlocked = await enforceSensitiveOpQuota(req, admin, {
+    opType: "update_email",
+    actorId: userData.user.id,
+    employeeId: input.employeeId,
+    maxCount: 5,
+    windowSeconds: 300,
+  });
+  if (quotaBlocked) return quotaBlocked;
+
   // تحديث بريد الحساب مع تأكيده فوراً (نمط admin-create-employee / admin-set-password).
   const updateRes = await fetch(
     `${SUPABASE_URL}/auth/v1/admin/users/${profile.id}`,
@@ -140,14 +138,7 @@ Deno.serve(createHandler({ functionName: "admin-update-email", version: "1.0.0" 
     return json(req, { error: "email_update_failed" }, 502);
   }
 
-  // سجل العملية للـ rate-limit
-  await admin.from("admin_sensitive_ops_log").insert({
-    op_type: "update_email",
-    actor_id: userData.user.id,
-    employee_id: input.employeeId,
-  });
-
-  // سجل التدقيق (نفس توقيع update_employee_admin).
+  // سجل التدقيق (حصة الـ rate-limit تم تسجيلها ذرياً عبر consume_admin_sensitive_op_quota).
   await admin.rpc("log_audit_event", {
     p_event_type: "employee.email_updated",
     p_category: "data",

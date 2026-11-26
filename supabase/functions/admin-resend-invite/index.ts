@@ -4,6 +4,7 @@ import { z } from "zod";
 import { json, preflight } from "../_shared/cors.ts";
 import { generateSecureTemporaryPassword } from "../_shared/phone.ts";
 import { checkTargetAccountPrivilege } from "../_shared/targetPrivilege.ts";
+import { enforceAuthInviteQuota } from "../_shared/rateLimit.ts";
 import { createHandler } from "../_shared/withHandler.ts";
 const log = createLogger({ functionName: "admin-resend-invite", version: "1.0.0" });
 
@@ -102,39 +103,20 @@ Deno.serve(createHandler({ functionName: "admin-resend-invite", version: "1.0.0"
     ctx.log.error("admin-resend-invite email_confirm update failed", confirmError);
   }
 
-  // Rate limit: at most one invite per employee per 60 seconds.
-  const { data: recentInvite, error: recentError } = await admin
-    .from("auth_invite_log")
-    .select("created_at")
-    .eq("employee_id", input.employeeId)
-    .gte("created_at", new Date(Date.now() - 60_000).toISOString())
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (recentError) {
-    // جدول auth_invite_log مطلوب (mig 0193) — إذا فشل الاستعلام نرفض بدل التجاهل.
-    return json(req, { error: "rate_limit_check_failed" }, 500);
-  }
-  if (recentInvite) {
-    return json(req, { error: "too_many_requests", retryAfterSeconds: 60 }, 429);
-  }
+  // ─── Atomic rate limit: at most one invite per employee per 60 seconds ───
+  const quotaBlocked = await enforceAuthInviteQuota(req, admin, {
+    employeeId: input.employeeId,
+    sentBy: userData.user.id,
+    email: authUser.user.email.toLowerCase(),
+    windowSeconds: 60,
+  });
+  if (quotaBlocked) return quotaBlocked;
 
   const { error: inviteError } = await admin.auth.resetPasswordForEmail(
     authUser.user.email.toLowerCase(),
     { redirectTo: INVITE_REDIRECT },
   );
   if (inviteError) return json(req, { error: "invite_send_failed" }, 502);
-
-  // Record the invite so the rate-limit check above can actually block repeats.
-  const { error: logError } = await admin.from("auth_invite_log").insert({
-    employee_id: input.employeeId,
-    sent_by: userData.user.id,
-    email: authUser.user.email.toLowerCase(),
-  });
-  if (logError) {
-    // الدعوة أُرسلت بنجاح لكن التسجيل فشل — نُبلغ بالخطأ للتتبع.
-    ctx.log.error("auth_invite_log insert failed", logError);
-  }
 
   return json(req, { invitationSent: true, email: authUser.user.email }, 200);
 }));

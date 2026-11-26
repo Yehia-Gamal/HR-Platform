@@ -341,3 +341,6 @@
 | 0735 | `0735_fix_leave_mission_penalty_exemption_and_cancel_erroneous.sql` | حماية طلبات الإجازات والمأموريات المعتمدة من غرامات الحضور وإلغاء الغرامات الخاطئة. |
 | 0736 | `0736_fix_daily_health_check_functions_and_regressions.sql` | تصحيح دوال الفحص الصحي اليومي وتحديث التبعات المحجوبة والروابط المرجعية. |
 | 0737 | `0737_allow_reverted_escalation_level.sql` | توسيع قيد التحقق من مستوى التصعيد escalation_level ليشمل 'reverted' لمنع خطأ 23514 / القيمة المدخلة غير مقبولة عند إرجاع الغرامة للأصل، مع تفعيل إشعار الموظف الفوري. |
+| 0738 | `0738_security_hardening_and_grace_checkout_fix.sql` | تقفيل صلاحيات التنفيذ لـ 4 دوال SECURITY DEFINER وإصلاح قيد الحالة في `admin_auto_grace_checkout`. |
+| 0739 | `0739_optimize_rls_auth_uid_initplan.sql` | تحويل نداءات `auth.uid()` المباشرة إلى `(select auth.uid())` داخل 39 سياسة RLS نشطة لتحسين أداء InitPlan. |
+| 0740 | `0740_atomic_sensitive_ops_rate_limit.sql` | دوال SQL ذرية محمية بـ advisory lock (`consume_admin_sensitive_op_quota`, `consume_auth_invite_quota`) لمنع سباق TOCTOU في تحديد معدل العمليات الحساسة وإعادة إرسال الدعوات. |
