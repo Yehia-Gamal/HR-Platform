@@ -31,7 +31,7 @@ export function useFellowshipFundSummary() {
   return useQuery({
     queryKey: [FELLOWSHIP_FUND_SUMMARY_KEY, auth.isMock],
     enabled: auth.status === 'authenticated',
-    refetchInterval: 30_000,
+    refetchInterval: auth.isMock ? false : 30_000,
     queryFn: async (): Promise<FellowshipFundSummary> => {
       if (auth.isMock) {
         return {
@@ -58,7 +58,7 @@ export function useFellowshipFundTransactions(filter: FellowshipFundTransactions
   return useQuery({
     queryKey: [FELLOWSHIP_FUND_TX_KEY, auth.isMock, type, search, limit, offset],
     enabled: auth.status === 'authenticated',
-    refetchInterval: 30_000,
+    refetchInterval: auth.isMock ? false : 30_000,
     queryFn: async (): Promise<FellowshipFundTransaction[]> => {
       if (auth.isMock) return [];
       return fellowshipFundTransactionSchema.array().parse(

@@ -36,7 +36,7 @@ export function useAssociationProjects(refetchMs = 5 * 60_000, refetchInBackgrou
     queryKey: [KEY, a.isMock],
     enabled: a.status === 'authenticated',
     // اللمبة تعتمد على الزمن — نُحدّث اللوحة دورياً ما دامت مفتوحة (وتتوقف في الخلفية لغير شاشة العرض).
-    refetchInterval: refetchMs,
+    refetchInterval: a.isMock ? false : refetchMs,
     refetchIntervalInBackground: refetchInBackground,
     queryFn: async (): Promise<AssociationProjectsCatalog> => {
       if (import.meta.env.DEV && a.isMock) return (await loadProjectMocks()).mockCatalog();
@@ -122,7 +122,7 @@ export function useMyProjectTasks() {
   return useQuery({
     queryKey: [KEY, 'my-tasks', a.isMock],
     enabled: a.status === 'authenticated',
-    refetchInterval: 5 * 60_000,
+    refetchInterval: a.isMock ? false : 5 * 60_000,
     queryFn: async (): Promise<MyProjectTask[]> => {
       if (import.meta.env.DEV && a.isMock) return (await loadProjectMocks()).mockMyTasks();
       return myProjectTasksSchema.parse(await rpc('get_my_project_tasks'));

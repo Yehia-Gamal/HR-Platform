@@ -20,7 +20,7 @@ export function useAttendanceTodayOverview() {
   return useQuery({
     queryKey: ['attendance-today-overview', auth.isMock],
     enabled: auth.status === 'authenticated',
-    refetchInterval: 60_000,
+    refetchInterval: auth.isMock ? false : 60_000,
     retry: 1,
     queryFn: async (): Promise<AttendanceTodayOverview> => {
       if (auth.isMock) {

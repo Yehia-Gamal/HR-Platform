@@ -203,7 +203,7 @@ const adminSections: NavSection[] = [
     items: [
       { label: 'التقارير والتحليلات', to: '/admin/hr/reports', icon: FileClock, permission: 'reports.people.read' },
       { label: 'الأخبار والقرارات', to: '/admin/hr/official-feed', icon: Megaphone, permission: ['comms.announcement.read', 'comms.decision.read'] },
-      { label: 'التقارير اليومية', to: '/admin/hr/daily-reports', icon: ClipboardList, permission: ['reports.daily.read', 'people.employee.read'] },
+      { label: 'التقارير اليومية', to: '/admin/hr/daily-reports', icon: ClipboardList, permission: ['reports.read', 'people.employee.read'] },
     ],
   },
 ];

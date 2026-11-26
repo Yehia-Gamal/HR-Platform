@@ -109,7 +109,7 @@ export function usePendingPenaltyEmployees() {
   return useQuery({
     queryKey: [PENDING_EMPLOYEES_KEY, auth.isMock],
     enabled: auth.status === 'authenticated',
-    refetchInterval: 60_000, // تحديث كل دقيقة
+    refetchInterval: auth.isMock ? false : 60_000, // تحديث كل دقيقة
     queryFn: async (): Promise<PendingPenaltyEmployee[]> => {
       if (auth.isMock) return [];
       return pendingPenaltyEmployeeSchema.array().parse(await rpc('get_employees_with_pending_instant_penalties'));
@@ -431,7 +431,7 @@ export function useDailyOvertimeSummary(date?: string) {
         p_date: date ?? null,
       });
     },
-    refetchInterval: 30000,
+    refetchInterval: auth.isMock ? false : 30000,
   });
 }
 
@@ -497,7 +497,7 @@ export function useSuspendedEmployeesAdmin() {
       const res = await rpc<SuspendedEmployeeAdmin[]>('get_suspended_employees_admin');
       return (res as SuspendedEmployeeAdmin[]) ?? [];
     },
-    refetchInterval: 15000,
+    refetchInterval: auth.isMock ? false : 15000,
   });
 }
 

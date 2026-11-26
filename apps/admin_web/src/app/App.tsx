@@ -266,7 +266,7 @@ function AuthenticatedApp() {
             <Route
               path="daily-reports"
               element={
-                <RequirePermission perm={['reports.daily.read', 'people.employee.read']}>
+                <RequirePermission perm={['reports.read', 'people.employee.read']}>
                   <DailyReportsFeedPage />
                 </RequirePermission>
               }
@@ -644,7 +644,7 @@ function HrWorkspaceRoutes() {
       <Route
         path="daily-reports"
         element={
-          <RequirePermission perm={['reports.daily.read', 'people.employee.read']}>
+          <RequirePermission perm={['reports.read', 'people.employee.read']}>
             <DailyReportsFeedPage />
           </RequirePermission>
         }
