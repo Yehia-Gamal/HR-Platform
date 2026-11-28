@@ -1,6 +1,7 @@
 import 'package:ahla_design_tokens/ahla_design_tokens.dart';
 import 'package:ahla_shabab_management_os/core/formatting/arabic_text.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 import 'package:ahla_shabab_management_os/core/widgets/host_app_bar_scope.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
@@ -77,7 +78,7 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
           ref.invalidate(mobileRequestsProvider);
         },
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
             if (awaitingMe > 0) ...[
               Card(
@@ -90,16 +91,17 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
                   ),
                 ),
                 child: ListTile(
-                  leading: const Icon(
-                    Icons.notifications_active_rounded,
-                    color: AppColors.statusInfo,
+                  leading: CircleAvatar(
+                    backgroundColor: scheme.primaryContainer,
+                    foregroundColor: scheme.onPrimaryContainer,
+                    child: const Icon(Icons.fact_check_outlined),
                   ),
                   title: Text(
                     '${arRequests(awaitingMe)} بانتظار قرارك',
                     style: const TextStyle(fontWeight: FontWeight.w900),
                   ),
                   subtitle: const Text(
-                    'افتح «اعتماد طلبات الفريق» للبت فيها مباشرة.',
+                    'اعتماد طلبات الفريق',
                   ),
                   trailing: const Icon(Icons.chevron_left_rounded),
                   onTap: () => Navigator.push(
@@ -147,7 +149,6 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
             // ── تقديم طلب جديد ──
             const MobileSectionHeader(
               title: 'تقديم طلب جديد',
-              subtitle: 'اختر نوع الطلب من الخيارات التالية.',
             ),
             const SizedBox(height: 12),
             if (isClinicStaff) ...[
@@ -267,7 +268,7 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
             const SizedBox(height: 20),
             const MobileSectionHeader(
               title: 'أرصدة الإجازات والأذونات',
-              subtitle: 'الرصيد المتاح للإجازات وأذونات الشهر (4 أذونات / 8 ساعات).',
+              subtitle: 'المتاح والمستهلك والمحجوز',
             ),
             const SizedBox(height: 10),
             balances.when(
@@ -294,73 +295,10 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
                   ),
                 ),
               ),
-              data: (items) => Column(
-                children: [
-                  LeaveBalanceStrip(
-                    balances: items,
-                    onTap: () => LeavePlannerSheet.show(context),
-                    onPermitTap: () => _submitRequest(context, ref, 'permit'),
-                  ),
-                  const SizedBox(height: 10),
-                  InkWell(
-                    borderRadius: BorderRadius.circular(14),
-                    onTap: () => LeavePlannerSheet.show(context),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            const Color(0xFF0284C7).withValues(alpha: .12),
-                            const Color(0xFF0284C7).withValues(alpha: .04),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: const Color(0xFF0284C7).withValues(alpha: .3),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 18,
-                            backgroundColor: const Color(0xFF0284C7).withValues(alpha: .16),
-                            child: const Icon(
-                              Icons.auto_awesome_rounded,
-                              color: Color(0xFF0284C7),
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'تخطيط إجازتي ومحاكي الرصيد الذكي 🗓️',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w900,
-                                    color: Color(0xFF0284C7),
-                                  ),
-                                ),
-                                SizedBox(height: 2),
-                                Text(
-                                  'احسب رصيدك المتبقي بدقة وتأكد من عدم تضارب موعدك مع زملاء القسم قبل تقديم الطلب.',
-                                  style: TextStyle(fontSize: 11, height: 1.35),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const Icon(
-                            Icons.arrow_forward_ios_rounded,
-                            size: 14,
-                            color: Color(0xFF0284C7),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+              data: (items) => LeaveBalanceStrip(
+                balances: items,
+                onTap: () => LeavePlannerSheet.show(context),
+                onPermitTap: () => _submitRequest(context, ref, 'permit'),
               ),
             ),
 
@@ -368,7 +306,6 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
             const SizedBox(height: 20),
             const MobileSectionHeader(
               title: 'طلباتي السابقة',
-              subtitle: 'طلباتك أنت فقط — طلبات الفريق في «اعتماد طلبات الفريق».',
             ),
             const SizedBox(height: 10),
             RequestMonthSummary(
@@ -502,6 +439,7 @@ class _MobileSelfServicePageState extends ConsumerState<MobileSelfServicePage> {
   }) async {
     final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
+      barrierLabel: 'إغلاق نموذج الطلب',
       isScrollControlled: true,
       useSafeArea: true,
       builder: (ctx) => NewRequestSheet(type: type, permitKind: permitKind),
@@ -602,18 +540,24 @@ class _ServiceCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: .12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: color, size: 22),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: .12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, color: color, size: 19),
+                ),
+                const Icon(Icons.chevron_left_rounded, size: 18),
+              ],
             ),
             const SizedBox(height: 10),
             Text(
@@ -625,8 +569,6 @@ class _ServiceCard extends StatelessWidget {
             const SizedBox(height: 2),
             Text(
               subtitle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -760,16 +702,19 @@ class NewRequestSheetState extends State<NewRequestSheet> {
   }
 
   Future<void> _pickDate(bool isStart) async {
-    final now = DateTime.now();
+    final isMission = widget.type == 'mission';
+    final now = isMission ? DateUtils.dateOnly(AppTime.now()) : DateTime.now();
     final baseFirst = now.subtract(const Duration(days: 365));
     final initial = isStart ? (_startDate ?? now) : (_endDate ?? _startDate ?? now);
     // تاريخ النهاية لا يمكن أن يسبق تاريخ البداية.
-    final first = isStart ? baseFirst : (_startDate ?? baseFirst);
+    final first = isMission
+        ? DateTime(now.year, now.month, now.day + 1)
+        : isStart ? baseFirst : (_startDate ?? baseFirst);
     final picked = await showDatePicker(
       context: context,
       initialDate: initial.isBefore(first) ? first : initial,
       firstDate: first,
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      lastDate: now.add(const Duration(days: 365)),
       locale: const Locale('ar'),
     );
     if (picked == null) return;
@@ -849,8 +794,8 @@ class NewRequestSheetState extends State<NewRequestSheet> {
         final loc = _locationController.text.trim().isEmpty
             ? 'مأمورية عمل خارجية'
             : _locationController.text.trim();
-        final now = DateTime.now();
-        final todayStr = now.toIso8601String().substring(0, 10);
+        final now = AppTime.now();
+        final todayStr = AppTime.dayKey(now);
         final effectiveEndDate = (_endDate != null && _endDate!.isAfter(DateUtils.dateOnly(now)))
             ? _endDate!.toIso8601String().substring(0, 10)
             : todayStr;
@@ -935,6 +880,12 @@ class NewRequestSheetState extends State<NewRequestSheet> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final theme = Theme.of(context);
+    final isMission = widget.type == 'mission';
+    final missionEndDate = isMission && _endDate != null &&
+            _endDate!.isAfter(DateUtils.dateOnly(AppTime.now()))
+        ? _endDate
+        : null;
     return SafeArea(
       top: false,
       child: SingleChildScrollView(
@@ -942,22 +893,33 @@ class NewRequestSheetState extends State<NewRequestSheet> {
           left: 20,
           right: 20,
           top: 20,
-          bottom: bottomInset > 0 ? bottomInset + 16 : 36,
+          bottom: bottomInset + 20,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-          Text(
-            _typeLabel,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
-            textAlign: TextAlign.center,
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _typeLabel,
+                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                ),
+              ),
+              IconButton(
+                tooltip: 'إغلاق النموذج',
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close_rounded),
+              ),
+            ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           TextFormField(
             controller: _titleController,
             decoration: const InputDecoration(
               labelText: 'عنوان الطلب',
+              prefixIcon: Icon(Icons.subject_rounded),
               border: OutlineInputBorder(),
             ),
           ),
@@ -1175,6 +1137,7 @@ class NewRequestSheetState extends State<NewRequestSheet> {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(
                     Icons.info_outline,
@@ -1184,8 +1147,8 @@ class NewRequestSheetState extends State<NewRequestSheet> {
                   const SizedBox(width: 10),
                   const Expanded(
                     child: Text(
-                      'تبدأ المأمورية فور إرسالها، ويُسجَّل وقتها وموقعك الحالي ليراهما مديرك. '
-                      'إن أرسلتها بعد موعد الدوام يُحسب التأخير حتى لحظة الإرسال.',
+                      'تبدأ المأمورية عند الإرسال. يُسجَّل الوقت والموقع لمديرك، '
+                      'ويُحسب أي تأخير حتى لحظة الإرسال.',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -1200,25 +1163,28 @@ class NewRequestSheetState extends State<NewRequestSheet> {
               children: [
                 const Icon(Icons.today_outlined, size: 18),
                 const SizedBox(width: 6),
-                Text(
-                  'بداية المأمورية: اليوم (تلقائي)',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                Expanded(
+                  child: Text(
+                    'تبدأ المأمورية اليوم',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
-            OutlinedButton.icon(
+            FilledButton.tonalIcon(
               onPressed: () => _pickDate(false),
+              style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
               icon: const Icon(Icons.calendar_today, size: 18),
               label: Text(
-                _endDate == null || !_endDate!.isAfter(DateUtils.dateOnly(DateTime.now()))
-                    ? 'تمديد المأمورية حتى تاريخ (اختياري)'
-                    : 'تمديد المأمورية حتى: ${DateFormat('d/M/y').format(_endDate!)}',
+                missionEndDate == null
+                    ? 'تحديد تاريخ انتهاء (اختياري)'
+                    : 'تنتهي في ${DateFormat('d/M/y').format(missionEndDate)}',
               ),
             ),
-            if (_endDate != null && _endDate!.isAfter(DateUtils.dateOnly(DateTime.now()))) ...[
+            if (missionEndDate != null) ...[
               const SizedBox(height: 4),
               Align(
                 alignment: AlignmentDirectional.centerEnd,
@@ -1237,8 +1203,9 @@ class NewRequestSheetState extends State<NewRequestSheet> {
             TextFormField(
               controller: _locationController,
               decoration: const InputDecoration(
-                labelText: 'الموقع / الوجهة (اختياري)',
-                hintText: 'مأمورية عمل خارجية',
+                labelText: 'الوجهة (اختياري)',
+                hintText: 'اسم الجهة أو مكان المأمورية',
+                prefixIcon: Icon(Icons.location_on_outlined),
                 border: OutlineInputBorder(),
               ),
             ),
@@ -1426,7 +1393,8 @@ class NewRequestSheetState extends State<NewRequestSheet> {
               maxLines: 3,
               maxLength: 300,
               decoration: const InputDecoration(
-                labelText: 'السبب',
+                labelText: 'سبب الطلب',
+                hintText: 'اذكر الغرض من الطلب',
                 border: OutlineInputBorder(),
                 alignLabelWithHint: true,
               ),
@@ -1479,7 +1447,12 @@ class NewRequestSheetState extends State<NewRequestSheet> {
             ),
           ],
           const SizedBox(height: 16),
-          FilledButton(onPressed: _submit, child: const Text('إرسال الطلب')),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(minimumSize: const Size(0, 50)),
+            onPressed: _submit,
+            icon: const Icon(Icons.send_outlined),
+            label: Text(isMission ? 'إرسال طلب المأمورية' : 'إرسال الطلب'),
+          ),
         ],
       ),
     ),

@@ -180,11 +180,11 @@ class _SecurityNote extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
           child: Text(
-            'التحقق (بصمة أو نقش) يتم داخل الجهاز فقط، ثم يتحقق الخادم من الجلسة والجهاز والموقع.',
+            'تظل البصمة أو رمز القفل على جهازك. يتحقق الخادم من الجلسة والجهاز والموقع.',
             style: TextStyle(
               fontSize: 12,
               color: scheme.onSurfaceVariant,
-              height: 1.6,
+              height: 1.3,
             ),
           ),
         ),

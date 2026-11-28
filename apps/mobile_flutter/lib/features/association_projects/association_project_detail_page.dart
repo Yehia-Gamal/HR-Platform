@@ -89,7 +89,7 @@ class _AssociationProjectDetailPageState extends ConsumerState<AssociationProjec
         ],
         bottom: _busy ? const PreferredSize(preferredSize: Size.fromHeight(2), child: LinearProgressIndicator()) : null,
       ),
-      floatingActionButton: detail != null && detail.permissions.canManage
+      floatingActionButton: detail != null && detail.permissions.canManage && !detail.project.isClosed
           ? FloatingActionButton.extended(
               onPressed: _busy ? null : () => _editStep(detail),
               icon: const Icon(Icons.playlist_add),
@@ -259,6 +259,10 @@ class _AssociationProjectDetailPageState extends ConsumerState<AssociationProjec
     final p = d.project;
     final done = d.steps.where((s) => s.isDone).length;
     final current = d.currentStep;
+    final progress = d.steps.isEmpty && !p.isClosed ? p.progressPercent : null;
+    final readyForClosure = p.isApproved &&
+        (p.status == 'active' || p.status == 'on_hold') &&
+        d.steps.isNotEmpty && done == d.steps.length;
     final scheme = Theme.of(context).colorScheme;
     final color = projectLedColor(p.led);
     return Card(
@@ -267,33 +271,50 @@ class _AssociationProjectDetailPageState extends ConsumerState<AssociationProjec
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
               children: [
-                Text('${p.progress.round()}%', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900)),
-                const SizedBox(width: 8),
-                Text('نسبة الإنجاز', style: TextStyle(color: scheme.onSurfaceVariant)),
-                const Spacer(),
+                Text(stepProgressLabel(done, d.steps.length), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                if (progress != null)
+                  Text(
+                    'التقدم المُبلّغ عنه $progress%',
+                    style: TextStyle(color: scheme.onSurfaceVariant),
+                  ),
                 Text(projectStatusLabels[p.status] ?? p.status, style: const TextStyle(fontWeight: FontWeight.w800)),
               ],
             ),
-            const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: LinearProgressIndicator(
-                value: (p.progress / 100).clamp(0, 1).toDouble(),
-                minHeight: 10,
-                color: color,
-                backgroundColor: scheme.surfaceContainerHighest,
+            if (progress != null) ...[
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LinearProgressIndicator(
+                  value: progress / 100,
+                  minHeight: 10,
+                  color: color,
+                  backgroundColor: scheme.surfaceContainerHighest,
+                ),
               ),
-            ),
+            ] else if (readyForClosure) ...[
+              const SizedBox(height: 8),
+              const Text('بانتظار مراجعة خطة التنفيذ واعتماد الإغلاق'),
+              if (p.canReviewClosure && p.planRevision != null)
+                FilledButton.tonalIcon(
+                  onPressed: _busy ? null : () => _reviewClosure(d),
+                  icon: const Icon(Icons.fact_check_outlined),
+                  label: const Text('مراجعة الإغلاق'),
+                ),
+            ] else if (p.closedAt != null && p.status == 'completed') ...[
+              const SizedBox(height: 8),
+              Text('اعتُمد الإغلاق في ${_fmtDate(p.closedAt)}'),
+            ],
             const SizedBox(height: 12),
             Wrap(
               spacing: 16,
               runSpacing: 8,
               children: [
-                _stat('تم إنجازه', '$done خطوة', AppColors.statusSuccess),
-                _stat('متبقي', '${d.steps.length - done} خطوة', null),
+                _stat('خطوات مسجّلة منجزة', '$done من ${d.steps.length}', AppColors.statusSuccess),
+                _stat('خطوات مسجّلة متبقية', '${d.steps.length - done}', null),
                 _stat('الأولوية', projectPriorityLabels[p.priority] ?? p.priority, null),
                 _stat('الموعد المستهدف', _fmtDate(p.targetEndDate), p.isOverdue ? AppColors.statusDanger : null),
               ],
@@ -328,7 +349,7 @@ class _AssociationProjectDetailPageState extends ConsumerState<AssociationProjec
       );
 
   Widget _steps(AssociationProjectDetail d) {
-    final canManage = d.permissions.canManage;
+    final canManage = d.permissions.canManage && !d.project.isClosed;
     final scheme = Theme.of(context).colorScheme;
     final done = d.steps.where((s) => s.isDone).length;
     return Column(
@@ -361,7 +382,7 @@ class _AssociationProjectDetailPageState extends ConsumerState<AssociationProjec
 
   Widget _stepTile(AssociationProjectDetail d, AssociationProjectStep s, int index, {required bool isCurrent}) {
     final scheme = Theme.of(context).colorScheme;
-    final canManage = d.permissions.canManage;
+    final canManage = d.permissions.canManage && !d.project.isClosed;
     final color = switch (s.status) {
       'done' => AppColors.statusSuccess,
       'blocked' => AppColors.statusDanger,
@@ -435,6 +456,8 @@ class _AssociationProjectDetailPageState extends ConsumerState<AssociationProjec
                     _editStep(d, s);
                   } else if (v == 'up' || v == 'down') {
                     _run(() => _cmd.moveStep(d.project.id, s.id, up: v == 'up'));
+                  } else if (v == 'blocked') {
+                    _recordBlocker(d.project.id, s);
                   } else {
                     _run(() => _cmd.setStepStatus(d.project.id, s.id, v));
                   }
@@ -445,6 +468,8 @@ class _AssociationProjectDetailPageState extends ConsumerState<AssociationProjec
                   if (index < d.steps.length - 1) const PopupMenuItem(value: 'down', child: Text('تحريك لأسفل')),
                   for (final e in stepStatusLabels.entries)
                     if (e.key != s.status) PopupMenuItem(value: e.key, child: Text('تعليم: ${e.value}')),
+                  if (s.status == 'blocked')
+                    const PopupMenuItem(value: 'blocked', child: Text('تسجيل سبب التعطل')),
                   const PopupMenuDivider(),
                   const PopupMenuItem(
                     value: 'delete',
@@ -701,7 +726,7 @@ class _AssociationProjectDetailPageState extends ConsumerState<AssociationProjec
   }
 
   Future<void> _addUpdate(AssociationProjectDetail d) async {
-    final note = TextEditingController();
+    var note = '';
     var status = d.project.status == 'planned' ? 'active' : d.project.status;
     final ok = await showModalBottomSheet<bool>(
       context: context,
@@ -709,7 +734,7 @@ class _AssociationProjectDetailPageState extends ConsumerState<AssociationProjec
       isScrollControlled: true,
       showDragHandle: true,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheet) => Padding(
+        builder: (ctx, setSheet) => SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(20, 0, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -718,12 +743,14 @@ class _AssociationProjectDetailPageState extends ConsumerState<AssociationProjec
               const Text('تسجيل تحديث', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
               const SizedBox(height: 12),
               TextField(
-                controller: note,
+                onChanged: (value) => note = value.trim(),
                 autofocus: true,
                 maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'ما الذي تم إنجازه؟ *',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: status == 'on_hold' && d.project.status != 'on_hold'
+                      ? 'سبب توقف المشروع *'
+                      : 'ما الذي تم إنجازه؟ *',
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
@@ -732,7 +759,7 @@ class _AssociationProjectDetailPageState extends ConsumerState<AssociationProjec
               Wrap(
                 spacing: 8,
                 children: [
-                  for (final s in const ['active', 'on_hold', 'completed'])
+                  for (final s in const ['active', 'on_hold'])
                     ChoiceChip(
                       label: Text(projectStatusLabels[s]!),
                       selected: status == s,
@@ -743,7 +770,7 @@ class _AssociationProjectDetailPageState extends ConsumerState<AssociationProjec
               const SizedBox(height: 16),
               FilledButton(
                 onPressed: () {
-                  if (note.text.trim().isNotEmpty) Navigator.pop(ctx, true);
+                  if (note.isNotEmpty) Navigator.pop(ctx, true);
                 },
                 child: const Text('حفظ التحديث'),
               ),
@@ -752,18 +779,108 @@ class _AssociationProjectDetailPageState extends ConsumerState<AssociationProjec
         ),
       ),
     );
-    final text = note.text.trim();
-    note.dispose();
-    if (ok == true && text.isNotEmpty) {
+    if (ok == true && note.isNotEmpty && mounted) {
       await _run(
         () => _cmd.addUpdate(
           d.project.id,
-          note: text,
+          note: note,
           statusChange: status != d.project.status ? status : null,
         ),
         success: 'تم تسجيل التحديث',
       );
     }
+  }
+
+  Future<void> _reviewClosure(AssociationProjectDetail detail) async {
+    final revision = detail.project.planRevision;
+    if (revision == null) return;
+    var reviewed = false;
+    var note = '';
+    final review = await showModalBottomSheet<String>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheet) => SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + MediaQuery.viewInsetsOf(context).bottom),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('مراجعة خطة التنفيذ', style: Theme.of(context).textTheme.titleLarge),
+              Text(detail.project.name),
+              if (detail.project.description case final description?) Text(description),
+              const SizedBox(height: 8),
+              for (final step in detail.steps)
+                ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.check_circle_outline),
+                  title: Text(step.title),
+                ),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                value: reviewed,
+                onChanged: (value) => setSheet(() => reviewed = value ?? false),
+                title: const Text('راجعت خطة التنفيذ وتأكدت من إنجاز كامل نطاق المشروع.'),
+              ),
+              TextField(
+                onChanged: (value) => setSheet(() => note = value.trim()),
+                maxLines: 3,
+                decoration: const InputDecoration(labelText: 'نتيجة المراجعة', border: OutlineInputBorder()),
+              ),
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: !reviewed || note.isEmpty ? null : () => Navigator.pop(context, note),
+                child: const Text('اعتماد إغلاق المشروع'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (review == null || !mounted) return;
+    await _run(
+      () => _cmd.approveClosure(detail.project.id, revision, review),
+      success: 'تم اعتماد إغلاق المشروع',
+    );
+  }
+
+  Future<void> _recordBlocker(String projectId, AssociationProjectStep step) async {
+    var reason = '';
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialog) => AlertDialog(
+          title: const Text('سبب تعطل الخطوة'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(step.title),
+              TextField(
+                onChanged: (value) => setDialog(() => reason = value.trim()),
+                maxLines: 3,
+                decoration: const InputDecoration(labelText: 'ما الذي يمنع استكمال الخطوة؟'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+            FilledButton(
+              onPressed: reason.isEmpty ? null : () => Navigator.pop(context, reason),
+              child: const Text('حفظ سبب التعطل'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (result == null || !mounted) return;
+    await _run(
+      () => _cmd.recordStepBlocker(projectId, step.id, result),
+      success: 'تم تسجيل سبب تعطل الخطوة',
+    );
   }
 
   Future<void> _reject(AssociationProject p) async {

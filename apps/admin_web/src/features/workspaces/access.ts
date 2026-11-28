@@ -1,5 +1,5 @@
 import { useLocation } from 'react-router';
-import type { AccessContext, WorkspaceId } from '@ahla/shared-contracts';
+import { isWebWorkspace, type AccessContext, type WorkspaceId } from '@ahla/shared-contracts';
 
 export function hasPermission(context: AccessContext | null, permission: string): boolean {
   if (!context) return false;
@@ -12,14 +12,19 @@ export function hasAnyPermission(context: AccessContext, permissions: string | s
   return permissions.some((p) => hasPermission(context, p));
 }
 
-export function firstWebWorkspace(context: AccessContext): WorkspaceId | null {
-  if (context.defaultWorkspace === 'hr' || context.defaultWorkspace === 'main_admin' || context.defaultWorkspace === 'committee') {
+export function firstWebWorkspace(context: AccessContext): 'hr' | 'main_admin' | null {
+  if (isWebWorkspace(context.defaultWorkspace) && context.workspaces.includes(context.defaultWorkspace)) {
     return context.defaultWorkspace;
   }
   if (context.workspaces.includes('main_admin')) return 'main_admin';
   if (context.workspaces.includes('hr')) return 'hr';
-  if (context.workspaces.includes('committee')) return 'committee';
   return null;
+}
+
+export const PROJECTS_DISPLAY_PATH = '/projects/display';
+
+export function canUseExecutiveDisplay(context: AccessContext): boolean {
+  return !context.isSuspended && context.workspaces.includes('executive');
 }
 
 /**

@@ -23,9 +23,58 @@ class _DayDetailSheet extends ConsumerWidget {
   String get _dateStr =>
       '$year-${month.toString().padLeft(2, '0')}-${dayNum.toString().padLeft(2, '0')}';
 
+  List<MobileAttendanceCorrection> _corrections(WidgetRef ref) {
+    if (isFuture || !_isOwnStatement(ref, statement)) return const [];
+    final services = ref.watch(myAttendanceServicesProvider).value;
+    final date = DateTime(year, month, dayNum);
+    return services?.corrections
+            .where((item) => DateUtils.isSameDay(item.workDate, date))
+            .toList() ??
+        const [];
+  }
+
+  List<String> _correctionTypes(WidgetRef ref) {
+    final item = day;
+    if (isFuture ||
+        item == null ||
+        item.isOfficialHoliday ||
+        item.hasLeave ||
+        item.hasMission ||
+        item.hasConvoyFundi ||
+        item.status == 'راحة' ||
+        item.status == 'راحة أسبوعية') {
+      return const [];
+    }
+    final pending = _corrections(ref)
+        .where((item) => item.status == 'pending')
+        .map((item) => item.type)
+        .toSet();
+    return [
+      if ((item.missingCheckIn ||
+              ((item.isAbsent || (isToday && item.isDue)) &&
+                  item.checkIn == null)) &&
+          !pending.contains('missing_check_in'))
+        'missing_check_in',
+      if ((item.missingCheckOut ||
+              (!isToday && item.isAbsent && item.checkOut == null)) &&
+          !pending.contains('missing_check_out'))
+        'missing_check_out',
+    ];
+  }
+
+  String _correctionTypeLabel(String type) => switch (type) {
+    'missing_check_in' => 'تصحيح الحضور',
+    'missing_check_out' => 'تصحيح الانصراف',
+    _ => 'تصحيح البصمة',
+  };
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    final latestCorrections = <String, MobileAttendanceCorrection>{};
+    for (final correction in _corrections(ref)) {
+      latestCorrections.putIfAbsent(correction.type, () => correction);
+    }
     // 0449: عرض الوقت بنظام 12 ساعة مع ص/م بدل اقتطاع HH24 الخام
     String fmt(String? t) {
       if (t == null || t.length < 5) return '—';
@@ -79,7 +128,7 @@ class _DayDetailSheet extends ConsumerWidget {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                      color: scheme.onPrimary,
+                        color: scheme.onPrimary,
                       ),
                     ),
                   ),
@@ -129,7 +178,7 @@ class _DayDetailSheet extends ConsumerWidget {
                               fontWeight: FontWeight.bold,
                               fontSize: 13,
                               color: Color(0xFF3D4FA8),
-                          ),
+                            ),
                           ),
                           if (cleanAttendanceNote(
                                 day?.adminOverride?['reason'] as String?,
@@ -338,6 +387,26 @@ class _DayDetailSheet extends ConsumerWidget {
             ],
 
             // ─ ملاحظة التصحيح ─
+            for (final correction in latestCorrections.values)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(switch (correction.status) {
+                  'approved' => Icons.check_circle_outline,
+                  'rejected' => Icons.cancel_outlined,
+                  _ => Icons.hourglass_top_rounded,
+                }),
+                title: Text(
+                  '${_correctionTypeLabel(correction.type)} · ${switch (correction.status) {
+                    'approved' => 'معتمد',
+                    'rejected' => 'مرفوض',
+                    _ => 'بانتظار المراجعة',
+                  }}',
+                ),
+                subtitle: switch (cleanAttendanceNote(correction.reviewNote)) {
+                  final String note => Text(note),
+                  null => null,
+                },
+              ),
             if (cleanAttendanceNote(day?.correctionNote) != null) ...[
               Text(
                 '📝 ${cleanAttendanceNote(day!.correctionNote)!}',
@@ -365,6 +434,8 @@ class _DayDetailSheet extends ConsumerWidget {
   }
 
   String get _statusPillKey {
+    if (day?.isOfficialHoliday == true || day?.status == 'عطلة رسمية')
+      return 'holiday';
     if (isToday) {
       if (day?.status == 'حاضر') return 'present';
       if (day?.hasLeave == true) return 'on_leave';
@@ -375,7 +446,7 @@ class _DayDetailSheet extends ConsumerWidget {
       if (day?.status == 'راحة' || day?.status == 'راحة أسبوعية') return 'rest';
       return 'in_progress';
     }
-    if (day == null) return 'absent';
+    if (day == null) return 'unregistered';
     final s = day!.status;
     if (s == 'حاضر') return 'present';
     if (s == 'غائب دون إذن') return 'absent';
@@ -417,5 +488,4 @@ class _DayDetailSheet extends ConsumerWidget {
           day!.hasConvoyFundi ||
           day!.missingCheckIn ||
           day!.missingCheckOut);
-
 }

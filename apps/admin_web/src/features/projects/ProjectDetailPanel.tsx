@@ -1,3 +1,4 @@
+import { ArabicDateInput } from '../../ui/ArabicDateInput';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { AssociationProjectDetail, AssociationProjectListItem, AssociationProjectStep, ProjectRole } from '@ahla/shared-contracts';
@@ -33,6 +34,7 @@ import {
   useDeleteProjectStep,
   useMoveProjectStep,
   useProjectPickers,
+  useRecordProjectStepBlocker,
   useRejectProject,
   useSetProjectStepStatus,
   useSubmitProjectForApproval,
@@ -41,7 +43,8 @@ import {
 import { ProjectLed } from './ProjectLed';
 import { ProjectFormDialog } from './ProjectFormDialog';
 import { QuickUpdateDialog } from './QuickUpdateDialog';
-import { APPROVAL_LABELS, LED_META, PRIORITY_LABELS, STATUS_LABELS, STEP_STATUS_LABELS, activityDays, daysAgoLabel, formatDate } from './projectLedStatus';
+import { ProjectClosureDialog } from './ProjectClosureDialog';
+import { APPROVAL_LABELS, LED_META, PRIORITY_LABELS, STATUS_LABELS, STEP_STATUS_LABELS, activityDays, daysAgoLabel, formatDate, projectProgressPercent, stepProgressLabel } from './projectLedStatus';
 
 interface Props {
   projectId: string;
@@ -141,6 +144,8 @@ function DetailContent({
 
   const [editOpen, setEditOpen] = useState(false);
   const [updateOpen, setUpdateOpen] = useState(false);
+  const [closureReview, setClosureReview] = useState<{ project: AssociationProjectListItem; steps: AssociationProjectStep[] } | null>(null);
+  const [blockerStep, setBlockerStep] = useState<AssociationProjectStep | null>(null);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [stepDialog, setStepDialog] = useState<{ step: AssociationProjectStep | null } | null>(null);
@@ -149,6 +154,11 @@ function DetailContent({
   const doneSteps = steps.filter((s) => s.status === 'done').length;
   const remainingSteps = steps.length - doneSteps;
   const currentStep = steps.find((s) => s.status !== 'done');
+  const isClosed = p.status === 'completed' || p.status === 'cancelled';
+  const canEditSteps = perms.canManage && !isClosed;
+  const readyForClosure = p.approvalStatus === 'approved' && ['active', 'on_hold'].includes(p.status)
+    && steps.length > 0 && remainingSteps === 0;
+  const progress = steps.length === 0 && !isClosed ? projectProgressPercent(p) : null;
 
   return (
     <>
@@ -231,22 +241,24 @@ function DetailContent({
         <section className="card p-5">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <p className="text-xs font-bold text-[var(--text-muted)]">نسبة الإنجاز</p>
-              <p className="tabular text-4xl font-black">{Math.round(p.progress)}%</p>
+              <p className="text-xs font-bold text-[var(--text-muted)]">خطوات التنفيذ</p>
+              <p className="text-xl font-black">{stepProgressLabel(doneSteps, steps.length)}</p>
+              {progress !== null && <p className="text-xs text-[var(--text-muted)]">التقدم المُبلّغ عنه {progress}%</p>}
             </div>
             <div className="text-end text-sm">
               <p className="font-bold">{STATUS_LABELS[p.status]}</p>
               <p className="text-xs text-[var(--text-muted)]">آخر نشاط: {daysAgoLabel(days)}</p>
             </div>
           </div>
-          <div className="mt-3 h-3 overflow-hidden rounded-full bg-[var(--surface-muted)]">
-            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${p.progress}%`, background: meta.tone }} />
-          </div>
-          {steps.length > 0 && <p className="mt-2 text-xs text-[var(--text-muted)]">تُحسب تلقائياً من الخطوات المكتملة.</p>}
+          {progress !== null && (
+            <div className="mt-3 h-3 overflow-hidden rounded-full bg-[var(--surface-muted)]">
+              <div className="h-full rounded-full transition-all duration-700" style={{ width: `${progress}%`, background: meta.tone }} />
+            </div>
+          )}
 
           <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-            <Stat label="تم إنجازه" value={`${doneSteps} خطوة`} tone="var(--success)" />
-            <Stat label="متبقي" value={`${remainingSteps} خطوة`} />
+            <Stat label="خطوات مسجّلة منجزة" value={`${doneSteps} من ${steps.length}`} tone="var(--success)" />
+            <Stat label="خطوات مسجّلة متبقية" value={`${remainingSteps}`} />
             <Stat label="الأولوية" value={PRIORITY_LABELS[p.priority]} />
             <Stat
               label="الموعد المستهدف"
@@ -262,14 +274,17 @@ function DetailContent({
               <span className="font-black">{currentStep.title}</span>
             </div>
           )}
-          {steps.length > 0 && remainingSteps === 0 && p.status !== 'completed' && perms.canUpdate && perms.canManage && (
-            <div className="mt-4 flex items-center justify-between gap-3 rounded-xl bg-[var(--success-soft)] p-3 text-sm">
-              <span className="font-bold text-[var(--success)]">كل الخطوات تمت — أعلن اكتمال المشروع.</span>
-              <button className="btn-primary btn-sm" onClick={() => setUpdateOpen(true)}>
-                تسجيل الاكتمال
-              </button>
+          {readyForClosure && (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[var(--surface-subtle)] p-3 text-sm">
+              <p>بانتظار مراجعة خطة التنفيذ واعتماد الإغلاق</p>
+              {p.canReviewClosure && p.planRevision !== undefined && (
+                <button type="button" className="btn-primary btn-sm" onClick={() => setClosureReview({ project: p, steps })}>
+                  <CheckCircle2 className="size-4" aria-hidden="true" /> مراجعة الإغلاق
+                </button>
+              )}
             </div>
           )}
+          {p.closedAt && p.status === 'completed' && <p className="mt-4 text-sm">اعتُمد الإغلاق في {formatDate(p.closedAt)}</p>}
           {p.description && <p className="mt-4 text-sm leading-7 text-[var(--text-secondary)]">{p.description}</p>}
         </section>
 
@@ -283,10 +298,10 @@ function DetailContent({
               <h3 className="text-lg font-black">خطوات التنفيذ والمهام</h3>
               <p className="text-xs text-[var(--text-muted)]">
                 تم {doneSteps} • متبقي {remainingSteps}
-                {perms.canManage ? ' — علّم الخطوة عند إنجازها ليتحدّث المشروع تلقائياً' : ''}
+                {canEditSteps ? ' — علّم كل خطوة عند إنجازها' : ''}
               </p>
             </div>
-            {perms.canManage && (
+            {canEditSteps && (
               <button className="btn-secondary btn-sm" onClick={() => setStepDialog({ step: null })}>
                 <Plus className="size-4" aria-hidden="true" /> خطوة
               </button>
@@ -306,14 +321,13 @@ function DetailContent({
                 return (
                   <li
                     key={s.id}
-                    className={`flex items-start gap-3 rounded-xl border p-3 ${
-                      isCurrent ? 'border-[var(--brand-primary)] bg-[var(--brand-primary-soft)]' : 'border-[var(--border)] bg-[var(--surface)]'
-                    }`}
+                    className={`flex items-start gap-3 rounded-xl border p-3 ${isCurrent ? 'border-[var(--brand-primary)] bg-[var(--brand-primary-soft)]' : 'border-[var(--border)] bg-[var(--surface)]'
+                      }`}
                   >
                     <StepToggle
                       step={s}
                       index={i}
-                      disabled={!perms.canManage || setStepStatus.isPending}
+                      disabled={!canEditSteps || setStepStatus.isPending}
                       onToggle={() => setStepStatus.mutate({ stepId: s.id, status: s.status === 'done' ? 'pending' : 'done' })}
                     />
                     <div className="min-w-0 flex-1">
@@ -333,7 +347,7 @@ function DetailContent({
                         {s.status === 'done' && s.completedAt && <span className="text-[var(--success)]">تمت {formatDate(s.completedAt)}</span>}
                       </div>
                     </div>
-                    {perms.canManage ? (
+                    {canEditSteps ? (
                       <div className="flex shrink-0 items-center gap-1">
                         <span className="flex flex-col">
                           <button
@@ -358,7 +372,10 @@ function DetailContent({
                         <select
                           className="input !w-auto !px-2 !py-1 text-xs"
                           value={s.status}
-                          onChange={(e) => setStepStatus.mutate({ stepId: s.id, status: e.target.value })}
+                          onChange={(e) => {
+                            if (e.target.value === 'blocked') setBlockerStep(s);
+                            else setStepStatus.mutate({ stepId: s.id, status: e.target.value });
+                          }}
                           aria-label={`حالة الخطوة ${s.title}`}
                         >
                           {Object.entries(STEP_STATUS_LABELS).map(([k, v]) => (
@@ -367,6 +384,11 @@ function DetailContent({
                             </option>
                           ))}
                         </select>
+                        {s.status === 'blocked' && (
+                          <button className="icon-button !size-8" onClick={() => setBlockerStep(s)} aria-label="تسجيل سبب تعطل الخطوة">
+                            <AlertTriangle className="size-3.5" />
+                          </button>
+                        )}
                         <button className="icon-button !size-8" onClick={() => setStepDialog({ step: s })} aria-label={`تعديل الخطوة ${s.title}`}>
                           <Pencil className="size-3.5" />
                         </button>
@@ -439,6 +461,8 @@ function DetailContent({
         />
       )}
       {updateOpen && <QuickUpdateDialog project={p} onClose={() => setUpdateOpen(false)} />}
+      {closureReview && <ProjectClosureDialog {...closureReview} onClose={() => setClosureReview(null)} />}
+      {blockerStep && <StepBlockerDialog step={blockerStep} onClose={() => setBlockerStep(null)} />}
       {stepDialog && <StepDialog project={p} step={stepDialog.step} onClose={() => setStepDialog(null)} />}
       {rejectOpen && (
         <RejectDialog
@@ -662,6 +686,27 @@ function StatusBanner({
   );
 }
 
+function StepBlockerDialog({ step, onClose }: { step: AssociationProjectStep; onClose: () => void }) {
+  const [reason, setReason] = useState('');
+  const record = useRecordProjectStepBlocker();
+  return (
+    <DialogOverlay title="سبب تعطل الخطوة" onClose={onClose} maxWidth="max-w-md">
+      <form className="space-y-3" onSubmit={(event) => {
+        event.preventDefault();
+        if (reason.trim() && !record.isPending) record.mutate({ stepId: step.id, reason: reason.trim() }, { onSuccess: onClose });
+      }}>
+        <p className="font-bold">{step.title}</p>
+        <label className="block text-sm">
+          ما الذي يمنع استكمال الخطوة؟
+          <textarea className="input mt-1" rows={3} value={reason} onChange={(event) => setReason(event.target.value)} required />
+        </label>
+        {record.error && <p role="alert" className="text-sm text-[var(--danger)]">{safeErrorMessage(record.error)}</p>}
+        <button className="btn-primary w-full" disabled={!reason.trim() || record.isPending}>حفظ سبب التعطل</button>
+      </form>
+    </DialogOverlay>
+  );
+}
+
 function StepDialog({ project, step, onClose }: { project: AssociationProjectListItem; step: AssociationProjectStep | null; onClose: () => void }) {
   const projectId = project.id;
   const upsert = useUpsertProjectStep();
@@ -710,7 +755,7 @@ function StepDialog({ project, step, onClose }: { project: AssociationProjectLis
           <label className="block">
             <span className="text-sm font-bold">الحالة</span>
             <select className="input mt-1" value={status} onChange={(e) => setStatus(e.target.value)}>
-              {Object.entries(STEP_STATUS_LABELS).map(([k, v]) => (
+              {Object.entries(STEP_STATUS_LABELS).filter(([key]) => key !== 'blocked' || step?.status === 'blocked').map(([k, v]) => (
                 <option key={k} value={k}>
                   {v}
                 </option>
@@ -719,7 +764,7 @@ function StepDialog({ project, step, onClose }: { project: AssociationProjectLis
           </label>
           <label className="block">
             <span className="text-sm font-bold">موعد الإنجاز</span>
-            <input type="date" className="input mt-1" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+            <ArabicDateInput className="input mt-1" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
           </label>
         </div>
         <label className="block">

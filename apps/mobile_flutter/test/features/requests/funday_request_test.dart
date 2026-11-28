@@ -1,3 +1,4 @@
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
@@ -96,6 +97,32 @@ void main() {
       expect(find.text('إلغاء المأمورية'), findsNothing);
       expect(find.text('إلغاء الفاندي'), findsOneWidget);
     });
+  });
+
+  testWidgets('تاريخ تمديد المأمورية يبدأ من الغد', (tester) async {
+    tester.view.physicalSize = const Size(393, 589);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        locale: Locale('ar'),
+        supportedLocales: [Locale('ar')],
+        localizationsDelegates: [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        home: Scaffold(body: NewRequestSheet(type: 'mission')),
+      ),
+    );
+    await tester.tap(find.text('تحديد تاريخ انتهاء (اختياري)'));
+    await tester.pumpAndSettle();
+    final picker = tester.widget<DatePickerDialog>(find.byType(DatePickerDialog));
+    final today = AppTime.now();
+    expect(picker.firstDate, DateTime(today.year, today.month, today.day + 1));
+    expect(picker.firstDate, picker.initialDate);
+    expect(tester.takeException(), isNull);
   });
 
   group('Funday Request Submission Form UI', () {

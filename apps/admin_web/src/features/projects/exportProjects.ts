@@ -1,6 +1,6 @@
 import type { AssociationProjectListItem } from '@ahla/shared-contracts';
 import { printReport, downloadCsv, toCsv, type ExportColumn } from '../../core/exportUtils';
-import { APPROVAL_LABELS, LED_META, PRIORITY_LABELS, STATUS_LABELS, activityDays, daysAgoLabel } from './projectLedStatus';
+import { APPROVAL_LABELS, LED_META, PRIORITY_LABELS, STATUS_LABELS, activityDays, daysAgoLabel, projectProgressPercent } from './projectLedStatus';
 
 const LED_LABELS: Record<string, string> = Object.fromEntries(Object.entries(LED_META).map(([k, v]) => [k, v.label]));
 
@@ -15,7 +15,7 @@ export function exportProjectsCsv(projects: AssociationProjectListItem[]): void 
     { key: 'approvalStatus', header: 'الموافقة', get: (r) => APPROVAL_LABELS[r.approvalStatus] ?? r.approvalStatus },
     { key: 'priority', header: 'الأولوية', get: (r) => PRIORITY_LABELS[r.priority] ?? r.priority },
     { key: 'ledStatus', header: 'اللمبة', get: (r) => LED_LABELS[r.ledStatus] ?? r.ledStatus },
-    { key: 'progress', header: 'نسبة الإنجاز %', get: (r) => r.progress },
+    { key: 'progress', header: 'التقدم المُبلّغ عنه %', get: (r) => r.totalSteps === 0 && r.status !== 'completed' ? projectProgressPercent(r) : null },
     { key: 'completedSteps', header: 'الخطوات المكتملة', get: (r) => r.completedSteps },
     { key: 'remainingSteps', header: 'الخطوات المتبقية', get: (r) => r.remainingSteps },
     { key: 'currentStepTitle', header: 'المرحلة الحالية', get: (r) => r.currentStepTitle ?? '—' },
@@ -53,19 +53,22 @@ export function exportProjectsPdf(projects: AssociationProjectListItem[]): void 
       </div>
     </div>`;
 
-  const rows = projects.map((p) => [
-    p.code,
-    p.name,
-    p.departmentName || '—',
-    p.leaderName ?? p.ownerName,
-    STATUS_LABELS[p.status] ?? p.status,
-    APPROVAL_LABELS[p.approvalStatus] ?? p.approvalStatus,
-    PRIORITY_LABELS[p.priority] ?? p.priority,
-    LED_LABELS[p.ledStatus] ?? p.ledStatus,
-    `${p.progress}%`,
-    `${p.completedSteps}/${p.totalSteps}`,
-    daysAgoLabel(activityDays(p)),
-  ]);
+  const rows = projects.map((p) => {
+    const progress = p.totalSteps === 0 && p.status !== 'completed' ? projectProgressPercent(p) : null;
+    return [
+      p.code,
+      p.name,
+      p.departmentName || '—',
+      p.leaderName ?? p.ownerName,
+      STATUS_LABELS[p.status] ?? p.status,
+      APPROVAL_LABELS[p.approvalStatus] ?? p.approvalStatus,
+      PRIORITY_LABELS[p.priority] ?? p.priority,
+      LED_LABELS[p.ledStatus] ?? p.ledStatus,
+      progress === null ? '—' : `${progress}%`,
+      `${p.completedSteps}/${p.totalSteps}`,
+      daysAgoLabel(activityDays(p)),
+    ];
+  });
 
   printReport(
     [
@@ -73,7 +76,7 @@ export function exportProjectsPdf(projects: AssociationProjectListItem[]): void 
         title: 'مشاريع الجمعية',
         subtitle: `تاريخ التصدير: ${new Date().toLocaleDateString('ar-EG-u-nu-latn')}`,
         table: {
-          headers: ['الكود', 'المشروع', 'الإدارات', 'القائد', 'الحالة', 'الموافقة', 'الأولوية', 'اللمبة', 'التقدم', 'الخطوات', 'آخر نشاط'],
+          headers: ['الكود', 'المشروع', 'الإدارات', 'القائد', 'الحالة', 'الموافقة', 'الأولوية', 'اللمبة', 'التقدم المُبلّغ عنه', 'الخطوات المنجزة', 'آخر نشاط'],
           rows,
         },
       },

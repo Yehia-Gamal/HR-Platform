@@ -8,7 +8,7 @@ extension _DayDetailActions on _DayDetailSheet {
   ) {
     final actions = <Widget>[];
 
-    final now = DateTime.now();
+    final now = AppTime.now();
     final isSameMonth = year == now.year && month == now.month;
     final canModifyDay = !isFuture && isSameMonth;
 
@@ -23,31 +23,18 @@ extension _DayDetailActions on _DayDetailSheet {
     if (isOwn && canModifyDay) {
       actions.add(
         _ActionTile(
-        icon: Icons.published_with_changes_rounded,
-        label: 'تعديل حالة هذا اليوم',
-        subtitle: isClinicStaff
-            ? 'طلب تحويل اليوم إلى إجازة معتمدة.'
-            : 'طلب تحويل اليوم إلى إجازة، مأمورية عمل، قافلة مساعدات، أو يوم ترفيهي (فاندي).',
-        color: const Color(0xFF4F46E5),
-        onTap: () => _openRetroactiveDayChange(context, ref),
+          icon: Icons.published_with_changes_rounded,
+          label: 'تعديل حالة هذا اليوم',
+          subtitle: isClinicStaff
+              ? 'طلب تحويل اليوم إلى إجازة معتمدة.'
+              : 'طلب تحويل اليوم إلى إجازة، مأمورية عمل، قافلة مساعدات، أو يوم ترفيهي (فاندي).',
+          color: const Color(0xFF4F46E5),
+          onTap: () => _openRetroactiveDayChange(context, ref),
         ),
       );
     }
 
-    // ── اليوم الحالي الجاري الذي لم تُسجل بصمته بعد ──
-    if (isOwn && isToday && (day == null || day!.status == 'غائب دون إذن')) {
-      actions.add(
-        _ActionTile(
-        icon: Icons.fingerprint,
-        label: 'تسجيل بصمة اليوم',
-        subtitle: 'تسجيل بصمة الحضور أو إثبات التواجد لليوم الحالي.',
-        color: scheme.primary,
-        onTap: () => _openCorrectionRequest(context, ref),
-        ),
-      );
-    }
-
-    // ── يوم ماضٍ غائب → طلب إجازة أو نسيان بصمة ──
+    // يوم ماضٍ غائب قد يُغطّى أيضاً بإجازة بأثر رجعي.
     if (isOwn &&
         !isFuture &&
         !isToday &&
@@ -55,39 +42,26 @@ extension _DayDetailActions on _DayDetailSheet {
         day!.status == 'غائب دون إذن') {
       actions.add(
         _ActionTile(
-        icon: Icons.beach_access_outlined,
-        label: 'طلب إجازة لتغطية هذا اليوم',
-        subtitle: 'تقديم طلب إجازة بأثر رجعي يعتمده المدير المباشر.',
-        color: const Color(0xFF6366F1),
-        onTap: () => _openLeaveRequest(context, ref),
-        ),
-      );
-      actions.add(
-        _ActionTile(
-        icon: Icons.fingerprint,
-        label: 'نسيان بصمة',
-        subtitle: 'طلب تصحيح حضور — يُراجَع ويُعتمَد من المدير.',
-        color: const Color(0xFFDC3D4B),
-        onTap: () => _openCorrectionRequest(context, ref),
+          icon: Icons.beach_access_outlined,
+          label: 'طلب إجازة لتغطية هذا اليوم',
+          subtitle: 'تقديم طلب إجازة بأثر رجعي يعتمده المدير المباشر.',
+          color: const Color(0xFF6366F1),
+          onTap: () => _openLeaveRequest(context, ref),
         ),
       );
     }
 
-    // ── نسيان بصمة (حضور أو انصراف) وليس غائباً بالكامل ──
-    if (isOwn &&
-        !isFuture &&
-        day != null &&
-        day!.status != 'غائب دون إذن' &&
-        (day!.missingCheckIn || day!.missingCheckOut)) {
+    final eligibleTypes = _correctionTypes(ref);
+    if (isOwn && eligibleTypes.isNotEmpty) {
       actions.add(
         _ActionTile(
-        icon: Icons.fingerprint,
-        label: 'تسجيل بصمة منسية',
-          subtitle: day!.missingCheckIn
-              ? 'نسيان بصمة الحضور.'
-              : 'نسيان بصمة الانصراف.',
-        color: const Color(0xFFDC3D4B),
-        onTap: () => _openCorrectionRequest(context, ref),
+          icon: Icons.fingerprint,
+          label: 'طلب تصحيح بصمة',
+          subtitle: eligibleTypes.length == 1
+              ? '${_correctionTypeLabel(eligibleTypes.single)} · يُرسل للمدير للمراجعة.'
+              : 'اختر البصمة التي لم تُسجَّل. يُرسل الطلب للمدير للمراجعة.',
+          color: scheme.primary,
+          onTap: () => _openCorrectionRequest(context, ref, eligibleTypes),
         ),
       );
     }
@@ -100,11 +74,11 @@ extension _DayDetailActions on _DayDetailSheet {
         !day!.hasPermit) {
       actions.add(
         _ActionTile(
-        icon: Icons.schedule,
-        label: 'طلب إذن حضور',
-        subtitle: 'تغطية ${day!.lateMinutes} دقيقة تأخير بإذن مُعتمَد.',
-        color: const Color(0xFFF59E0B),
-        onTap: () => _openPermitRequest(context, ref, 'late_arrival'),
+          icon: Icons.schedule,
+          label: 'طلب إذن حضور',
+          subtitle: 'تغطية ${day!.lateMinutes} دقيقة تأخير بإذن مُعتمَد.',
+          color: const Color(0xFFF59E0B),
+          onTap: () => _openPermitRequest(context, ref, 'late_arrival'),
         ),
       );
     }
@@ -117,11 +91,11 @@ extension _DayDetailActions on _DayDetailSheet {
         !day!.hasPermit) {
       actions.add(
         _ActionTile(
-        icon: Icons.exit_to_app,
-        label: 'طلب إذن انصراف',
-        subtitle: 'تغطية ${day!.earlyLeaveMinutes} دقيقة خروج مبكر.',
-        color: const Color(0xFFF59E0B),
-        onTap: () => _openPermitRequest(context, ref, 'early_departure'),
+          icon: Icons.exit_to_app,
+          label: 'طلب إذن انصراف',
+          subtitle: 'تغطية ${day!.earlyLeaveMinutes} دقيقة خروج مبكر.',
+          color: const Color(0xFFF59E0B),
+          onTap: () => _openPermitRequest(context, ref, 'early_departure'),
         ),
       );
     }
@@ -130,11 +104,11 @@ extension _DayDetailActions on _DayDetailSheet {
     if (isOwn && isFuture) {
       actions.add(
         _ActionTile(
-        icon: Icons.beach_access_outlined,
-        label: 'طلب إجازة مسبقة',
-        subtitle: 'تقديم طلب إجازة لهذا اليوم — يعتمده المدير المباشر.',
-        color: const Color(0xFF6366F1),
-        onTap: () => _openLeaveRequest(context, ref),
+          icon: Icons.beach_access_outlined,
+          label: 'طلب إجازة مسبقة',
+          subtitle: 'تقديم طلب إجازة لهذا اليوم — يعتمده المدير المباشر.',
+          color: const Color(0xFF6366F1),
+          onTap: () => _openLeaveRequest(context, ref),
         ),
       );
     }
@@ -147,12 +121,12 @@ extension _DayDetailActions on _DayDetailSheet {
     if (canEditDaysAdmin) {
       actions.add(
         _ActionTile(
-        icon: Icons.edit_calendar_rounded,
-        label: 'تعديل اليوم إدارياً (حالة اليوم وساعات العمل)',
+          icon: Icons.edit_calendar_rounded,
+          label: 'تعديل اليوم إدارياً (حالة اليوم وساعات العمل)',
           subtitle:
               'تعديل نوع اليوم إلى عمل أو إجازة أو مأمورية أو ضبط الساعات.',
-        color: scheme.primary,
-        onTap: () => _openAdminEditDaySheet(context, ref),
+          color: scheme.primary,
+          onTap: () => _openAdminEditDaySheet(context, ref),
         ),
       );
     }
@@ -160,11 +134,11 @@ extension _DayDetailActions on _DayDetailSheet {
     if (day?.hasAdminOverride == true && canEditDaysAdmin) {
       actions.add(
         _ActionTile(
-        icon: Icons.restart_alt_rounded,
-        label: 'إلغاء التعديل الإداري والعودة لاحتساب النظام',
-        subtitle: 'حذف الاستثناء الإداري واستعادة الاحتساب التلقائي للبصمات.',
-        color: scheme.error,
-        onTap: () => _revertAdminOverride(context, ref),
+          icon: Icons.restart_alt_rounded,
+          label: 'إلغاء التعديل الإداري والعودة لاحتساب النظام',
+          subtitle: 'حذف الاستثناء الإداري واستعادة الاحتساب التلقائي للبصمات.',
+          color: scheme.error,
+          onTap: () => _revertAdminOverride(context, ref),
         ),
       );
     }
@@ -172,16 +146,16 @@ extension _DayDetailActions on _DayDetailSheet {
     if (actions.isEmpty) {
       actions.add(
         Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Center(
-          child: Text(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Center(
+            child: Text(
               isOwn
                   ? 'لا توجد إجراءات متاحة لهذا اليوم.'
                   : 'للاطلاع فقط — الطلبات يقدّمها الموظف من حسابه، والتعديل الإداري للموارد البشرية.',
               textAlign: TextAlign.center,
               style: TextStyle(color: scheme.onSurfaceVariant),
             ),
-        ),
+          ),
         ),
       );
     }
@@ -214,7 +188,6 @@ extension _DayDetailActions on _DayDetailSheet {
       ),
     );
     if (confirmed != true || !context.mounted) return;
-    Navigator.pop(context);
     try {
       final empId = statement.employeeId;
       await ref
@@ -227,6 +200,7 @@ extension _DayDetailActions on _DayDetailSheet {
             content: Text('تم إلغاء التعديل الإداري واستعادة احتساب النظام.'),
           ),
         );
+        if (ModalRoute.of(context)?.isCurrent == true) Navigator.pop(context);
       }
     } catch (error) {
       if (context.mounted) {
@@ -242,7 +216,6 @@ extension _DayDetailActions on _DayDetailSheet {
     BuildContext context,
     WidgetRef ref,
   ) async {
-    Navigator.pop(context);
     final result = await AdminAttendanceDayEditSheet.show(
       context,
       employeeId: statement.employeeId,
@@ -251,8 +224,9 @@ extension _DayDetailActions on _DayDetailSheet {
       initialDay: day,
       hasExistingOverride: day?.hasAdminOverride == true,
     );
-    if (result == true) {
+    if (result == true && context.mounted) {
       _invalidateProviders(ref);
+      if (ModalRoute.of(context)?.isCurrent == true) Navigator.pop(context);
     }
   }
 
@@ -261,7 +235,6 @@ extension _DayDetailActions on _DayDetailSheet {
     BuildContext context,
     WidgetRef ref,
   ) async {
-    Navigator.pop(context); // إغلاق ورقة التفاصيل
     final isClinicStaff =
         ref.read(accessContextProvider).value?.isClinicStaff == true;
     final result = await showModalBottomSheet<Map<String, dynamic>>(
@@ -306,7 +279,6 @@ extension _DayDetailActions on _DayDetailSheet {
 
   // ── فتح نموذج طلب إجازة سريع ──
   Future<void> _openLeaveRequest(BuildContext context, WidgetRef ref) async {
-    Navigator.pop(context); // إغلاق ورقة التفاصيل
     final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true,
@@ -345,45 +317,33 @@ extension _DayDetailActions on _DayDetailSheet {
   Future<void> _openCorrectionRequest(
     BuildContext context,
     WidgetRef ref,
+    List<String> eligibleTypes,
   ) async {
-    Navigator.pop(context);
-    final preselect =
-        (day?.missingCheckOut == true && day?.missingCheckIn != true)
-        ? 'missing_check_out'
-        : 'missing_check_in';
-    final result = await showModalBottomSheet<Map<String, dynamic>>(
+    final commands = ref.read(mobileCommandsProvider);
+    final result = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) =>
-          _QuickCorrectionSheet(dateStr: _dateStr, preselectType: preselect),
+      builder: (_) => _QuickCorrectionSheet(
+        dateStr: _dateStr,
+        allowedTypes: eligibleTypes,
+        onSubmit: (type, reason, checkIn, checkOut) =>
+            commands.requestAttendanceCorrection(
+              workDate: DateTime.parse(_dateStr),
+              type: type,
+              reason: reason,
+              checkIn: checkIn,
+              checkOut: checkOut,
+            ),
+      ),
     );
-    if (result == null || !context.mounted) return;
-    try {
-      await ref
-          .read(mobileCommandsProvider)
-          .requestAttendanceCorrection(
-            workDate: DateTime.parse(_dateStr),
-            type: result['type'] as String,
-            reason: result['reason'] as String,
-            checkIn: result['checkIn'] as DateTime?,
-            checkOut: result['checkOut'] as DateTime?,
-          );
-      _invalidateProviders(ref);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم إرسال طلب التصحيح بنجاح.')),
-        );
-      }
-    } catch (error) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
-      }
+    if (result == true && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم إرسال طلب التصحيح للمراجعة.')),
+      );
     }
   }
 
@@ -393,7 +353,6 @@ extension _DayDetailActions on _DayDetailSheet {
     WidgetRef ref,
     String permitKind,
   ) async {
-    Navigator.pop(context);
     final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true,

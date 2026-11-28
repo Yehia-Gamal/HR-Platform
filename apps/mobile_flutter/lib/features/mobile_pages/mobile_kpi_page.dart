@@ -23,12 +23,11 @@ class MobileKpiPage extends ConsumerStatefulWidget {
 }
 
 class _MobileKpiPageState extends ConsumerState<MobileKpiPage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final _searchController = TextEditingController();
   String _search = '';
   String _stage = 'all';
 
-  // 0204: تابات — تقييمي / فريقي / المهام
   TabController? _tabController;
   List<_KpiTab> _tabs = [];
 
@@ -42,34 +41,49 @@ class _MobileKpiPageState extends ConsumerState<MobileKpiPage>
   /// يبني التابات حسب البيانات المتوفرة.
   void _buildTabs(List<MobileKpiEvaluation> items) {
     final newTabs = <_KpiTab>[];
-    final selfItems = items.where((e) => e.relation == 'self').toList(growable: false);
-    final teamItems = items.where((e) => e.relation == 'team').toList(growable: false);
-    final reviewItems = items.where((e) => e.relation == 'review').toList(growable: false);
+    final employeeId = widget.access.employeeId;
+    bool isMine(MobileKpiEvaluation item) => employeeId == null
+        ? item.relation == 'self'
+        : item.employeeId == employeeId;
+    final selfItems = items.where(isMine).toList(growable: false);
+    final teamItems = items
+        .where((item) => !isMine(item))
+        .toList(growable: false);
 
     if (selfItems.isNotEmpty) {
       newTabs.add(_KpiTab(key: 'self', label: 'تقييمي', icon: Icons.person_outline_rounded, items: selfItems));
     }
     if (teamItems.isNotEmpty) {
-      newTabs.add(_KpiTab(key: 'team', label: 'فريقي', icon: Icons.groups_outlined, items: teamItems));
-    }
-    if (reviewItems.isNotEmpty) {
-      newTabs.add(_KpiTab(key: 'review', label: 'المهام', icon: Icons.task_alt_outlined, items: reviewItems));
+      newTabs.add(
+        _KpiTab(
+          key: 'team',
+          label: 'تقييمات الموظفين',
+          icon: Icons.groups_outlined,
+          items: teamItems,
+        ),
+      );
     }
 
     // إذا لم يتغير عدد التابات لا نعيد بناء الكونترولر.
-    if (_tabs.length == newTabs.length && _tabController != null) {
+    if (_tabs.length == newTabs.length &&
+        _tabController != null &&
+        _tabs.indexed.every((entry) => entry.$2.key == newTabs[entry.$1].key)) {
       _tabs = newTabs;
       return;
     }
 
-    final oldIndex = _tabController?.index ?? 0;
+    final oldKey = _tabController == null
+        ? null
+        : _tabs[_tabController!.index].key;
     _tabController?.dispose();
     _tabs = newTabs;
     if (_tabs.isNotEmpty) {
       _tabController = TabController(
         length: _tabs.length,
         vsync: this,
-        initialIndex: oldIndex.clamp(0, (_tabs.length - 1).clamp(0, 99)),
+        initialIndex: _tabs
+            .indexWhere((tab) => tab.key == oldKey)
+            .clamp(0, _tabs.length - 1),
       );
     } else {
       _tabController = null;
@@ -188,33 +202,23 @@ class _MobileKpiPageState extends ConsumerState<MobileKpiPage>
                 color: Theme.of(context).colorScheme.surface,
                 child: TabBar(
                   controller: _tabController,
-                  isScrollable: _tabs.length > 2,
-                  tabAlignment: _tabs.length > 2 ? TabAlignment.start : null,
-                  tabs: _tabs.map((t) => Tab(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(t.icon, size: 18),
-                        const SizedBox(width: 6),
-                        Text(t.label),
-                        const SizedBox(width: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primaryContainer,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            '${t.items.length}',
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: Theme.of(context).colorScheme.onPrimaryContainer,
-                              fontWeight: FontWeight.w700,
-                            ),
+                  isScrollable:
+                      MediaQuery.textScalerOf(context).scale(310) >
+                      MediaQuery.sizeOf(context).width,
+                  tabs: _tabs
+                      .map(
+                        (t) => Tab(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(t.icon, size: 18),
+                              const SizedBox(width: 6),
+                              Text(t.label),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                  )).toList(),
+                      )
+                      .toList(),
                 ),
               ),
               Expanded(
@@ -384,11 +388,16 @@ class _KpiCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
+              Wrap(
+                spacing: 12,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
+                  Text(
+                    DateFormat('MMMM y', 'ar').format(item.periodMonth),
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
                   MobileStatusPill(item.currentStage),
-                  const Spacer(),
-                  Text(DateFormat('MMMM y', 'ar').format(item.periodMonth)),
                 ],
               ),
               // عرض الموعد النهائي إن وُجد.
@@ -406,13 +415,15 @@ class _KpiCard extends StatelessWidget {
                           : Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                     const SizedBox(width: 4),
-                    Text(
-                      'الموعد النهائي: ${DateFormat.yMd('ar').format(item.deadlineAt!)}',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: item.deadlineAt!.isBefore(DateTime.now())
-                            ? Theme.of(context).colorScheme.error
-                            : Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w700,
+                    Expanded(
+                      child: Text(
+                        'الموعد النهائي: ${DateFormat.yMd('ar').format(item.deadlineAt!)}',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: item.deadlineAt!.isBefore(DateTime.now())
+                              ? Theme.of(context).colorScheme.error
+                              : Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ],
@@ -501,7 +512,9 @@ class _KpiCard extends StatelessWidget {
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        'تظهر النتيجة والتقدير بعد اعتماد التقييم.',
+                        overdue
+                            ? 'انتهت المهلة قبل اعتماد النتيجة.'
+                            : 'تظهر النتيجة بعد اعتماد التقييم.',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: scheme.onSurfaceVariant,
                         ),
@@ -510,7 +523,9 @@ class _KpiCard extends StatelessWidget {
                   ],
                 ),
               // في مساحة الموظف: رسالة توضيحية بعد إرسال التقييم الذاتي.
-              if (isMine && item.currentStage != 'self' && action == null) ...[
+              if (isMine &&
+                  item.currentStage == 'manager_review' &&
+                  !overdue) ...[
                 const SizedBox(height: 10),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -528,11 +543,14 @@ class _KpiCard extends StatelessWidget {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'تم تقديم تقييمك — ${kpiWorkflowLabel(item.workflowStatus)}',
-                          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.onSecondaryContainer,
-                            fontWeight: FontWeight.w700,
-                          ),
+                          'أُرسل تقييمك إلى المدير للمراجعة.',
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSecondaryContainer,
+                                fontWeight: FontWeight.w700,
+                              ),
                         ),
                       ),
                     ],
@@ -573,14 +591,23 @@ class _KpiCard extends StatelessWidget {
                   ),
                 ),
               ],
-              if (action != null) ...[
-                const SizedBox(height: 12),
-                FilledButton.icon(
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.tonalIcon(
                   onPressed: () => _open(context),
-                  icon: const Icon(Icons.fact_check_outlined),
-                  label: Text(_actionLabel(action)),
+                  icon: Icon(
+                    action == null
+                        ? Icons.article_outlined
+                        : Icons.fact_check_outlined,
+                  ),
+                  label: Text(
+                    action == null
+                        ? 'عرض تفاصيل التقييم'
+                        : _actionLabel(action),
+                  ),
                 ),
-              ],
+              ),
             ],
           ),
         ),
@@ -601,11 +628,15 @@ class _KpiCard extends StatelessWidget {
   // ذاتي (للمالك) + مراجعة المدير (للموافق). أي مرحلة أخرى للعرض فقط.
   String _actionLabel(String action) => switch (action) {
     'self' => 'بدء التقييم الذاتي',
-    'manager_review' => 'مراجعة واعتماد التقييم',
+    'manager_review' => 'فتح مراجعة التقييم',
     _ => 'فتح التقييم',
   };
 
   String? _allowedAction() {
+    if (item.workflowStatus == 'OVERDUE' ||
+        (item.deadlineAt?.isBefore(DateTime.now()) ?? false)) {
+      return null;
+    }
     // التقييم الذاتي: الملكية شرط دائماً — لا يبدأ غير الموظف تقييمه
     // (الباك إند يرفض: 0476 سطر 167)، وموقع الموظف نفسه يتطلب الصلاحية.
     if (item.currentStage == 'self' &&

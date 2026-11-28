@@ -113,6 +113,7 @@ final myPasskeysProvider = FutureProvider<List<PasskeyDevice>>((ref) async {
 
 final myAttendanceHistoryProvider = FutureProvider<List<AttendanceHistoryItem>>(
   (ref) async {
+    ref.watch(authUserIdProvider);
     final data = await rpcWithTimeout(
       ref
           .watch(supabaseProvider)
@@ -130,6 +131,7 @@ final myAttendanceHistoryProvider = FutureProvider<List<AttendanceHistoryItem>>(
 final myAttendanceServicesProvider = FutureProvider<MobileAttendanceServices>((
   ref,
 ) async {
+  ref.watch(authUserIdProvider);
   final data = await rpcWithTimeout(
     ref.watch(supabaseProvider).rpc<dynamic>('get_my_attendance_services'),
   );
@@ -278,6 +280,7 @@ final myMonthlyStatementProvider =
       ref,
       params,
     ) async {
+      ref.watch(authUserIdProvider);
       final data = await rpcWithTimeout(
         ref
             .watch(supabaseProvider)
@@ -344,6 +347,35 @@ final attendanceRealtimeProvider = Provider<void>((ref) {
   ref.onDispose(() {
     ref.read(supabaseProvider).removeChannel(channel);
   });
+});
+
+/// A review on another device changes the statement without inserting a punch event.
+final attendanceCorrectionRefreshProvider = Provider.autoDispose<void>((ref) {
+  final userId = ref.watch(authUserIdProvider);
+  if (userId == null) return;
+  final client = ref.watch(supabaseProvider);
+  final channel = client.channel('attendance-correction:$userId')
+    ..onPostgresChanges(
+      event: PostgresChangeEvent.insert,
+      schema: 'public',
+      table: 'notifications',
+      filter: PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq,
+        column: 'recipient_user_id',
+        value: userId,
+      ),
+      callback: (change) {
+        if (change.newRecord['entity_type'] != 'attendance_correction') return;
+        ref.invalidate(myAttendanceServicesProvider);
+        ref.invalidate(myAttendanceHistoryProvider);
+        ref.invalidate(myMonthlyStatementProvider);
+        ref.invalidate(attendanceStateProvider);
+        ref.invalidate(mobileRequestsProvider);
+        ref.invalidate(myNotificationsProvider);
+      },
+    )
+    ..subscribe();
+  ref.onDispose(() => client.removeChannel(channel));
 });
 final mobileFeedProvider = FutureProvider<List<MobileFeedItem>>((ref) async {
   final data = await rpcWithTimeout(
@@ -461,6 +493,7 @@ final employeeMonthlyStatementProvider =
       ref,
       params,
     ) async {
+      ref.watch(authUserIdProvider);
       final data = await rpcWithTimeout(
         ref
             .watch(supabaseProvider)

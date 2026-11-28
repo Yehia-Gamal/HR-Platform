@@ -6,7 +6,7 @@ class _WorkShiftSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final shiftInfoAsync = ref.watch(myWorkShiftInfoProvider);
-    final attendanceStateAsync = ref.watch(attendanceStateProvider);
+    final attendance = ref.watch(attendanceStateProvider).asData?.value;
     final scheme = Theme.of(context).colorScheme;
 
     return Card(
@@ -49,7 +49,7 @@ class _WorkShiftSection extends ConsumerWidget {
                             ),
                       ),
                       Text(
-                        'الوردية الأساسية المعتمدة لحساب التأخير والخصومات',
+                        'مواعيد الدوام وفترة السماح المعتمدة',
                         style: TextStyle(
                           fontSize: 11.5,
                           color: scheme.onSurfaceVariant,
@@ -58,22 +58,24 @@ class _WorkShiftSection extends ConsumerWidget {
                     ],
                   ),
                 ),
-                FilledButton.tonalIcon(
-                  style: FilledButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  icon: const Icon(Icons.swap_horiz_rounded, size: 18),
-                  label: const Text(
-                    'تغيير الفترة',
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
-                  ),
-                  onPressed: () => showWorkShiftSelectionSheet(context, ref),
-                ),
               ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: MergeSemantics(
+                child: Semantics(
+                  identifier: 'attendance.shift.change',
+                  child: FilledButton.tonalIcon(
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 52),
+                    ),
+                    icon: const Icon(Icons.swap_horiz_rounded),
+                    label: const Text('تغيير الفترة'),
+                    onPressed: () => showWorkShiftSelectionSheet(context, ref),
+                  ),
+                ),
+              ),
             ),
             const SizedBox(height: 12),
             Divider(
@@ -102,11 +104,10 @@ class _WorkShiftSection extends ConsumerWidget {
                   children: [
                     Icon(Icons.info_outline, size: 18, color: scheme.onSurfaceVariant),
                     const SizedBox(width: 8),
-                    const Expanded(
-                      child: Text(
-                        'الدوام الأساسي المعتمد: 10:00 ص – 06:00 م (سماح 15 د)',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                      ),
+                    const Expanded(child: Text('تعذر تحميل الوردية المعتمدة.')),
+                    TextButton(
+                      onPressed: () => ref.invalidate(myWorkShiftInfoProvider),
+                      child: const Text('إعادة المحاولة'),
                     ),
                   ],
                 ),
@@ -123,11 +124,15 @@ class _WorkShiftSection extends ConsumerWidget {
                   hasPermit: current.hasTodayPermit,
                   permitActiveStartTime: current.activeStartTime,
                 );
-                final todayCheckIn = attendanceStateAsync.asData?.value.todayCheckInAt;
+                final showLiveStatus =
+                    attendance != null &&
+                    !_isNonWorkingAttendanceDay(attendance);
                 final disciplineMetric = _computeShiftDisciplineMetric(
                   startTime: current.activeStartTime,
                   graceInMinutes: current.graceInMinutes,
-                  todayCheckInAt: todayCheckIn,
+                  todayCheckInAt: attendance?.todayCheckInAt,
+                  todayCheckOutAt: attendance?.todayCheckOutAt,
+                  workMinutes: attendance?.workMinutes,
                   hasPermit: current.hasTodayPermit,
                   permitMinutes: current.todayPermit?.permitMinutes,
                   originalStartTime: current.startTime,
@@ -140,6 +145,7 @@ class _WorkShiftSection extends ConsumerWidget {
                   shiftColor: shiftColor,
                   liveStatus: liveStatus,
                   disciplineMetric: disciplineMetric,
+                  showLiveStatus: showLiveStatus,
                   scheme: scheme,
                 );
               },

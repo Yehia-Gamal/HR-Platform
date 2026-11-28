@@ -19,6 +19,7 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/official_letters
 import 'package:local_auth/local_auth.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -831,10 +832,13 @@ class _MyDailyStatusCard extends ConsumerWidget {
         final label = _attendanceLabel(status);
         final checkIn = att.todayCheckInAt;
         final checkOut = att.todayCheckOutAt;
-        final todayStr = DateFormat(
-          'EEEE، d MMMM',
-          'ar',
-        ).format(DateTime.now());
+        final todayStr = DateFormat('EEEE، d MMMM', 'ar').format(AppTime.now());
+        final offDuty = const {
+          'weekend',
+          'holiday',
+          'on_leave',
+          'leave',
+        }.contains(status);
 
         String hint;
         if (att.missionToday != null) {
@@ -944,21 +948,23 @@ class _MyDailyStatusCard extends ConsumerWidget {
                     ),
                   ],
                 ),
-                const Divider(height: 24),
-                Row(
-                  children: [
-                    _MiniStatTile(
-                      icon: Icons.login_rounded,
-                      value: _fmtTime(checkIn),
-                      label: 'الحضور',
-                    ),
-                    _MiniStatTile(
-                      icon: Icons.logout_rounded,
-                      value: _fmtTime(checkOut),
-                      label: 'الانصراف',
-                    ),
-                  ],
-                ),
+                if (!offDuty || checkIn != null || checkOut != null) ...[
+                  const Divider(height: 20),
+                  Row(
+                    children: [
+                      _MiniStatTile(
+                        icon: Icons.login_rounded,
+                        value: _fmtTime(checkIn),
+                        label: 'الحضور',
+                      ),
+                      _MiniStatTile(
+                        icon: Icons.logout_rounded,
+                        value: _fmtTime(checkOut),
+                        label: 'الانصراف',
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 10),
                 Container(
                   width: double.infinity,
@@ -1332,7 +1338,7 @@ class _InfoSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const MobileSectionHeader(title: 'البيانات الوظيفية'),
-          const SizedBox(height: 10),
+          const Divider(height: 22),
           _row(Icons.account_tree_outlined, 'الإدارة', item.department),
           _row(Icons.badge_outlined, 'المسمى الوظيفي', item.jobTitle),
           _row(Icons.business_outlined, 'الفرع', item.branch),
@@ -1373,21 +1379,17 @@ class _InfoSection extends StatelessWidget {
             },
       borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
           children: [
             const Icon(Icons.phone_outlined, size: 20),
-            const SizedBox(width: 16),
+            const SizedBox(width: 8),
             const Text('الهاتف'),
             const SizedBox(width: 12),
             Expanded(
               child: Directionality(
                 textDirection: ui.TextDirection.ltr,
-                child: Text(
-                  display,
-                  textAlign: TextAlign.end,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                child: Text(display, textAlign: TextAlign.end),
               ),
             ),
           ],
@@ -1396,22 +1398,31 @@ class _InfoSection extends StatelessWidget {
     );
   }
 
-  Widget _row(IconData icon, String label, String? value) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 6),
-    child: Row(
-      children: [
-        Icon(icon, size: 20),
-        const SizedBox(width: 16),
-        Text(label),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            value ?? '—',
-            textAlign: TextAlign.end,
-            overflow: TextOverflow.ellipsis,
+  Widget _row(IconData icon, String label, String? value) => Semantics(
+    container: true,
+    label: '$label، ${value ?? 'غير محدد'}',
+    excludeSemantics: true,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                Text(value?.isNotEmpty == true ? value! : '—'),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     ),
   );
 }
@@ -1441,6 +1452,13 @@ class _DeviceSecuritySectionState
 
   Future<void> _checkBiometricSupport() async {
     try {
+      if (kIsWeb) {
+        final supported = await ref
+            .read(mobileCommandsProvider)
+            .supportsPasskeys();
+        if (mounted) setState(() => _localBiometricSupported = supported);
+        return;
+      }
       final localAuth = LocalAuthentication();
       final supported =
           await localAuth.isDeviceSupported() &&
@@ -1567,8 +1585,8 @@ class _DeviceSecuritySectionState
                 color: _localBiometricSupported == true
                     ? scheme.primaryContainer.withValues(alpha: 0.4)
                     : _localBiometricSupported == false
-                        ? scheme.errorContainer.withValues(alpha: 0.4)
-                        : scheme.surfaceContainerHighest,
+                    ? scheme.surfaceContainerHighest
+                    : scheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Row(
@@ -1582,8 +1600,8 @@ class _DeviceSecuritySectionState
                     color: _localBiometricSupported == true
                         ? scheme.primary
                         : _localBiometricSupported == false
-                            ? scheme.error
-                            : scheme.onSurfaceVariant,
+                        ? scheme.onSurfaceVariant
+                        : scheme.onSurfaceVariant,
                     size: 28,
                   ),
                   const SizedBox(width: 12),
@@ -1592,16 +1610,22 @@ class _DeviceSecuritySectionState
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'أمان هذا الجهاز',
+                          kIsWeb
+                              ? 'التحقق في هذا المتصفح'
+                              : 'التحقق على هذا الجهاز',
                           style: Theme.of(context).textTheme.labelLarge
                               ?.copyWith(fontWeight: FontWeight.w900),
                         ),
                         Text(
                           _localBiometricSupported == null
                               ? 'جارٍ الفحص…'
+                              : kIsWeb
+                              ? (_localBiometricSupported!
+                                    ? 'يدعم المتصفح التحقق بمفتاح المرور.'
+                                    : 'لم يتوفر التحقق بمفتاح مرور في هذا المتصفح.')
                               : _localBiometricSupported!
-                                  ? 'الجهاز يدعم البصمة وقفل الشاشة الآمن'
-                                  : 'لا توجد بصمة — يمكن استخدام النقش أو PIN',
+                              ? 'الجهاز يدعم البصمة وقفل الشاشة الآمن'
+                              : 'لا توجد بصمة — يمكن استخدام النقش أو PIN',
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: scheme.onSurfaceVariant),
                         ),
@@ -1797,7 +1821,10 @@ class _DeviceSecuritySectionState
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: _registering ? null : _register,
+                onPressed:
+                    _registering || (kIsWeb && _localBiometricSupported != true)
+                    ? null
+                    : _register,
                 icon: _registering
                     ? const SizedBox.square(
                         dimension: 20,

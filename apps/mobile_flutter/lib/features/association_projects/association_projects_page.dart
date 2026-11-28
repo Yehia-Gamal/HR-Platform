@@ -563,33 +563,29 @@ class _ProjectTile extends StatelessWidget {
               ],
               if (p.isApproved) ...[
                 const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: LinearProgressIndicator(
-                          value: (p.progress / 100).clamp(0, 1).toDouble(),
-                          minHeight: 8,
-                          color: color,
-                          backgroundColor: scheme.surfaceContainerHighest,
+                if (p.totalSteps == 0 && !p.isClosed && p.progressPercent != null) ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: LinearProgressIndicator(
+                            value: p.progressPercent! / 100,
+                            minHeight: 8,
+                            color: color,
+                            backgroundColor: scheme.surfaceContainerHighest,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text('${p.progress.round()}%', style: const TextStyle(fontWeight: FontWeight.w900)),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  p.status == 'completed'
-                      ? 'اكتمل التنفيذ'
-                      : p.currentStepTitle != null
-                          ? 'المرحلة الحالية: ${p.currentStepTitle}'
-                          : 'لم تُحدَّد خطوات التنفيذ بعد',
-                  style: muted,
-                ),
-                if (p.totalSteps > 0) Text('تم ${p.completedSteps} من ${p.totalSteps} خطوات', style: muted),
+                      const SizedBox(width: 10),
+                      Text('${p.progressPercent}%', style: const TextStyle(fontWeight: FontWeight.w900)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                Text(stepProgressLabel(p.completedSteps, p.totalSteps), style: const TextStyle(fontWeight: FontWeight.w800)),
+                Text(projectStatusLabels[p.status] ?? p.status, style: muted),
+                Text(p.phaseLabel, style: muted),
               ],
               if (p.rejectionReason != null && p.approvalStatus == 'rejected') ...[
                 const SizedBox(height: 6),

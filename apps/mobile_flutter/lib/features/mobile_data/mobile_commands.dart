@@ -1392,20 +1392,23 @@ extension MobileSelfServiceCommands on MobileCommands {
     DateTime? checkOut,
     String? requestedStatus,
   }) async {
-    final localWorkDate = AppTime.toCairo(workDate);
-    String date(DateTime value) =>
-        '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
+    // These values are calendar and time-picker fields in Cairo, not instants
+    // in the timezone configured on the phone.
+    final date = '${workDate.year.toString().padLeft(4, '0')}-${workDate.month.toString().padLeft(2, '0')}-${workDate.day.toString().padLeft(2, '0')}';
+    String? clockTime(DateTime? value) =>
+        value == null ? null : AppTime.fromCairoClock(value).toUtc().toIso8601String();
     await _rpcQueued('request_correction', 'request_attendance_correction', {
-      'p_work_date': date(localWorkDate),
+      'p_work_date': date,
       'p_type': type,
       'p_reason': reason.trim(),
-      'p_check_in': checkIn?.toUtc().toIso8601String(),
-      'p_check_out': checkOut?.toUtc().toIso8601String(),
+      'p_check_in': clockTime(checkIn),
+      'p_check_out': clockTime(checkOut),
       'p_status': requestedStatus,
       'p_attachment_path': null,
     });
     ref.invalidate(myAttendanceServicesProvider);
-    ref.invalidate(myAttendanceHistoryProvider);
+    ref.invalidate(mobileRequestsProvider);
+    ref.invalidate(myMonthlyStatementProvider((workDate.year, workDate.month)));
   }
 
   /// طلب اختيار أو تغيير فترة العمل (الوردية الأساسية) للموظف
@@ -1464,6 +1467,11 @@ extension MobileSelfServiceCommands on MobileCommands {
     );
     ref.invalidate(myAttendanceServicesProvider);
     ref.invalidate(myAttendanceHistoryProvider);
+    ref.invalidate(attendanceStateProvider);
+    ref.invalidate(myMonthlyStatementProvider);
+    ref.invalidate(employeeMonthlyStatementProvider);
+    ref.invalidate(mobileRequestsProvider);
+    ref.invalidate(managerDashboardProvider);
     ref.invalidate(teamAttendanceCorrectionsProvider);
     ref.invalidate(attendanceCorrectionDetailProvider(correctionId));
     ref.invalidate(myNotificationsProvider);

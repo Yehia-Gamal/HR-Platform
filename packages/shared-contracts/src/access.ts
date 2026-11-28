@@ -44,6 +44,6 @@ export function canUseWorkspace(
   return context.workspaces.includes(workspace);
 }
 
-export function isWebWorkspace(workspace: WorkspaceId): boolean {
-  return workspace === 'hr' || workspace === 'main_admin' || workspace === 'committee';
+export function isWebWorkspace(workspace: WorkspaceId): workspace is 'hr' | 'main_admin' {
+  return workspace === 'hr' || workspace === 'main_admin';
 }

@@ -1,5 +1,6 @@
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/core/formatting/arabic_text.dart';
+import 'package:ahla_shabab_management_os/core/time/app_time.dart';
 import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
 import 'package:ahla_shabab_management_os/core/widgets/phone_display.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/attendance_pdf_service.dart';
@@ -46,6 +47,57 @@ bool _isOwnStatement(WidgetRef ref, MonthlyAttendanceStatement statement) {
   return statement.employeeId.isEmpty || statement.employeeId == me;
 }
 
+/// Opens the same daily statement used by the calendar from a punch in history.
+Future<void> showOwnAttendanceDayDetails(BuildContext context, DateTime date) {
+  final provider = myMonthlyStatementProvider((date.year, date.month));
+  final dateKey =
+      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  return showModalBottomSheet<void>(
+    context: context,
+    useSafeArea: true,
+    isScrollControlled: true,
+    builder: (_) => Consumer(
+      builder: (context, ref, _) => ref
+          .watch(provider)
+          .when(
+            loading: () => const SizedBox(
+              height: 180,
+              child: Center(child: CircularProgressIndicator()),
+            ),
+            error: (error, _) => Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(humanizeError(error), textAlign: TextAlign.center),
+                  TextButton(
+                    onPressed: () => ref.invalidate(provider),
+                    child: const Text('إعادة المحاولة'),
+                  ),
+                ],
+              ),
+            ),
+            data: (statement) {
+              final day = statement.days
+                  .where((day) => day.date == dateKey)
+                  .firstOrNull;
+              final now = AppTime.now();
+              final today = DateUtils.dateOnly(now);
+              return _DayDetailSheet(
+                statement: statement,
+                day: day,
+                dayNum: date.day,
+                isFuture: date.isAfter(today),
+                isToday: DateUtils.isSameDay(date, today),
+                year: date.year,
+                month: date.month,
+              );
+            },
+          ),
+    ),
+  );
+}
+
 /// كشف الحضور والانصراف الشهري — للموظف عن نفسه (V12 §18)،
 /// وعند تمرير [employeeId] يُعرض كشف موظف محدد (مدير مباشر/HR) (V22).
 class MonthlyAttendanceStatementPage extends ConsumerStatefulWidget {
@@ -73,7 +125,7 @@ class MonthlyAttendanceStatementPage extends ConsumerStatefulWidget {
 
 class _MonthlyAttendanceStatementPageState
     extends ConsumerState<MonthlyAttendanceStatementPage> {
-  final _now = DateTime.now();
+  final _now = AppTime.now();
   late int _year;
   late int _month;
 
@@ -86,10 +138,10 @@ class _MonthlyAttendanceStatementPageState
 
   AsyncValue<MonthlyAttendanceStatement> _statement(WidgetRef ref) =>
       widget.employeeId == null
-          ? ref.watch(myMonthlyStatementProvider((_year, _month)))
-          : ref.watch(
+      ? ref.watch(myMonthlyStatementProvider((_year, _month)))
+      : ref.watch(
           employeeMonthlyStatementProvider((widget.employeeId!, _year, _month)),
-            );
+        );
 
   void _reload(WidgetRef ref) => widget.employeeId == null
       ? ref.invalidate(myMonthlyStatementProvider((_year, _month)))
@@ -223,4 +275,3 @@ class _MonthlyAttendanceStatementPageState
 }
 
 // ─── الجسم الرئيسي ───────────────────────────────────────────────
-

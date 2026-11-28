@@ -489,11 +489,10 @@ Future<void> showAttendanceCorrectionSheet(
     DateTime? checkIn;
     DateTime? checkOut;
     if (effectiveActualTime != null) {
-      final localDate = AppTime.toCairo(effectiveWorkDate);
       final base = DateTime(
-        localDate.year,
-        localDate.month,
-        localDate.day,
+        effectiveWorkDate.year,
+        effectiveWorkDate.month,
+        effectiveWorkDate.day,
         effectiveActualTime.hour,
         effectiveActualTime.minute,
       );

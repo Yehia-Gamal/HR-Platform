@@ -3,50 +3,55 @@ import type { AssociationProjectListItem } from '@ahla/shared-contracts';
 import { Loader2 } from 'lucide-react';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { useAddProjectUpdate } from './useAssociationProjects';
-import { STATUS_LABELS } from './projectLedStatus';
+import { STATUS_LABELS, projectProgressPercent, stepProgressLabel } from './projectLedStatus';
 
 interface Props {
   project: AssociationProjectListItem;
   onClose: () => void;
 }
 
-const STATUS_CHOICES = ['active', 'on_hold', 'completed'] as const;
+const STATUS_CHOICES = ['active', 'on_hold'] as const;
 
 /** تسجيل تحديث على مشروع معتمد — يعيد اللمبة للأخضر ويُحفظ في سجل المشروع. */
 export function QuickUpdateDialog({ project, onClose }: Props) {
   const addUpdate = useAddProjectUpdate();
   const [note, setNote] = useState('');
   const [status, setStatus] = useState<string>(project.status === 'planned' ? 'active' : project.status);
-  const [progress, setProgress] = useState(project.progress);
-  // عند وجود خطوات تُحسب النسبة تلقائياً من المكتمل منها.
+  const [progress, setProgress] = useState<number | null>(null);
   const manualProgress = project.totalSteps === 0;
+  const isClosed = project.status === 'completed' || project.status === 'cancelled';
+  const pausing = status === 'on_hold' && project.status !== 'on_hold';
+  const shownProgress = progress ?? projectProgressPercent({ ...project, status: 'active' });
+  const canSubmit = note.trim().length > 0 && !addUpdate.isPending;
 
-  async function submit() {
-    if (!note.trim()) return;
-    await addUpdate.mutateAsync({
-      projectId: project.id,
-      note: note.trim(),
-      progress: manualProgress ? progress : null,
-      statusChange: status !== project.status ? status : null,
-    });
-    onClose();
+  function submit() {
+    if (!canSubmit) return;
+    addUpdate.mutate(
+      {
+        projectId: project.id,
+        note: note.trim(),
+        progress: manualProgress && !isClosed ? progress : null,
+        statusChange: status !== project.status ? status : null,
+      },
+      { onSuccess: onClose },
+    );
   }
 
   return (
     <DialogOverlay title={`تحديث على «${project.name}»`} onClose={onClose} maxWidth="max-w-lg">
       <div className="space-y-4">
         <label className="block">
-          <span className="text-sm font-bold">ما الذي تم إنجازه؟ *</span>
+          <span className="text-sm font-bold">{pausing ? 'سبب توقف المشروع *' : 'ما الذي تم إنجازه؟ *'}</span>
           <textarea
             className="input mt-1"
             rows={3}
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="مثال: تم الاتفاق مع المورد وبدأ التوريد"
+            placeholder={pausing ? 'مثال: التوريد معلق حتى اعتماد الدفعة' : 'مثال: تم الاتفاق مع المورد وبدأ التوريد'}
           />
         </label>
 
-        <fieldset>
+        {!isClosed && <fieldset>
           <legend className="text-sm font-bold">حالة المشروع</legend>
           <div className="mt-2 flex flex-wrap gap-2">
             {STATUS_CHOICES.map((s) => (
@@ -61,31 +66,31 @@ export function QuickUpdateDialog({ project, onClose }: Props) {
               </button>
             ))}
           </div>
-        </fieldset>
+        </fieldset>}
 
-        {manualProgress ? (
+        {manualProgress && !isClosed ? (
           <label className="block">
-            <span className="text-sm font-bold">نسبة الإنجاز</span>
+            <span className="text-sm font-bold">التقدم المُبلّغ عنه</span>
             <div className="mt-1 flex items-center gap-3">
               <input
                 type="range"
                 min={0}
-                max={100}
-                step={5}
+                max={99}
+                step={1}
                 className="flex-1 accent-[var(--brand-primary)]"
-                value={progress}
+                value={shownProgress ?? 0}
                 onChange={(e) => setProgress(Number(e.target.value))}
               />
-              <span className="tabular w-12 text-center text-lg font-black">{progress}%</span>
+              <span className="tabular w-12 text-center text-lg font-black">{shownProgress === null ? '—' : `${shownProgress}%`}</span>
             </div>
           </label>
-        ) : (
+        ) : !manualProgress ? (
           <p className="rounded-xl bg-[var(--surface-subtle)] p-3 text-xs text-[var(--text-muted)]">
-            نسبة الإنجاز تُحسب تلقائياً من الخطوات المكتملة ({project.completedSteps} من {project.totalSteps}).
+            {stepProgressLabel(project.completedSteps, project.totalSteps)}
           </p>
-        )}
+        ) : null}
 
-        <button onClick={submit} disabled={!note.trim() || addUpdate.isPending} className="btn-primary w-full">
+        <button onClick={submit} disabled={!canSubmit} className="btn-primary w-full">
           {addUpdate.isPending && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
           {addUpdate.isPending ? 'جارٍ الحفظ…' : 'حفظ التحديث'}
         </button>

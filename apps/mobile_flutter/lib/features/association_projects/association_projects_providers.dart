@@ -111,8 +111,24 @@ class AssociationProjectCommands {
         'p_status_change': statusChange,
       }, projectId: projectId);
 
+  Future<void> approveClosure(String projectId, int planRevision, String reviewNote) async {
+    try {
+      await _call('close_association_project', {
+        'p_project_id': projectId,
+        'p_plan_revision': planRevision,
+        'p_review_note': reviewNote,
+      }, projectId: projectId);
+    } catch (_) {
+      ref.invalidate(associationProjectDetailProvider(projectId));
+      rethrow;
+    }
+  }
+
   Future<void> setStepStatus(String projectId, String stepId, String status) =>
       _call('set_project_step_status', {'p_step_id': stepId, 'p_status': status}, projectId: projectId);
+
+  Future<void> recordStepBlocker(String projectId, String stepId, String reason) =>
+      _call('record_project_step_blocker', {'p_step_id': stepId, 'p_reason': reason}, projectId: projectId);
 
   Future<void> upsertStep(
     String projectId, {

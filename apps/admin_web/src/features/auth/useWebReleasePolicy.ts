@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { env, hasSupabaseConfig } from '../../core/env';
 import { rpc } from '../../core/rpc';
+import { canUseExecutiveDisplay, firstWebWorkspace } from '../workspaces/access';
 import { useAuth } from './AuthProvider';
 
 const installationKey = 'management_os_web_installation_id_v1';
@@ -63,8 +64,10 @@ export function useWebReleasePolicy() {
 
 export function useRegisterWebDevice() {
   const auth = useAuth();
+  const hasWebAccess = Boolean(auth.access && !auth.access.isSuspended &&
+    (firstWebWorkspace(auth.access) || canUseExecutiveDisplay(auth.access)));
   useEffect(() => {
-    if (auth.status !== 'authenticated' || auth.isMock || !hasSupabaseConfig) return;
+    if (!hasWebAccess || auth.status !== 'authenticated' || auth.isMock || !hasSupabaseConfig) return;
     let active = true;
     void rpc('register_my_device', {
       p_installation_id: installationId(),
@@ -84,5 +87,5 @@ export function useRegisterWebDevice() {
     return () => {
       active = false;
     };
-  }, [auth.status, auth.isMock, auth.session?.user.id]);
+  }, [hasWebAccess, auth.status, auth.isMock, auth.session?.user.id]);
 }

@@ -78,6 +78,15 @@ export const associationProjectListItemSchema = z.object({
   currentStepTitle: z.string().nullable().default(null),
   isOverdue: z.boolean().default(false),
   canManage: z.boolean().default(false),
+  planRevision: z.number().int().nonnegative().optional(),
+  canReviewClosure: z.boolean().optional(),
+  closedAt: z.string().nullable().optional(),
+  interruptionNote: z.string().nullable().optional(),
+  blockedStepTitle: z.string().nullable().optional(),
+  blockedStepAssignee: z.string().nullable().optional(),
+  blockedStepReason: z.string().nullable().optional(),
+  nextDeadline: z.string().nullable().optional(),
+  nextDeadlineTitle: z.string().nullable().optional(),
   ledStatus: projectLedStatusSchema,
 });
 export type AssociationProjectListItem = z.infer<typeof associationProjectListItemSchema>;

@@ -153,12 +153,22 @@ class _KpiEvaluationDetailPageState
 
   Widget _content(KpiEvaluationForm form) {
     // 0470: المسار القانوني الوحيد — ذاتي ثم اعتماد المدير الشامل.
-    final canEditScores =
-        form.editableStage == 'self' || form.editableStage == 'manager_review';
     final canAct = form.editableStage != null && !form.locked;
-    final showCompliance = form.editableStage == 'hr_review' ||
-        form.complianceEditable;
-    final showSession = form.editableStage == 'manager_review';
+    final canEditScores =
+        canAct &&
+        (form.editableStage == 'self' ||
+            form.editableStage == 'manager_review');
+    final showCompliance =
+        !form.locked &&
+        (form.editableStage == 'hr_review' || form.complianceEditable);
+    final showSession = canAct && form.editableStage == 'manager_review';
+    final readOnlyMessage = switch ((form.locked, form.workflowStatus)) {
+      (true, 'OVERDUE') =>
+        'انتهت مهلة الدورة قبل اكتمال التقييم. يمكن استكماله بعد إعادة فتح الدورة من الإدارة المخوّلة.',
+      (true, _) => 'التقييم مقفل. يمكنك الاطلاع على التفاصيل المسجلة.',
+      (false, _) =>
+        'التقييم لدى صاحب المرحلة الحالية. يمكنك الاطلاع على التفاصيل.',
+    };
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -198,6 +208,13 @@ class _KpiEvaluationDetailPageState
                   _workflow(form.workflowStatus),
                   style: Theme.of(context).textTheme.labelSmall,
                 ),
+                if (!canAct) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    readOnlyMessage,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
               ],
             ),
           ),
@@ -454,14 +471,7 @@ class _KpiEvaluationDetailPageState
             ],
           ),
           const SizedBox(height: 24),
-        ] else
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Text(
-              'هذه المرحلة للعرض فقط أو تم إغلاق التقييم.',
-              textAlign: TextAlign.center,
-            ),
-          ),
+        ],
       ],
     );
   }

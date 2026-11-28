@@ -213,14 +213,14 @@ class _LeaveBalanceStripState extends ConsumerState<LeaveBalanceStrip> {
         if (_isGridView)
           LayoutBuilder(
             builder: (context, constraints) {
-              final tileHeight = MediaQuery.textScalerOf(
-                context,
-              ).scale(124).clamp(124.0, 180.0).toDouble();
+              final textScaler = MediaQuery.textScalerOf(context);
+              final tileHeight = textScaler.scale(128);
+              final twoColumns = constraints.maxWidth >= textScaler.scale(300);
               return GridView(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
+                  crossAxisCount: twoColumns ? 2 : 1,
                   mainAxisSpacing: 10,
                   crossAxisSpacing: 10,
                   // ارتفاع ثابت كان يقصّ النص عند تكبير خط النظام.
@@ -320,8 +320,6 @@ class _BalanceCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
@@ -405,8 +403,6 @@ class _BalanceCard extends StatelessWidget {
               // التذييل: المستهلك والمحجوز
               Text(
                 footerText,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 9.5,
                   fontWeight: FontWeight.w500,
@@ -429,7 +425,7 @@ class RequestMonthSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
+    final now = AppTime.now();
     final month = requests
         .where((r) {
           final t = AppTime.toCairo(r.createdAt);
@@ -445,18 +441,34 @@ class RequestMonthSummary extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.brandPrimary.withValues(alpha: .06),
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.brandPrimary.withValues(alpha: .12)),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            month.isEmpty
-                ? 'لا طلبات لك في $monthName حتى الآن'
-                : 'طلباتك في $monthName: ${arRequests(month.length)}',
-            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+          Row(
+            children: [
+              Icon(
+                Icons.calendar_month_outlined,
+                color: scheme.primary,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'طلبات $monthName',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                ),
+              ),
+              Text(
+                arRequests(month.length),
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+            ],
           ),
           if (month.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -484,14 +496,7 @@ class RequestMonthSummary extends StatelessWidget {
                   ),
               ],
             ),
-          ] else
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                'اضغط «طلب جديد» لتقديم إجازة أو مأمورية أو إذن.',
-                style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
-              ),
-            ),
+          ],
         ],
       ),
     );

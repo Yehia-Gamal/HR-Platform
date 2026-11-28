@@ -295,7 +295,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
       },
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
         children: [
         // ── بطاقة المأمورية (إضافية — لا تحجب زر البصمة) ──
         if (missionCard != null) ...[
@@ -415,7 +415,7 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
 
         // ── روابط سريعة ──
         _QuickLinksRow(working: _working, onMissionTap: _openMissionSheet),
-        const SizedBox(height: 14),
+        const SizedBox(height: 8),
 
         // ── ملاحظة أمان مختصرة ──
         const _SecurityNote(),
@@ -428,6 +428,12 @@ class _MobileAttendancePageState extends ConsumerState<MobileAttendancePage>
     if (mounted) setState(fn);
   }
 }
+
+bool _isNonWorkingAttendanceDay(AttendanceState? state) =>
+    switch (state?.todayStatus) {
+      'weekend' || 'holiday' || 'on_leave' || 'leave' => true,
+      _ => false,
+    };
 
 /// العملية المعلقة بعد العودة من إعدادات GPS — لإعادة المحاولة تلقائياً.
 class _PendingRetry {

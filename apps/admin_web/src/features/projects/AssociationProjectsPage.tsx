@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { Link, useLocation, useSearchParams } from 'react-router';
 import type { AssociationProjectListItem, ProjectLedStatus } from '@ahla/shared-contracts';
-import { AlertTriangle, Check, Download, FileText, MonitorPlay, Plus, Search, Send, Settings2, X } from 'lucide-react';
+import { AlertTriangle, Check, Download, FileText, MonitorPlay, Plus, RefreshCw, Search, Send, Settings2, X } from 'lucide-react';
 import { PageHeader } from '../../ui/PageHeader';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
@@ -16,8 +16,10 @@ import { ProjectFormDialog } from './ProjectFormDialog';
 import { ProjectSettingsDialog } from './ProjectSettingsDialog';
 import { QuickUpdateDialog } from './QuickUpdateDialog';
 import { ActivityFeed } from './ActivityFeed';
+import { ProjectFollowUpPanel } from './ProjectFollowUpPanel';
+import { compareProjectFollowUp, projectFollowUpReasons, type FollowUpFilter } from './projectFollowUp';
 import { exportProjectsCsv, exportProjectsPdf } from './exportProjects';
-import { APPROVAL_LABELS, LED_META, LED_URGENCY, PRIORITY_ORDER, activityDays, isOnBoard } from './projectLedStatus';
+import { APPROVAL_LABELS, LED_META, PRIORITY_ORDER, isOnBoard, projectProgressPercent } from './projectLedStatus';
 
 type Tab = 'board' | 'tasks' | 'requests' | 'activity';
 type SortKey = 'urgency' | 'priority' | 'progress' | 'name';
@@ -43,20 +45,21 @@ function sortProjects(list: AssociationProjectListItem[], sort: SortKey): Associ
   const sorted = [...list];
   switch (sort) {
     case 'urgency':
-      return sorted.sort((a, b) => LED_URGENCY[a.ledStatus] - LED_URGENCY[b.ledStatus] || (activityDays(b) ?? 9999) - (activityDays(a) ?? 9999));
+      return sorted.sort(compareProjectFollowUp);
     case 'priority':
       return sorted.sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]);
     case 'progress':
-      return sorted.sort((a, b) => b.progress - a.progress);
+      return sorted.sort((a, b) => (projectProgressPercent(b) ?? -1) - (projectProgressPercent(a) ?? -1));
     case 'name':
       return sorted.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
   }
 }
 
 export function AssociationProjectsPage() {
-  const { data, isLoading, error, refetch } = useAssociationProjects();
+  const { data, isLoading, isFetching, error, refetch } = useAssociationProjects();
   const { data: myTasks } = useMyProjectTasks();
   const [params, setParams] = useSearchParams();
+  const { pathname } = useLocation();
   const approve = useApproveProject();
   const reject = useRejectProject();
   const submit = useSubmitProjectForApproval();
@@ -64,6 +67,7 @@ export function AssociationProjectsPage() {
   const tab = (params.get('tab') as Tab | null) ?? 'board';
   const selectedId = params.get('project');
   const [ledFilter, setLedFilter] = useState<LedFilter>('all');
+  const [followUpFilter, setFollowUpFilter] = useState<FollowUpFilter>('all');
   const [search, setSearch] = useState('');
   const [department, setDepartment] = useState('all');
   const [scope, setScope] = useState<ScopeFilter>('all');
@@ -100,6 +104,7 @@ export function AssociationProjectsPage() {
     const list = board.filter(
       (p) =>
         (ledFilter === 'all' || p.ledStatus === ledFilter) &&
+        (followUpFilter === 'all' || projectFollowUpReasons(p).includes(followUpFilter)) &&
         (department === 'all' || (department === 'none' ? p.departments.length === 0 : p.departments.some((d) => d.id === department))) &&
         (scope === 'all' || (scope === 'leading' ? p.myRole === 'leader' : p.myRole === 'leader' || p.myRole === 'member')) &&
         (!q ||
@@ -110,7 +115,7 @@ export function AssociationProjectsPage() {
           p.members.some((m) => m.name.includes(q))),
     );
     return sortProjects(list, sort);
-  }, [board, ledFilter, department, scope, search, sort]);
+  }, [board, ledFilter, followUpFilter, department, scope, search, sort]);
 
   function setParam(key: string, value: string | null) {
     setParams(
@@ -126,7 +131,7 @@ export function AssociationProjectsPage() {
   const openProject = (id: string) => setParam('project', id);
 
   if (isLoading) return <ListSkeleton />;
-  if (error) return <ErrorState description={safeErrorMessage(error)} onRetry={() => void refetch()} />;
+  if (error && !data) return <ErrorState description={safeErrorMessage(error)} onRetry={() => void refetch()} />;
 
   const tabs: { key: Tab; label: string; badge?: number }[] = [
     { key: 'board', label: 'لوحة المشاريع' },
@@ -152,9 +157,12 @@ export function AssociationProjectsPage() {
                 <Settings2 className="size-4" />
               </button>
             )}
-            <Link to="/projects/display" className="btn-secondary" title="عرض المشاريع على شاشة كبيرة (تلفزيون)">
-              <MonitorPlay className="size-4" aria-hidden="true" /> وضع العرض
+            <Link to="/projects/display" state={{ boardPath: pathname }} className="btn-secondary">
+              <MonitorPlay className="size-4" aria-hidden="true" /> العرض الكبير
             </Link>
+            <button type="button" className="icon-button" onClick={() => void refetch()} disabled={isFetching} aria-label="تحديث المشاريع" title="تحديث المشاريع">
+              <RefreshCw className={`size-4${isFetching ? ' animate-spin' : ''}`} aria-hidden="true" />
+            </button>
             <div className="relative">
               <button className="icon-button" onClick={() => setExportOpen((o) => !o)} aria-label="تصدير" aria-expanded={exportOpen} title="تصدير">
                 <Download className="size-4" />
@@ -191,6 +199,13 @@ export function AssociationProjectsPage() {
         }
       />
 
+      {error && (
+        <p className="flex items-center gap-2 rounded-xl bg-[var(--warning-soft)] p-3 text-sm font-bold text-[var(--warning)]" role="status">
+          <AlertTriangle className="size-4 shrink-0" aria-hidden="true" />
+          تعذّر تحديث المشاريع. تُعرض آخر بيانات متاحة.
+        </p>
+      )}
+
       {/* التبويبات */}
       <nav className="flex gap-2 overflow-x-auto" aria-label="أقسام المشاريع">
         {tabs.map((t) => (
@@ -208,26 +223,25 @@ export function AssociationProjectsPage() {
 
       {tab === 'board' && (
         <>
-          {counts.critical > 0 && ledFilter !== 'critical' && (
-            <button
-              onClick={() => setLedFilter('critical')}
-              className="flex w-full items-center gap-3 rounded-2xl bg-[var(--danger-soft)] p-4 text-start text-[var(--danger)]"
-            >
-              <ProjectLed status="critical" large />
-              <span className="flex-1 font-black">
-                {counts.critical === 1 ? 'مشروع واحد' : `${counts.critical} مشاريع`} بلا أي تحديث منذ {data?.settings.criticalDays} يوماً أو أكثر
-                {isFullAccess ? ' — تحتاج تدخلك' : ''}
-              </span>
-              <span className="text-sm font-bold underline">عرضها</span>
-            </button>
-          )}
+          <ProjectFollowUpPanel
+            projects={board}
+            filter={followUpFilter}
+            onFilter={(reason) => {
+              setFollowUpFilter(reason);
+              setLedFilter('all');
+            }}
+            onOpen={openProject}
+          />
 
           {/* ملخص اللمبات — كل بطاقة فلتر */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {LED_TILES.map((t) => (
               <button
                 key={t.key}
-                onClick={() => setLedFilter(t.key)}
+                onClick={() => {
+                  setLedFilter(t.key);
+                  setFollowUpFilter('all');
+                }}
                 aria-pressed={ledFilter === t.key}
                 className={`card flex items-center gap-3 p-4 text-start transition-colors ${ledFilter === t.key ? 'ring-2 ring-[var(--brand-primary)]' : 'hover:border-[var(--border-strong)]'}`}
               >

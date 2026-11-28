@@ -68,12 +68,14 @@ class MonthGlanceCard extends ConsumerWidget {
         .fold<double>(0, (sum, p) => sum + p.currentAmount);
 
     // إجمالي إجازات الشهر
-    final monthLeaveDays = s?.leaveDays ??
+    final monthLeaveDays =
+        s?.leaveDays ??
         statement?.days.where((d) => d.hasLeave && !d.isFuture).length ??
         0;
 
     // إجمالي أذونات الشهر والمتبقي
-    final usedPermits = permitBalance?.totalUsed ??
+    final usedPermits =
+        permitBalance?.totalUsed ??
         s?.permitCount ??
         statement?.days.where((d) => d.hasPermit && !d.isFuture).length ??
         0;
@@ -94,29 +96,26 @@ class MonthGlanceCard extends ConsumerWidget {
     void openPenalties() {
       Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (_) => const MyInstantPenaltiesPage(),
-        ),
+        MaterialPageRoute(builder: (_) => const MyInstantPenaltiesPage()),
       );
     }
 
     void openRequests() {
       Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (_) => const MobileRequestsPage(),
-        ),
+        MaterialPageRoute(builder: (_) => const MobileRequestsPage()),
       );
     }
 
     final tiles = <_GlanceTile>[
       _GlanceTile(
+        id: 'attendance',
         icon: Icons.how_to_reg_rounded,
-        label: 'الحضور',
+        label: 'نسبة الحضور',
         value: rate == null ? '—' : '${rate.round()}%',
         detail: rate == null
             ? 'لا أيام عمل مستحقة بعد'
-            : '${s?.attendanceRatePresentDays ?? 0} من $dueDays',
+            : '${s?.attendanceRatePresentDays ?? 0} من $dueDays يوم عمل',
         color: rate == null
             ? null
             : rate >= 90
@@ -127,6 +126,7 @@ class MonthGlanceCard extends ConsumerWidget {
         onTap: openMonthlyStatement,
       ),
       _GlanceTile(
+        id: 'lateness',
         icon: Icons.schedule_rounded,
         label: 'التأخير',
         value: statement == null
@@ -141,6 +141,7 @@ class MonthGlanceCard extends ConsumerWidget {
         onTap: openMonthlyStatement,
       ),
       _GlanceTile(
+        id: 'annual-leave',
         icon: Icons.beach_access_rounded,
         label: 'رصيد السنوية',
         value: annual == null ? '—' : arDays(annual.availableUnits.floor()),
@@ -151,6 +152,7 @@ class MonthGlanceCard extends ConsumerWidget {
         onTap: openRequests,
       ),
       _GlanceTile(
+        id: 'penalties',
         icon: Icons.receipt_long_rounded,
         label: 'غرامات الشهر',
         value: penalties == null
@@ -169,6 +171,7 @@ class MonthGlanceCard extends ConsumerWidget {
         onTap: openPenalties,
       ),
       _GlanceTile(
+        id: 'monthly-leave',
         icon: Icons.event_available_rounded,
         label: 'إجازات الشهر',
         value: monthLeaveDays == 0 ? 'لا إجازات' : arDays(monthLeaveDays),
@@ -179,15 +182,16 @@ class MonthGlanceCard extends ConsumerWidget {
         onTap: openRequests,
       ),
       _GlanceTile(
+        id: 'monthly-permits',
         icon: Icons.timer_outlined,
         label: 'أذونات الشهر',
         value: usedPermits == 0
             ? 'لا أذونات'
             : (usedPermits == 1
-                ? 'إذن واحد'
-                : usedPermits == 2
-                ? 'إذنان'
-                : '$usedPermits أذونات'),
+                  ? 'إذن واحد'
+                  : usedPermits == 2
+                  ? 'إذنان'
+                  : '$usedPermits أذونات'),
         detail: 'متبقي $remainingPermits من 4 ($remainingHours س)',
         color: usedPermits >= 4
             ? AppColors.statusDanger
@@ -199,6 +203,7 @@ class MonthGlanceCard extends ConsumerWidget {
     ];
 
     final theme = Theme.of(context);
+    final title = 'شهري في لمحة — ${DateFormat('MMMM', 'ar').format(now)}';
     return Card(
       clipBehavior: Clip.antiAlias,
       child: Padding(
@@ -207,54 +212,67 @@ class MonthGlanceCard extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            InkWell(
-              onTap: openMonthlyStatement,
-              borderRadius: BorderRadius.circular(10),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-                child: Row(
-                  children: [
-                    const Icon(Icons.insights_rounded, size: 19),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'شهري في لمحة — ${DateFormat('MMMM', 'ar').format(now)}',
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 2,
+              children: [
+                Semantics(
+                  container: true,
+                  identifier: 'today.month.heading',
+                  header: true,
+                  label: title,
+                  excludeSemantics: true,
+                  child: Text(
+                    title,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
                     ),
-                    Text(
-                      'الكشف الكامل',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.chevron_left_rounded,
-                      size: 20,
-                      color: theme.colorScheme.primary,
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+                MergeSemantics(
+                  child: Semantics(
+                    identifier: 'today.month.statement',
+                    child: TextButton(
+                      onPressed: openMonthlyStatement,
+                      child: const Text('الكشف الكامل'),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             LayoutBuilder(
               builder: (context, constraints) {
-                final tileWidth = (constraints.maxWidth - 8) / 2;
-                const targetHeight = 74.0;
-                final ratio = (tileWidth / targetHeight).clamp(1.8, 5.0);
-                return GridView.count(
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  childAspectRatio: ratio,
-                  mainAxisSpacing: 8,
-                  crossAxisSpacing: 8,
-                  children: tiles,
+                const gap = 10.0;
+                final minTileWidth = MediaQuery.textScalerOf(
+                  context,
+                ).scale(144);
+                final twoColumns =
+                    constraints.maxWidth >= minTileWidth * 2 + gap;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  spacing: gap,
+                  children: [
+                    if (!twoColumns)
+                      ...tiles
+                    else
+                      for (var i = 0; i < tiles.length; i += 2)
+                        IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            spacing: gap,
+                            children: [
+                              Expanded(child: tiles[i]),
+                              if (i + 1 < tiles.length)
+                                Expanded(child: tiles[i + 1])
+                              else
+                                const Spacer(),
+                            ],
+                          ),
+                        ),
+                  ],
                 );
               },
             ),
@@ -267,93 +285,97 @@ class MonthGlanceCard extends ConsumerWidget {
 
 class _GlanceTile extends StatelessWidget {
   const _GlanceTile({
+    required this.id,
     required this.icon,
     required this.label,
     required this.value,
     required this.detail,
     this.color,
-    this.onTap,
+    required this.onTap,
   });
 
+  final String id;
   final IconData icon;
   final String label;
   final String value;
   final String detail;
   final Color? color;
-  final VoidCallback? onTap;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final accent = color ?? scheme.onSurfaceVariant;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          decoration: BoxDecoration(
-            color: accent.withValues(alpha: .07),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: accent.withValues(alpha: .18)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: accent.withValues(alpha: .12),
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Icon(icon, size: 18, color: accent),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: scheme.onSurfaceVariant,
-                      ),
+    return Semantics(
+      identifier: 'today.month.$id',
+      button: true,
+      label: '$label، $value، $detail',
+      onTap: onTap,
+      excludeSemantics: true,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Ink(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: .07),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: accent.withValues(alpha: .18)),
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 55),
+              child: Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: accent.withValues(alpha: .12),
+                      shape: BoxShape.circle,
                     ),
-                    Text(
-                      value,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w900,
-                        color: color ?? scheme.onSurface,
-                      ),
+                    child: Center(child: Icon(icon, size: 18, color: accent)),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          label,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                        Text(
+                          value,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                            color: scheme.onSurface,
+                          ),
+                        ),
+                        Text(
+                          detail,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
                     ),
-                    Text(
-                      detail,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                  Icon(
+                    Icons.chevron_left_rounded,
+                    size: 16,
+                    color: accent.withValues(alpha: .5),
+                  ),
+                ],
               ),
-              Icon(
-                Icons.chevron_left_rounded,
-                size: 16,
-                color: accent.withValues(alpha: .5),
-              ),
-            ],
+            ),
           ),
         ),
       ),

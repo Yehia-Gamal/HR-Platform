@@ -62,10 +62,10 @@ describe('accessService — schema & pure function validation', () => {
     expect(canUseWorkspace(ctx, 'main_admin')).toBe(false);
   });
 
-  it('isWebWorkspace returns true for hr, main_admin, committee', () => {
+  it('only hr and main_admin have a web workspace', () => {
     expect(isWebWorkspace('hr')).toBe(true);
     expect(isWebWorkspace('main_admin')).toBe(true);
-    expect(isWebWorkspace('committee')).toBe(true);
+    expect(isWebWorkspace('committee')).toBe(false);
   });
 
   it('isWebWorkspace returns false for employee, manager, executive, field_operations', () => {

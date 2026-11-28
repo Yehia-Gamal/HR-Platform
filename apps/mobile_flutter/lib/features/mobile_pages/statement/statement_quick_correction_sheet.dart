@@ -3,10 +3,18 @@ part of '../monthly_attendance_statement_page.dart';
 class _QuickCorrectionSheet extends StatefulWidget {
   const _QuickCorrectionSheet({
     required this.dateStr,
-    required this.preselectType,
+    required this.allowedTypes,
+    required this.onSubmit,
   });
   final String dateStr;
-  final String preselectType;
+  final List<String> allowedTypes;
+  final Future<void> Function(
+    String type,
+    String reason,
+    DateTime? checkIn,
+    DateTime? checkOut,
+  )
+  onSubmit;
   @override
   State<_QuickCorrectionSheet> createState() => _QuickCorrectionSheetState();
 }
@@ -15,11 +23,13 @@ class _QuickCorrectionSheetState extends State<_QuickCorrectionSheet> {
   final _reasonCtrl = TextEditingController();
   late String _type;
   late TimeOfDay _time;
+  bool _sending = false;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _type = widget.preselectType;
+    _type = widget.allowedTypes.first;
     _time = _type == 'missing_check_in'
         ? const TimeOfDay(hour: 9, minute: 0)
         : const TimeOfDay(hour: 17, minute: 0);
@@ -112,38 +122,42 @@ class _QuickCorrectionSheetState extends State<_QuickCorrectionSheet> {
             ],
           ),
           const SizedBox(height: 16),
-          SegmentedButton<String>(
-            segments: const [
-              ButtonSegment(
-                value: 'missing_check_in',
-                label: Text('نسيان حضور'),
-              ),
-              ButtonSegment(
-                value: 'missing_check_out',
-                label: Text('نسيان انصراف'),
-              ),
-            ],
-            selected: {_type},
-            onSelectionChanged: (v) {
-              setState(() {
-                final newType = v.first;
-                if (newType != _type) {
-                  if (_type == 'missing_check_in' &&
-                      _time == const TimeOfDay(hour: 9, minute: 0)) {
-                    _time = const TimeOfDay(hour: 17, minute: 0);
-                  } else if (_type == 'missing_check_out' &&
-                      _time == const TimeOfDay(hour: 17, minute: 0)) {
-                    _time = const TimeOfDay(hour: 9, minute: 0);
-                  }
-                  _type = newType;
-                }
-              });
-            },
-          ),
+          if (widget.allowedTypes.length > 1)
+            SegmentedButton<String>(
+              segments: [
+                for (final type in widget.allowedTypes)
+                  ButtonSegment(
+                    value: type,
+                    label: Text(
+                      type == 'missing_check_in'
+                          ? 'نسيان حضور'
+                          : 'نسيان انصراف',
+                    ),
+                  ),
+              ],
+              selected: {_type},
+              onSelectionChanged: _sending
+                  ? null
+                  : (v) {
+                      setState(() {
+                        final newType = v.first;
+                        if (newType != _type) {
+                          if (_type == 'missing_check_in' &&
+                              _time == const TimeOfDay(hour: 9, minute: 0)) {
+                            _time = const TimeOfDay(hour: 17, minute: 0);
+                          } else if (_type == 'missing_check_out' &&
+                              _time == const TimeOfDay(hour: 17, minute: 0)) {
+                            _time = const TimeOfDay(hour: 9, minute: 0);
+                          }
+                          _type = newType;
+                        }
+                      });
+                    },
+            ),
           const SizedBox(height: 14),
           // ── حقل الساعة لاختيار الوقت التقريبي ──
           InkWell(
-            onTap: _pickTime,
+            onTap: _sending ? null : _pickTime,
             borderRadius: BorderRadius.circular(12),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -233,59 +247,63 @@ class _QuickCorrectionSheetState extends State<_QuickCorrectionSheet> {
           const SizedBox(height: 12),
           TextFormField(
             controller: _reasonCtrl,
+            enabled: !_sending,
             maxLines: 2,
             decoration: const InputDecoration(
               labelText: 'السبب',
               hintText: 'اكتب سبب نسيان البصمة...',
             ),
           ),
+          if (_error != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(_error!, style: TextStyle(color: scheme.error)),
+            ),
           const SizedBox(height: 16),
           FilledButton.icon(
-            onPressed: _submit,
+            onPressed: _sending ? null : _submit,
             icon: const Icon(Icons.send_rounded),
-            label: const Text('إرسال الطلب'),
+            label: Text(_sending ? 'جارٍ الإرسال…' : 'إرسال الطلب'),
           ),
         ],
       ),
     );
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     final reason = _reasonCtrl.text.trim();
     if (reason.length < 3) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('يرجى إدخال سبب التصحيح (3 أحرف على الأقل)'),
-        ),
-      );
+      setState(() => _error = 'أدخل سبب التصحيح (3 أحرف على الأقل).');
       return;
     }
-    DateTime? checkIn;
-    DateTime? checkOut;
-    final date = DateTime.tryParse(widget.dateStr);
-    if (date != null) {
-      final dt = DateTime(
-        date.year,
-        date.month,
-        date.day,
-        _time.hour,
-        _time.minute,
-      );
-      if (_type == 'missing_check_in') {
-        checkIn = dt;
-      } else {
-        checkOut = dt;
-      }
-    }
-    Navigator.pop(context, {
-      'type': _type,
-      'reason': reason,
-      'checkIn': checkIn,
-      'checkOut': checkOut,
-      'time': _time,
+    final date = DateTime.parse(widget.dateStr);
+    final time = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      _time.hour,
+      _time.minute,
+    );
+    final isCheckIn = _type == 'missing_check_in';
+    setState(() {
+      _sending = true;
+      _error = null;
     });
+    try {
+      await widget.onSubmit(
+        _type,
+        reason,
+        isCheckIn ? time : null,
+        isCheckIn ? null : time,
+      );
+      if (mounted && ModalRoute.of(context)?.isCurrent == true)
+        Navigator.pop(context, true);
+    } catch (error) {
+      if (mounted) setState(() => _error = humanizeError(error));
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
   }
 }
 
 // ─── نموذج إذن سريع ─────────────────────────────────────────────────
-

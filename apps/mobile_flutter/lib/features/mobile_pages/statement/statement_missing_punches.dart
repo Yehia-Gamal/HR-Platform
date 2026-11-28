@@ -200,8 +200,8 @@ class _MissingPunchesSheet extends ConsumerWidget {
               final typeText = isMissingIn && day.missingCheckOut
                   ? 'نسيان بصمة حضور وانصراف'
                   : isMissingIn
-                      ? 'نسيان بصمة حضور'
-                      : 'نسيان بصمة انصراف';
+                  ? 'نسيان بصمة حضور'
+                  : 'نسيان بصمة انصراف';
 
               return Card(
                 margin: const EdgeInsets.only(bottom: 8),
@@ -250,61 +250,11 @@ class _MissingPunchesSheet extends ConsumerWidget {
                         vertical: 6,
                       ),
                     ),
-                    child: const Text('تصحيح', style: TextStyle(fontSize: 12)),
-                    onPressed: () async {
-                      Navigator.pop(context);
-                      final preselect =
-                          (day.missingCheckOut && !day.missingCheckIn)
-                          ? 'missing_check_out'
-                          : 'missing_check_in';
-                      final result =
-                          await showModalBottomSheet<Map<String, dynamic>>(
-                        context: context,
-                        isScrollControlled: true,
-                        shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(20),
-                              ),
-                        ),
-                        builder: (_) => _QuickCorrectionSheet(
-                          dateStr: day.date,
-                          preselectType: preselect,
-                        ),
-                      );
-                      if (result != null && context.mounted) {
-                        try {
-                          await ref
-                              .read(mobileCommandsProvider)
-                              .requestAttendanceCorrection(
-                                workDate: DateTime.parse(day.date),
-                                type: result['type'] as String,
-                                reason: result['reason'] as String,
-                                checkIn: result['checkIn'] as DateTime?,
-                                checkOut: result['checkOut'] as DateTime?,
-                              );
-                          ref.invalidate(
-                            myMonthlyStatementProvider((
-                              statement.year,
-                              statement.month,
-                            )),
-                          );
-                          ref.invalidate(mobileRequestsProvider);
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('تم إرسال طلب التصحيح بنجاح.'),
-                              ),
-                            );
-                          }
-                        } catch (error) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(humanizeError(error))),
-                            );
-                          }
-                        }
-                      }
-                    },
+                    child: const Text('تفاصيل', style: TextStyle(fontSize: 12)),
+                    onPressed: () => showOwnAttendanceDayDetails(
+                      context,
+                      DateTime.parse(day.date),
+                    ),
                   ),
                 ),
               );
@@ -455,4 +405,3 @@ class _FilterChipButton extends StatelessWidget {
 }
 
 // ─── التقويم الشهري (شبكة 7 أعمدة مع فلترة سريعة) ────────────────
-

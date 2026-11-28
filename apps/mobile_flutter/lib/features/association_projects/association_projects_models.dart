@@ -72,6 +72,12 @@ const approvalLabels = {
   'rejected': 'أُعيد للتعديل',
 };
 
+String stepProgressLabel(int completed, int total) {
+  if (total == 0) return 'لم تُسجّل خطوات التنفيذ';
+  if (total == 1 && completed == 1) return 'تمت خطوة واحدة';
+  return 'تم إنجاز $completed من $total خطوة';
+}
+
 /// صفة المستخدم في المشروع (0645).
 const projectRoleLabels = {
   'leader': 'أنت قائد هذا المشروع',
@@ -151,6 +157,9 @@ class AssociationProject {
     required this.isOverdue,
     required this.canManage,
     required this.led,
+    this.planRevision,
+    this.canReviewClosure = false,
+    this.closedAt,
   });
 
   factory AssociationProject.fromJson(Map<String, dynamic> j) => AssociationProject(
@@ -184,6 +193,9 @@ class AssociationProject {
         isOverdue: _bool(j['isOverdue']),
         canManage: _bool(j['canManage']),
         led: ProjectLed.parse(j['ledStatus']),
+        planRevision: _intOrNull(j['planRevision']),
+        canReviewClosure: _bool(j['canReviewClosure']),
+        closedAt: _date(j['closedAt']),
       );
 
   final String id;
@@ -220,11 +232,31 @@ class AssociationProject {
   final bool isOverdue;
   final bool canManage;
   final ProjectLed led;
+  final int? planRevision;
+  final bool canReviewClosure;
+  final DateTime? closedAt;
 
   bool get isApproved => approvalStatus == 'approved';
   bool get isEditableDraft => approvalStatus == 'draft' || approvalStatus == 'rejected';
   bool get isClosed => status == 'completed' || status == 'cancelled';
   bool get isMine => myRole == 'leader' || myRole == 'member';
+
+  int? get progressPercent {
+    if (status == 'completed') return 100;
+    final ratio = totalSteps > 0 ? 100 * completedSteps / totalSteps : progress;
+    if (ratio >= 100) return null;
+    return ratio.round().clamp(0, 99);
+  }
+
+  String get phaseLabel {
+    if (status == 'completed') return 'أُغلق المشروع';
+    if (currentStepTitle != null) return 'المرحلة الحالية: $currentStepTitle';
+    if (totalSteps == 0) return 'لم تُحدَّد خطوات التنفيذ بعد';
+    if (completedSteps >= totalSteps) {
+      return 'بانتظار مراجعة خطة التنفيذ واعتماد الإغلاق';
+    }
+    return 'توجد خطوات تنفيذ متبقية';
+  }
 
   /// الفريق كما يُعرض — استجابة ما قبل 0645 بلا أعضاء: القائد وحده.
   List<ProjectMember> get team => members.isNotEmpty

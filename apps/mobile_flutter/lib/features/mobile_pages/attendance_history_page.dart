@@ -3,6 +3,7 @@ import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dar
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_widgets.dart';
+import 'package:ahla_shabab_management_os/features/mobile_pages/monthly_attendance_statement_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -20,7 +21,20 @@ class AttendanceHistoryPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final history = ref.watch(myAttendanceHistoryProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('سجل الحضور والانصراف')),
+      appBar: AppBar(
+        title: const Text('سجل الحضور والانصراف'),
+        actions: [
+          IconButton(
+            tooltip: 'فتح كشف الحضور الشهري',
+            icon: const Icon(Icons.calendar_month_outlined),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const MonthlyAttendanceStatementPage(),
+              ),
+            ),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async => ref.invalidate(myAttendanceHistoryProvider),
@@ -263,7 +277,7 @@ class _DayCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final now = DateTime.now();
+    final now = AppTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final diff = today.difference(DateTime(day.year, day.month, day.day));
     final relative = switch (diff.inDays) {
@@ -361,6 +375,15 @@ class _DayCard extends StatelessWidget {
               ],
             ),
           ],
+          const SizedBox(height: 6),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TextButton.icon(
+              icon: const Icon(Icons.calendar_today_outlined, size: 16),
+              label: const Text('تفاصيل اليوم والتصحيح'),
+              onPressed: () => showOwnAttendanceDayDetails(context, day),
+            ),
+          ),
         ],
       ),
     );
@@ -431,7 +454,10 @@ class _EventRow extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      DateFormat('h:mm a', 'ar').format(AppTime.toCairo(item.eventAt)),
+                      DateFormat(
+                        'h:mm a',
+                        'ar',
+                      ).format(AppTime.toCairo(item.eventAt)),
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w900,

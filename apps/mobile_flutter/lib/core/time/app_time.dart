@@ -58,6 +58,28 @@ class AppTime {
   /// الوقت الحالي بتوقيت `Africa/Cairo`.
   static DateTime now() => toCairo(DateTime.now().toUtc());
 
+  /// Interprets the fields selected in a date/time picker as Cairo wall time.
+  static DateTime fromCairoClock(DateTime value) {
+    final cairo = _ensureCairoLocation();
+    if (cairo == null) {
+      return DateTime.utc(
+        value.year,
+        value.month,
+        value.day,
+        value.hour,
+        value.minute,
+      ).subtract(const Duration(hours: 2));
+    }
+    return tz.TZDateTime(
+      cairo,
+      value.year,
+      value.month,
+      value.day,
+      value.hour,
+      value.minute,
+    );
+  }
+
   /// يحلّل نصًا أو قيمة تاريخية إلى توقيت `Africa/Cairo`، أو يرجع `null`.
   static DateTime? tryParse(Object? raw) {
     if (raw == null) return null;

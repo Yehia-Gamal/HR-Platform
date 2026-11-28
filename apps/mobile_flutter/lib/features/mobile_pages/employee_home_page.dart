@@ -2,8 +2,6 @@ import 'package:ahla_design_tokens/ahla_design_tokens.dart';
 import 'package:ahla_shabab_management_os/core/theme/brand_gradients.dart';
 import 'package:ahla_shabab_management_os/core/network/connectivity_service.dart';
 import 'package:ahla_shabab_management_os/core/formatting/arabic_text.dart';
-import 'package:ahla_shabab_management_os/core/widgets/app_avatar.dart';
-import 'package:ahla_shabab_management_os/core/widgets/brand_logo.dart';
 import 'package:ahla_shabab_management_os/features/auth/auth_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
@@ -16,7 +14,6 @@ import 'package:ahla_shabab_management_os/features/mobile_pages/mobile_notificat
 import 'package:ahla_shabab_management_os/features/mobile_pages/month_glance_card.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/monthly_attendance_statement_page.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/honor_board_sheet.dart';
-import 'package:ahla_shabab_management_os/features/mobile_pages/official_letters_sheet.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/my_instant_penalties_page.dart';
 import 'package:ahla_shabab_management_os/core/network/offline_sync_queue.dart';
 import 'package:ahla_shabab_management_os/shared/access_context.dart';
@@ -32,9 +29,18 @@ class EmployeeHomePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final summary = ref.watch(employeeHomeProvider);
-    final profile = ref.watch(mobileProfileProvider);
-    final scheme = Theme.of(context).colorScheme;
-    final date = DateFormat('EEEE، d MMMM', 'ar_EG').format(DateTime.now());
+    final date = DateFormat('EEEE، d MMMM', 'ar_EG').format(AppTime.now());
+    const heroTitle = 'يوم العمل';
+    const heroDescription = 'تابع حضورك وطلباتك من مكان واحد.';
+    const shortcutsTitle = 'اختصارات اليوم';
+    const shortcutsDescription = 'أسرع الإجراءات التي تحتاجها أثناء العمل.';
+
+    void openAttendance() {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const MobileAttendancePage()),
+      );
+    }
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -42,10 +48,10 @@ class EmployeeHomePage extends ConsumerWidget {
         ref.invalidate(dailyReportsFeedProvider(null));
       },
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
               // ألوان العلامة الثابتة: ألوان الثيم في الداكن فاتحة فيضيع النص الأبيض
@@ -59,80 +65,98 @@ class EmployeeHomePage extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Container(
+                Semantics(
+                  container: true,
+                  identifier: 'today.hero.date',
+                  label: date,
+                  excludeSemantics: true,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: .14),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
                         vertical: 6,
                       ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: .13),
-                        borderRadius: BorderRadius.circular(99),
-                      ),
-                      child: Text(
-                        date,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: .9),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                    ),
-                    const Spacer(),
-                    const BrandLogoMark(inverse: true, size: 40),
-                    const SizedBox(width: 8),
-                    profile.whenOrNull(
-                      data: (p) => AppAvatar(
-                        name: p.fullNameAr,
-                        photoUrl: p.photoUrl,
-                        radius: 20,
-                      ),
-                        ) ??
-                        ExcludeSemantics(
-                      child: Icon(
-                        Icons.wb_sunny_outlined,
-                        color: Colors.white.withValues(alpha: .8),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.calendar_today_outlined,
+                            size: 14,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              date,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
+                  ),
                 ),
-                const SizedBox(height: 18),
-                const Text(
-                  'جاهز ليوم جديد؟',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
+                const SizedBox(height: 10),
+                Semantics(
+                  container: true,
+                  identifier: 'today.hero.heading',
+                  header: true,
+                  label: heroTitle,
+                  excludeSemantics: true,
+                  child: const Text(
+                    heroTitle,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      height: 1.25,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 6),
-                Text(
-                  'راجع حضورك ومهامك والطلبات التي تحتاج متابعتك.',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: .8),
-                    height: 1.5,
+                Semantics(
+                  container: true,
+                  identifier: 'today.hero.description',
+                  label: heroDescription,
+                  excludeSemantics: true,
+                  child: Text(
+                    heroDescription,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: .88),
+                      height: 1.5,
+                    ),
                   ),
                 ),
                 if (access.attendancePolicy.selfPunchEnabled) ...[
-                  const SizedBox(height: 18),
-                  FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: AppColors.brandPrimary,
-                    ),
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const MobileAttendancePage(),
+                  const SizedBox(height: 12),
+                  MergeSemantics(
+                    child: Semantics(
+                      identifier: 'today.hero.attendance',
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: AppColors.brandPrimary,
+                            minimumSize: const Size(0, 48),
+                          ),
+                          onPressed: openAttendance,
+                          icon: const Icon(Icons.fingerprint_rounded),
+                          label: const Text(
+                            'تسجيل الحضور أو الانصراف',
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
                       ),
                     ),
-                    icon: const Icon(Icons.fingerprint_rounded),
-                    label: const Text('تسجيل الحضور أو الانصراف'),
                   ),
                 ],
               ],
@@ -145,9 +169,16 @@ class EmployeeHomePage extends ConsumerWidget {
           const SizedBox(height: 12),
           const MonthGlanceCard(),
           const SizedBox(height: 12),
-          const MobileSectionHeader(
-            title: 'اختصارات اليوم',
-            subtitle: 'أسرع الإجراءات التي تحتاجها أثناء العمل.',
+          Semantics(
+            container: true,
+            identifier: 'today.shortcuts.heading',
+            header: true,
+            label: '$shortcutsTitle. $shortcutsDescription',
+            excludeSemantics: true,
+            child: const MobileSectionHeader(
+              title: shortcutsTitle,
+              subtitle: shortcutsDescription,
+            ),
           ),
           const SizedBox(height: 12),
           // 0455: زر "تنبيه شامل" بارز — يظهر على الشاشة الرئيسية فقط لمن يملك
@@ -159,6 +190,7 @@ class EmployeeHomePage extends ConsumerWidget {
           if (!access.isClinicStaff ||
               (summary.value?.pendingLocationRequests ?? 0) > 0) ...[
             _QuickAction(
+              id: 'location',
               icon: Icons.location_searching_rounded,
               title: 'طلبات الموقع',
               subtitle: access.isClinicStaff
@@ -175,6 +207,7 @@ class EmployeeHomePage extends ConsumerWidget {
             const SizedBox(height: 8),
           ],
           _QuickAction(
+            id: 'attendance-statement',
             icon: Icons.calendar_month_rounded,
             title: 'كشف الحضور الشهري',
             subtitle: 'سجل البصمات ومعدل الالتزام والدوام',
@@ -187,6 +220,7 @@ class EmployeeHomePage extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           _QuickAction(
+            id: 'penalties',
             icon: Icons.volunteer_activism_rounded,
             title: 'غرامات التأخير وصندوق الزمالة',
             subtitle: 'سجل الانضباط الشفاف ورصيد وتوريدات الصندوق',
@@ -194,13 +228,6 @@ class EmployeeHomePage extends ConsumerWidget {
               context,
               MaterialPageRoute(builder: (_) => const MyInstantPenaltiesPage()),
             ),
-          ),
-          const SizedBox(height: 8),
-          _QuickAction(
-            icon: Icons.verified_user_rounded,
-            title: 'الخطابات والتكليفات الرسمية',
-            subtitle: 'تكليف بمأمورية، إثبات انتساب، وكود التحقق الذكي QR',
-            onTap: () => showOfficialLettersSheet(context),
           ),
           if (!access.isClinicStaff) ...[
             const SizedBox(height: 20),
@@ -247,47 +274,6 @@ class EmployeeHomePage extends ConsumerWidget {
           ),
           const SizedBox(height: 20),
           const _AttendanceSparkline(),
-          const SizedBox(height: 20),
-          Card(
-            color: scheme.secondaryContainer.withValues(alpha: .55),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CircleAvatar(
-                    backgroundColor: scheme.secondary.withValues(alpha: .12),
-                    child: Icon(
-                      Icons.verified_user_outlined,
-                      color: scheme.secondary,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'خصوصيتك جزء من التصميم',
-                          style: Theme.of(context).textTheme.titleSmall
-                              ?.copyWith(fontWeight: FontWeight.w900),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'الموقع لا يُطلب إلا بسبب ومدة محددين، وتظهر لك الجلسة بوضوح قبل الموافقة.',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: scheme.onSurfaceVariant,
-                                height: 1.5,
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -300,18 +286,29 @@ class EmployeeHomePage extends ConsumerWidget {
 class _BroadcastAlertCard extends ConsumerWidget {
   const _BroadcastAlertCard();
 
+  static const _title = 'تنبيه شامل';
+  static const _subtitle = 'إرسال إشعار فوري لجميع الموظفين';
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    void openDialog() => _showBroadcastDialog(context, ref);
     return Semantics(
+      identifier: 'today.shortcuts.broadcast',
       button: true,
+      label: '$_title، $_subtitle',
+      onTap: openDialog,
+      excludeSemantics: true,
       child: Card(
         clipBehavior: Clip.antiAlias,
         elevation: 0,
-        color: scheme.errorContainer,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        color: scheme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: scheme.error.withValues(alpha: .3)),
+        ),
         child: InkWell(
-          onTap: () => _showBroadcastDialog(context, ref),
+          onTap: openDialog,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             child: Row(
@@ -320,7 +317,7 @@ class _BroadcastAlertCard extends ConsumerWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: scheme.error.withValues(alpha: .14),
+                    color: scheme.errorContainer,
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Icon(
@@ -335,29 +332,24 @@ class _BroadcastAlertCard extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'تنبيه شامل',
+                        _title,
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: scheme.onErrorContainer,
+                          color: scheme.error,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'أرسل تنبيهاً فورياً لكل الموظفين — فلاش وصوت واهتزاز',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                        _subtitle,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: scheme.onErrorContainer.withValues(alpha: .8),
+                          color: scheme.onSurfaceVariant,
                         ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(width: 8),
-                Icon(
-                  Icons.chevron_left_rounded,
-                  color: scheme.onErrorContainer,
-                ),
+                Icon(Icons.chevron_left_rounded, color: scheme.error),
               ],
             ),
           ),
@@ -481,6 +473,7 @@ class _BroadcastAlertDialogState extends State<_BroadcastAlertDialog> {
 
 class _QuickAction extends StatelessWidget {
   const _QuickAction({
+    required this.id,
     required this.icon,
     required this.title,
     required this.subtitle,
@@ -488,6 +481,7 @@ class _QuickAction extends StatelessWidget {
     this.badgeCount,
   });
 
+  final String id;
   final IconData icon;
   final String title;
   final String subtitle;
@@ -499,8 +493,13 @@ class _QuickAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final count = badgeCount ?? 0;
     return Semantics(
+      identifier: 'today.shortcuts.$id',
       button: true,
+      label: count > 0 ? '$title، $subtitle، $count' : '$title، $subtitle',
+      onTap: onTap,
+      excludeSemantics: true,
       child: Card(
         clipBehavior: Clip.antiAlias,
         elevation: 0,
@@ -547,7 +546,7 @@ class _QuickAction extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                if (badgeCount != null && badgeCount! > 0) ...[
+                if (count > 0) ...[
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 9,
@@ -558,7 +557,7 @@ class _QuickAction extends StatelessWidget {
                       borderRadius: BorderRadius.circular(99),
                     ),
                     child: Text(
-                      '$badgeCount',
+                      '$count',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 12,
@@ -645,7 +644,7 @@ class _AttendanceSparkline extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final now = DateTime.now();
+    final now = AppTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final current = ref.watch(
       myMonthlyStatementProvider((now.year, now.month)),
@@ -670,6 +669,7 @@ class _AttendanceSparkline extends ConsumerWidget {
     final visible = days.length > 7 ? days.sublist(days.length - 7) : days;
     if (visible.isEmpty) return const SizedBox.shrink();
     final textTheme = Theme.of(context).textTheme;
+    final heading = 'الحضور — ${_lastDaysLabel(visible.length)}';
     return Card(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
@@ -680,18 +680,41 @@ class _AttendanceSparkline extends ConsumerWidget {
               children: [
                 const Icon(Icons.show_chart_rounded, size: 18),
                 const SizedBox(width: 6),
-                Text(
-                  'الحضور — ${_lastDaysLabel(visible.length)}',
-                  style: textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
+                Flexible(
+                  child: Semantics(
+                    container: true,
+                    identifier: 'today.week.heading',
+                    header: true,
+                    label: heading,
+                    excludeSemantics: true,
+                    child: Text(
+                      heading,
+                      style: textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: visible.map((d) => _SparkDot(day: d)).toList(),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final minDayWidth = MediaQuery.textScalerOf(context).scale(42);
+                final columns = (constraints.maxWidth / minDayWidth)
+                    .floor()
+                    .clamp(1, visible.length);
+                return Wrap(
+                  runSpacing: 10,
+                  children: [
+                    for (final day in visible)
+                      SizedBox(
+                        width: constraints.maxWidth / columns,
+                        child: _SparkDot(day: day),
+                      ),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 12),
             Wrap(
@@ -743,7 +766,7 @@ class _SparkDot extends StatelessWidget {
     (_present, 'حضور'),
     (_late, 'تأخير'),
     (_absent, 'غياب'),
-    (_leave, 'إجازة أو مأمورية'),
+    (_leave, 'إجازة أو نشاط ميداني'),
     (_rest, 'راحة أو عطلة'),
   ];
 
@@ -753,13 +776,16 @@ class _SparkDot extends StatelessWidget {
     final date = DateTime.tryParse(day.date);
     final status = day.status.isNotEmpty ? day.status : 'غير مسجل';
     // الألوان الفاتحة (رمادي/برتقالي) كانت بنص أبيض = تباين شبه معدوم.
-    final foreground = color.computeLuminance() > .55
-        ? Colors.black87
+    final foreground = ThemeData.estimateBrightnessForColor(color) == Brightness.light
+        ? Colors.black
         : Colors.white;
     final label = '${day.dayNameAr} ${date?.day ?? ''}: $status';
     return Tooltip(
       message: label,
+      excludeFromSemantics: true,
       child: Semantics(
+        container: true,
+        identifier: 'today.week.${day.date}',
         label: label,
         excludeSemantics: true,
       child: Column(
@@ -804,13 +830,7 @@ class _SparkDot extends StatelessWidget {
 
   static Color _dotColor(AttendanceStatementDay day) {
     if (day.isOfficialHoliday) return _rest;
-    if (day.hasLeave) return _leave;
-    if (day.hasMission) return const Color(0xFF0EA5E9);
-    if (day.hasConvoyFundi) {
-      return day.status.contains('فاندي')
-          ? const Color(0xFFDB2777)
-          : const Color(0xFF8B5CF6);
-    }
+    if (day.hasLeave || day.hasMission || day.hasConvoyFundi) return _leave;
     if (day.isAbsent) return _absent;
     if (day.lateMinutes > 0) return _late;
     if (day.isCompleted || day.isOpenShift || day.checkIn != null) {

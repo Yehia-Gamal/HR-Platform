@@ -38,7 +38,7 @@ void main() {
         lastEventType: null,
         lastEventAt: null,
         lastEventStatus: null,
-        todayStatus: 'present',
+        todayStatus: 'weekend',
         localDeviceStatus: 'active',
         todayCheckInAt: null,
         todayCheckOutAt: null,
@@ -123,6 +123,8 @@ void main() {
 
       // التحقق من ظهور عنوان فترات العمل
       expect(find.text('فترة العمل والورديات'), findsOneWidget);
+      expect(find.text('لا توجد بصمة مطلوبة اليوم.'), findsOneWidget);
+      expect(find.textContaining('تأخير غير مسجل'), findsNothing);
 
       // التحقق من ظهور اسم الوردية الحالية وشارة الاعتماد الرسمي
       expect(find.text('الدوام الأساسي (10 ص – 6 م)'), findsOneWidget);
@@ -150,6 +152,11 @@ void main() {
       // النقر على زر تغيير الفترة لفتح نافذة الاختيار السلسة
       final changeButton = find.text('تغيير الفترة');
       expect(changeButton, findsOneWidget);
+      final changeControl = find.ancestor(
+        of: changeButton,
+        matching: find.bySubtype<FilledButton>(),
+      );
+      expect(tester.getSize(changeControl).height, greaterThanOrEqualTo(52));
       await tester.ensureVisible(changeButton);
       await tester.pumpAndSettle();
       await tester.tap(changeButton);

@@ -1,7 +1,7 @@
 import type { AssociationProjectListItem } from '@ahla/shared-contracts';
 import { AlertTriangle, CalendarClock, CheckCircle2, Clock, Crown, Flag, Users, Zap } from 'lucide-react';
 import { ProjectLed } from './ProjectLed';
-import { LED_META, PRIORITY_LABELS, activityDays, daysAgoLabel, formatDate } from './projectLedStatus';
+import { LED_META, PRIORITY_LABELS, STATUS_LABELS, activityDays, daysAgoLabel, formatDate, projectPhaseLabel, projectProgressPercent, stepProgressLabel } from './projectLedStatus';
 
 interface Props {
   project: AssociationProjectListItem;
@@ -16,7 +16,8 @@ export function ProjectCard({ project: p, onOpen, onQuickUpdate, myEmployeeId }:
   const led = p.ledStatus;
   const meta = LED_META[led];
   const days = activityDays(p);
-  const stepsLabel = p.totalSteps > 0 ? `${p.completedSteps} من ${p.totalSteps} خطوات` : 'لا توجد خطوات بعد';
+  const stepsLabel = stepProgressLabel(p.completedSteps, p.totalSteps);
+  const progress = p.totalSteps === 0 && p.status !== 'completed' ? projectProgressPercent(p) : null;
 
   return (
     <article className={`card card-interactive project-card project-card--${led} relative p-5`}>
@@ -49,27 +50,25 @@ export function ProjectCard({ project: p, onOpen, onQuickUpdate, myEmployeeId }:
       {/* التقدم */}
       <div className="mt-4">
         <div className="mb-1.5 flex items-center justify-between text-xs">
-          <span className="text-[var(--text-muted)]">{stepsLabel}</span>
-          <span className="tabular font-black">{Math.round(p.progress)}%</span>
+          <span className="font-bold">{stepsLabel}</span>
+          <span className="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 font-bold">{STATUS_LABELS[p.status]}</span>
+          {progress !== null && <span className="tabular font-black">{progress}%</span>}
         </div>
-        <div className="h-2.5 overflow-hidden rounded-full bg-[var(--surface-muted)]">
-          <div className="h-full rounded-full transition-all duration-700" style={{ width: `${p.progress}%`, background: meta.tone }} />
-        </div>
+        {progress !== null && (
+          <div className="h-2.5 overflow-hidden rounded-full bg-[var(--surface-muted)]">
+            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${progress}%`, background: meta.tone }} />
+          </div>
+        )}
       </div>
 
       {/* المرحلة الحالية */}
       <div className="mt-4 min-h-10 rounded-xl bg-[var(--surface-subtle)] px-3 py-2 text-xs">
         {p.status === 'completed' ? (
           <span className="flex items-center gap-1.5 font-bold text-[var(--info)]">
-            <CheckCircle2 className="size-3.5" aria-hidden="true" /> اكتمل التنفيذ
+            <CheckCircle2 className="size-3.5" aria-hidden="true" /> {p.closedAt ? `أُغلق في ${formatDate(p.closedAt)}` : 'أُغلق المشروع'}
           </span>
-        ) : p.currentStepTitle ? (
-          <>
-            <span className="text-[var(--text-muted)]">المرحلة الحالية: </span>
-            <span className="font-bold">{p.currentStepTitle}</span>
-          </>
         ) : (
-          <span className="text-[var(--text-muted)]">لم تُحدَّد خطوات التنفيذ بعد</span>
+          <span className="text-[var(--text-muted)]">{projectPhaseLabel(p)}</span>
         )}
       </div>
 

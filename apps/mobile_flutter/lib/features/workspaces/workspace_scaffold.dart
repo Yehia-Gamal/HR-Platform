@@ -82,9 +82,17 @@ class WorkspaceScaffold extends ConsumerWidget {
         return Scaffold(
           extendBody: false,
           appBar: AppBar(
-            toolbarHeight: 78,
-            titleSpacing: 16,
-            title: InkWell(
+            toolbarHeight: 72,
+            titleSpacing: 12,
+            excludeHeaderSemantics: true,
+            title: Semantics(
+              container: true,
+              identifier: 'workspace.profile',
+              button: true,
+              label: '$fullName، $title',
+              onTap: () => _showProfile(context),
+              excludeSemantics: true,
+              child: InkWell(
               borderRadius: BorderRadius.circular(16),
               onTap: () => _showProfile(context),
               child: Padding(
@@ -92,8 +100,8 @@ class WorkspaceScaffold extends ConsumerWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const BrandLogoMark(size: 43),
-                    const SizedBox(width: 10),
+                    const BrandLogoMark(size: 38),
+                    const SizedBox(width: 8),
                     Flexible(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -124,6 +132,7 @@ class WorkspaceScaffold extends ConsumerWidget {
                   ],
                 ),
               ),
+              ),
             ),
             actions: [
               IconButton.filledTonal(
@@ -145,17 +154,17 @@ class WorkspaceScaffold extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: 4),
-              IconButton(
+              IconButton.filledTonal(
                 tooltip: 'حسابي',
                 onPressed: () => _showProfile(context),
-                  icon: AppAvatar(
+                  icon: ExcludeSemantics(child: AppAvatar(
                     name: contextData.displayName,
                     photoUrl: contextData.photoUrl,
                     radius: 17,
-                  ),
+                  )),
               ),
               if (showServicesButton)
-                IconButton(
+                IconButton.filledTonal(
                   tooltip: 'الخدمات والمزيد',
                     onPressed: () =>
                         _showMore(context, ref, pendingApprovalsCount),

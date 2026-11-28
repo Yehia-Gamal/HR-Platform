@@ -77,9 +77,30 @@ export function activityDays(p: Pick<AssociationProjectListItem, 'daysSinceActiv
 
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('ar-EG-u-nu-latn', { year: 'numeric', month: 'short', day: 'numeric' });
+  return new Date(iso).toLocaleDateString('ar-EG-u-nu-latn', { timeZone: 'Africa/Cairo', year: 'numeric', month: 'short', day: 'numeric' });
 }
 
 export function isOnBoard(p: AssociationProjectListItem): boolean {
   return p.approvalStatus === 'approved';
+}
+
+/** The server stores a ratio of recorded steps, which can reach 100 before closure. */
+export function projectProgressPercent(p: Pick<AssociationProjectListItem, 'status' | 'progress' | 'totalSteps' | 'completedSteps'>): number | null {
+  if (p.status === 'completed') return 100;
+  const progress = p.totalSteps > 0 ? (100 * p.completedSteps) / p.totalSteps : p.progress;
+  if (progress >= 100) return null;
+  return Math.max(0, Math.min(99, Math.round(progress)));
+}
+
+export function projectPhaseLabel(p: Pick<AssociationProjectListItem, 'status' | 'currentStepTitle' | 'totalSteps' | 'remainingSteps'>): string {
+  if (p.status === 'completed') return 'أُغلق المشروع';
+  if (p.currentStepTitle) return `المرحلة الحالية: ${p.currentStepTitle}`;
+  if (p.totalSteps === 0) return 'لم تُحدَّد خطوات التنفيذ بعد';
+  return p.remainingSteps === 0 ? 'بانتظار مراجعة خطة التنفيذ واعتماد الإغلاق' : 'توجد خطوات تنفيذ متبقية';
+}
+
+export function stepProgressLabel(completed: number, total: number): string {
+  if (total === 0) return 'لم تُسجّل خطوات التنفيذ';
+  if (total === 1 && completed === 1) return 'تمت خطوة واحدة';
+  return `تم إنجاز ${completed} من ${total} خطوة`;
 }

@@ -10,7 +10,7 @@ import { AttendanceDrilldownPage } from '../features/attendance/AttendanceDrilld
 import { MobileRedirectPage } from '../features/auth/MobileRedirectPage';
 import { WebReleaseCheckError, WebReleaseStatusPage } from '../features/auth/WebReleaseStatusPage';
 import { useRegisterWebDevice, useWebReleasePolicy } from '../features/auth/useWebReleasePolicy';
-import { firstWebWorkspace, hasAnyPermission, hrPathToAdmin } from '../features/workspaces/access';
+import { canUseExecutiveDisplay, firstWebWorkspace, hasAnyPermission, hrPathToAdmin, PROJECTS_DISPLAY_PATH } from '../features/workspaces/access';
 import { WorkspaceShell } from '../features/workspaces/WorkspaceShell';
 import { BroadcastAlertBanner } from '../features/notifications/BroadcastAlert';
 import { ForbiddenState } from '../ui/ForbiddenState';
@@ -185,12 +185,22 @@ function AuthenticatedApp() {
   }
 
   const defaultWorkspace = firstWebWorkspace(auth.access);
+  if (!defaultWorkspace && canUseExecutiveDisplay(auth.access)) {
+    return (
+      <Suspense fallback={<LoadingScreen />}>
+        <Routes>
+          <Route path={PROJECTS_DISPLAY_PATH} element={<ProjectsDisplayPage displayOnly onSignOut={auth.signOut} />} />
+          <Route path="*" element={<Navigate to={PROJECTS_DISPLAY_PATH} replace />} />
+        </Routes>
+      </Suspense>
+    );
+  }
   if (!defaultWorkspace) {
     return (
       <main className="grid min-h-screen place-items-center p-6">
         <section className="card max-w-lg p-7 text-center">
-          <h1 className="text-xl font-bold">لا توجد مساحة ويب مصرح بها</h1>
-          <p className="muted mt-2 leading-7">هذا الحساب مخصص لتطبيق Flutter أو لا يملك مساحة ويب إدارية مصرحًا بها.</p>
+          <h1 className="text-xl font-bold">مساحة عملك على الموبايل</h1>
+          <p className="muted mt-2 leading-7">افتح تطبيق الجمعية وسجّل الدخول بهذا الحساب للوصول إلى خدماتك.</p>
           <button className="mt-5 rounded-xl bg-brand px-4 py-2.5 font-bold text-white" onClick={() => void auth.signOut()}>
             تسجيل الخروج
           </button>
@@ -216,7 +226,7 @@ function AuthenticatedApp() {
         <Route path="/privacy" element={<PrivacyPolicyPage />} />
         <Route path="/terms" element={<TermsPage />} />
         {/* وضع العرض على شاشة كبيرة — بلا قوائم، والخادم يحصر المشاريع حسب المستخدم */}
-        <Route path="/projects/display" element={<ProjectsDisplayPage />} />
+        <Route path={PROJECTS_DISPLAY_PATH} element={<ProjectsDisplayPage />} />
         <Route path="/" element={<Navigate to={workspacePath(defaultWorkspace)} replace />} />
 
         {/* مساحة الموارد البشرية المستقلة — تبقى كما هي لحسابات HR التي لا تملك main_admin */}
@@ -407,30 +417,6 @@ function AuthenticatedApp() {
             {/* notifications: مرئي لكل أعضاء المساحة — لا يحتاج permission خاص */}
             <Route path="notifications" element={<NotificationsPage />} />
             <Route path="*" element={<Navigate to="/admin" replace />} />
-          </Route>
-        </Route>
-
-        {/* مساحة لجنة الخلافات — قضايا المنازعات وإشعاراتها */}
-        <Route element={<WorkspaceGuard workspace="committee" />}>
-          <Route path="/committee" element={<WorkspaceShell workspace="committee" />}>
-            <Route
-              index
-              element={
-                <RequirePermission perm="disputes.portal.access">
-                  <DisputesPage />
-                </RequirePermission>
-              }
-            />
-            <Route
-              path="disputes"
-              element={
-                <RequirePermission perm="disputes.portal.access">
-                  <DisputesPage />
-                </RequirePermission>
-              }
-            />
-            <Route path="notifications" element={<NotificationsPage />} />
-            <Route path="*" element={<Navigate to="/committee" replace />} />
           </Route>
         </Route>
 
@@ -732,9 +718,8 @@ function WorkspaceGuard({ workspace }: { workspace: WorkspaceId }) {
   return <Outlet />;
 }
 
-function workspacePath(workspace: WorkspaceId) {
+function workspacePath(workspace: 'hr' | 'main_admin') {
   if (workspace === 'main_admin') return '/admin';
-  if (workspace === 'committee') return '/committee';
   return '/hr';
 }
 

@@ -1,7 +1,7 @@
 import { accessContextSchema, type AccessContext } from '@ahla/shared-contracts';
 import { describe, expect, it } from 'vitest';
 import { mockContexts } from '../auth/mockContexts';
-import { firstWebWorkspace, hasPermission, hrPathToAdmin, isUnifiedAdminActive } from './access';
+import { canUseExecutiveDisplay, firstWebWorkspace, hasPermission, hrPathToAdmin, isUnifiedAdminActive } from './access';
 
 function makeContext(overrides: Partial<AccessContext> = {}): AccessContext {
   return {
@@ -79,6 +79,23 @@ describe('firstWebWorkspace', () => {
       workspaces: ['employee', 'manager'],
     });
     expect(firstWebWorkspace(context)).toBeNull();
+  });
+
+  it('requires the default workspace to be granted to the account', () => {
+    expect(firstWebWorkspace(makeContext({ defaultWorkspace: 'main_admin', workspaces: ['hr'] }))).toBe('hr');
+    expect(firstWebWorkspace(makeContext({ defaultWorkspace: 'hr', workspaces: ['manager'] }))).toBeNull();
+  });
+
+  it('uses a display-only route for executive accounts and excludes mobile-only roles', () => {
+    const executive = makeContext({ defaultWorkspace: 'executive', workspaces: ['executive'] });
+    expect(firstWebWorkspace(executive)).toBeNull();
+    expect(canUseExecutiveDisplay(executive)).toBe(true);
+    expect(canUseExecutiveDisplay({ ...executive, isSuspended: true })).toBe(false);
+    for (const workspace of ['manager', 'employee', 'committee', 'field_operations'] as const) {
+      const context = makeContext({ defaultWorkspace: workspace, workspaces: [workspace] });
+      expect(firstWebWorkspace(context)).toBeNull();
+      expect(canUseExecutiveDisplay(context)).toBe(false);
+    }
   });
 });
 

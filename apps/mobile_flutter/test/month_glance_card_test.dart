@@ -1,3 +1,5 @@
+import 'dart:ui' show SemanticsAction;
+
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_models.dart';
 import 'package:ahla_shabab_management_os/features/mobile_data/mobile_providers.dart';
 import 'package:ahla_shabab_management_os/features/mobile_pages/month_glance_card.dart';
@@ -16,6 +18,7 @@ void main() {
   Future<void> pumpCard(
     WidgetTester tester, {
     required List<Map<String, dynamic>> penalties,
+    TextScaler textScaler = TextScaler.noScaling,
   }) async {
     final statement = MonthlyAttendanceStatement.fromJson({
       'employee': {'id': 'emp-me', 'fullNameAr': 'موظف', 'employeeCode': 'E-1'},
@@ -54,7 +57,15 @@ void main() {
             (ref) async => penalties.map(MobileInstantPenalty.fromJson).toList(),
           ),
         ],
-        child: const MaterialApp(home: Scaffold(body: MonthGlanceCard())),
+        child: MaterialApp(
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+            child: child!,
+          ),
+          home: const Scaffold(
+            body: SingleChildScrollView(child: MonthGlanceCard()),
+          ),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -73,7 +84,7 @@ void main() {
 
     expect(find.textContaining('شهري في لمحة'), findsOneWidget);
     expect(find.text('92%'), findsOneWidget);
-    expect(find.text('12 من 13'), findsOneWidget);
+    expect(find.text('12 من 13 يوم عمل'), findsOneWidget);
     expect(find.text('يوم واحد'), findsOneWidget); // أيام التأخير
     expect(find.text('12 يومًا'), findsOneWidget); // رصيد السنوية
     expect(find.text('العارضة: 4.5'), findsOneWidget);
@@ -104,5 +115,49 @@ void main() {
 
     expect(find.text('لا غرامات'), findsOneWidget);
     expect(find.text('لا مستحقات'), findsOneWidget);
+  });
+
+  testWidgets('يعرض كل بطاقة كزر مستقل حتى مع تكبير الخط', (tester) async {
+    final semantics = tester.ensureSemantics();
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(320, 640);
+    addTearDown(tester.view.reset);
+
+    try {
+      await pumpCard(
+        tester,
+        penalties: const [],
+        textScaler: const TextScaler.linear(2),
+      );
+
+      final attendance = find.bySemanticsIdentifier('today.month.attendance');
+      final lateness = find.bySemanticsIdentifier('today.month.lateness');
+      expect(attendance, findsOneWidget);
+      expect(lateness, findsOneWidget);
+      expect(find.bySemanticsIdentifier('today.month.heading'), findsOneWidget);
+      final statement = find.bySemanticsIdentifier('today.month.statement');
+      expect(statement, findsOneWidget);
+      expect(
+        tester
+            .getSemantics(statement)
+            .getSemanticsData()
+            .hasAction(SemanticsAction.tap),
+        isTrue,
+      );
+      final attendanceNode = tester.getSemantics(attendance).getSemanticsData();
+      final latenessNode = tester.getSemantics(lateness).getSemanticsData();
+      expect(attendanceNode.label, contains('نسبة الحضور، 92%'));
+      expect(attendanceNode.label, contains('يوم عمل'));
+      expect(latenessNode.label, contains('التأخير، يوم واحد'));
+      expect(attendanceNode.hasAction(SemanticsAction.tap), isTrue);
+      expect(latenessNode.hasAction(SemanticsAction.tap), isTrue);
+      expect(
+        tester.getTopLeft(lateness).dy,
+        greaterThan(tester.getTopLeft(attendance).dy),
+      );
+      expect(tester.takeException(), isNull);
+    } finally {
+      semantics.dispose();
+    }
   });
 }

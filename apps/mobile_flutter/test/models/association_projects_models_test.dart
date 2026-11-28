@@ -52,6 +52,22 @@ void main() {
       expect(c.projects.single.led, ProjectLed.stale);
     });
 
+    test('إنجاز الخطوة الوحيدة لا يعرض 100% قبل إغلاق المشروع', () {
+      final data = {
+        ..._project('a', 'critical'),
+        'progress': 100,
+        'totalSteps': 1,
+      };
+      final active = AssociationProject.fromJson(data);
+      expect(active.progressPercent, isNull);
+      expect(active.phaseLabel, contains('بانتظار مراجعة خطة التنفيذ'));
+      expect(stepProgressLabel(active.completedSteps, active.totalSteps), 'تمت خطوة واحدة');
+      final partial = AssociationProject.fromJson({...data, 'totalSteps': 4});
+      expect(partial.progressPercent, 25);
+      final closed = AssociationProject.fromJson({...data, 'status': 'completed'});
+      expect(closed.progressPercent, 100);
+    });
+
     test('حالة لمبة مجهولة لا تكسر التطبيق', () {
       expect(ProjectLed.parse('blinking'), ProjectLed.stale);
       expect(ProjectLed.parse('critical'), ProjectLed.critical);

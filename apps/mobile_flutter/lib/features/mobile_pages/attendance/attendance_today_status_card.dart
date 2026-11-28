@@ -32,6 +32,7 @@ class _TodayStatusCard extends StatelessWidget {
         state.todayStatus != null &&
         state.todayStatus != '—' &&
         state.todayStatus!.isNotEmpty;
+    final nonWorkingDay = _isNonWorkingAttendanceDay(state);
 
     return Card(
       child: Padding(
@@ -62,8 +63,16 @@ class _TodayStatusCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
 
-            // أوقات الحضور والانصراف ومقارنتها بالوردية المعتمدة
-            if (state.todayCheckInAt != null || state.todayCheckOutAt != null || currentShift != null) ...[
+            if (nonWorkingDay &&
+                state.todayCheckInAt == null &&
+                state.todayCheckOutAt == null)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 8),
+                child: Text('لا توجد بصمة مطلوبة اليوم.'),
+              ),
+            if (state.todayCheckInAt != null ||
+                state.todayCheckOutAt != null ||
+                (!nonWorkingDay && currentShift != null)) ...[
               Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),

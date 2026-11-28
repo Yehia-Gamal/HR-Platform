@@ -1,5 +1,15 @@
 part of '../mobile_attendance_page.dart';
 
+// Compare the displayed Cairo clock with the scheduled wall-clock times.
+DateTime _shiftClock(DateTime cairoTime) => DateTime.utc(
+  cairoTime.year,
+  cairoTime.month,
+  cairoTime.day,
+  cairoTime.hour,
+  cairoTime.minute,
+  cairoTime.second,
+);
+
 class _ShiftLiveStatus {
   const _ShiftLiveStatus({
     required this.statusLabel,
@@ -26,7 +36,7 @@ _ShiftLiveStatus _computeShiftLiveStatus({
   String? permitActiveStartTime,
   DateTime? now,
 }) {
-  final current = now ?? DateTime.now();
+  final current = _shiftClock(now ?? AppTime.now());
   final effectiveStart = hasPermit && permitActiveStartTime != null ? permitActiveStartTime : startTime;
   final startParts = effectiveStart.split(':');
   final endParts = endTime.split(':');
@@ -43,9 +53,9 @@ _ShiftLiveStatus _computeShiftLiveStatus({
   final endH = int.tryParse(endParts[0]) ?? 18;
   final endM = int.tryParse(endParts[1]) ?? 0;
 
-  final todayStart = DateTime(current.year, current.month, current.day, startH, startM);
+  final todayStart = DateTime.utc(current.year, current.month, current.day, startH, startM);
   final todayGraceEnd = todayStart.add(Duration(minutes: graceInMinutes));
-  final todayEnd = DateTime(current.year, current.month, current.day, endH, endM);
+  final todayEnd = DateTime.utc(current.year, current.month, current.day, endH, endM);
 
   if (current.isBefore(todayStart)) {
     final diff = todayStart.difference(current);
@@ -132,13 +142,14 @@ _ShiftDisciplineMetric _computeShiftDisciplineMetric({
   String? originalStartTime,
   DateTime? now,
 }) {
-  final current = now ?? DateTime.now();
+  final currentTime = now ?? AppTime.now();
+  final current = _shiftClock(currentTime);
   final startParts = startTime.split(':');
   final startH = startParts.length >= 2 ? (int.tryParse(startParts[0]) ?? 10) : 10;
   final startM = startParts.length >= 2 ? (int.tryParse(startParts[1]) ?? 0) : 0;
 
   final referenceDate = AppTime.tryToCairo(todayCheckInAt) ?? current;
-  var todayStart = DateTime(referenceDate.year, referenceDate.month, referenceDate.day, startH, startM);
+  var todayStart = DateTime.utc(referenceDate.year, referenceDate.month, referenceDate.day, startH, startM);
 
   // إذا كان الموظف لديه إذن معتمد/قيد المراجعة ولم يكن توقيت البداية قد عُدّل بالفعل، يتم إضافة دقائق الإذن
   if (hasPermit && permitMinutes != null && permitMinutes > 0 && originalStartTime != null && startTime == originalStartTime) {
@@ -148,14 +159,12 @@ _ShiftDisciplineMetric _computeShiftDisciplineMetric({
   final todayGraceEnd = todayStart.add(Duration(minutes: graceInMinutes));
 
   if (todayCheckInAt != null) {
-    final checkIn = AppTime.toCairo(todayCheckInAt);
+    final checkIn = _shiftClock(referenceDate);
 
     // فحص ما إذا كان الموظف قد استوفى 8 ساعات عمل (480 دقيقة)
     final totalWorkMins = (workMinutes != null && workMinutes > 0)
         ? workMinutes
-        : (todayCheckOutAt != null
-            ? todayCheckOutAt.difference(checkIn).inMinutes
-            : current.difference(checkIn).inMinutes);
+        : (todayCheckOutAt ?? currentTime).difference(todayCheckInAt).inMinutes;
 
     if (totalWorkMins >= 480) {
       final overtimeMins = totalWorkMins > 480 ? totalWorkMins - 480 : 0;

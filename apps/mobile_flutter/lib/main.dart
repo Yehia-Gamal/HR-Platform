@@ -11,12 +11,17 @@ import 'package:ahla_shabab_management_os/features/mobile_data/push_service.dart
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (kIsWeb) {
+    // Expose widgets to browsers and assistive tools alongside the canvas.
+    SemanticsBinding.instance.ensureSemantics();
+  }
 
   // التواريخ والأوقات بأرقام الواجهة نفسها (24، 10:37) — كانت DateFormat('ar')
   // تكتب ٢٠٢٦ و١٠:٣٧ بجوار أرقام لاتينية في البطاقة نفسها.

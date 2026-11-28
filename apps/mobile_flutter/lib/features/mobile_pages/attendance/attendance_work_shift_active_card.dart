@@ -8,6 +8,7 @@ class _WorkShiftActiveCard extends StatelessWidget {
     required this.shiftColor,
     required this.liveStatus,
     required this.disciplineMetric,
+    required this.showLiveStatus,
     required this.scheme,
   });
 
@@ -17,6 +18,7 @@ class _WorkShiftActiveCard extends StatelessWidget {
   final Color shiftColor;
   final _ShiftLiveStatus liveStatus;
   final _ShiftDisciplineMetric disciplineMetric;
+  final bool showLiveStatus;
   final ColorScheme scheme;
 
   @override
@@ -232,6 +234,7 @@ class _WorkShiftActiveCard extends StatelessWidget {
                           ],
                           const SizedBox(height: 10),
 
+                          if (showLiveStatus) ...[
                           // شريط ومؤشر الحالة اللحظية للوردية
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -252,8 +255,6 @@ class _WorkShiftActiveCard extends StatelessWidget {
                                     Flexible(
                                       child: Text(
                                         liveStatus.statusLabel,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
                                           fontSize: 11.5,
                                           fontWeight: FontWeight.w700,
@@ -266,8 +267,6 @@ class _WorkShiftActiveCard extends StatelessWidget {
                                       child: Text(
                                         liveStatus.detailLabel,
                                         textAlign: TextAlign.end,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
                                           fontSize: 11,
                                           color: scheme.onSurfaceVariant,
@@ -313,8 +312,6 @@ class _WorkShiftActiveCard extends StatelessWidget {
                                     Expanded(
                                       child: Text(
                                         disciplineMetric.statusTitle,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w800,
@@ -365,6 +362,7 @@ class _WorkShiftActiveCard extends StatelessWidget {
                             effectiveGraceEndTime: current.hasTodayPermit ? current.formattedActiveGraceEndTime : null,
                           ),
                           const SizedBox(height: 8),
+                          ],
 
                           Row(
                             children: [

@@ -122,6 +122,12 @@ class _AuthenticatedGateState extends ConsumerState<_AuthenticatedGate>
           }
         }
 
+        if (mounted && ref.read(connectivityProvider) == ConnectivityState.online) {
+          ref.invalidate(myAttendanceServicesProvider);
+          ref.invalidate(myMonthlyStatementProvider);
+          ref.invalidate(employeeMonthlyStatementProvider);
+        }
+
         // Re-affirm FCM token registration in background
         try {
           final token = await FirebaseMessaging.instance.getToken();
@@ -266,6 +272,7 @@ class _AuthenticatedGateState extends ConsumerState<_AuthenticatedGate>
             }
             final workspace = _mobileWorkspace(contextData);
             if (workspace != null) {
+              ref.watch(attendanceCorrectionRefreshProvider);
               return switch (workspace) {
                 WorkspaceId.executive => ExecutiveWorkspace(
                   access: contextData,

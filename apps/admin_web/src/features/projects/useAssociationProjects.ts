@@ -30,17 +30,18 @@ function useProjectMutation<TInput>(rpcCall: (input: TInput) => Promise<unknown>
 }
 
 /** [refetchMs]: وضع العرض على الشاشة الكبيرة يحدّث كل دقيقة. */
-export function useAssociationProjects(refetchMs = 5 * 60_000, refetchInBackground = false) {
+export function useAssociationProjects(refetchMs = 5 * 60_000, refetchInBackground = false, displayOnly = false) {
   const a = useAuth();
   return useQuery({
-    queryKey: [KEY, a.isMock],
+    queryKey: [KEY, a.isMock, a.access?.userId, displayOnly],
     enabled: a.status === 'authenticated',
     // اللمبة تعتمد على الزمن — نُحدّث اللوحة دورياً ما دامت مفتوحة (وتتوقف في الخلفية لغير شاشة العرض).
     refetchInterval: a.isMock ? false : refetchMs,
     refetchIntervalInBackground: refetchInBackground,
     queryFn: async (): Promise<AssociationProjectsCatalog> => {
       if (import.meta.env.DEV && a.isMock) return (await loadProjectMocks()).mockCatalog();
-      return associationProjectsCatalogSchema.parse(await rpc('get_association_projects'));
+      const endpoint = displayOnly ? 'get_executive_projects_display' : 'get_association_projects';
+      return rpc(endpoint, undefined, associationProjectsCatalogSchema);
     },
   });
 }
@@ -151,6 +152,25 @@ export function useAddProjectUpdate() {
   );
 }
 
+export function useCloseAssociationProject() {
+  const queryClient = useQueryClient();
+  return useProjectMutation(
+    async (input: { projectId: string; planRevision: number; reviewNote: string }) => {
+      try {
+        return await rpc('close_association_project', {
+          p_project_id: input.projectId,
+          p_plan_revision: input.planRevision,
+          p_review_note: input.reviewNote,
+        });
+      } catch (error) {
+        void queryClient.invalidateQueries({ queryKey: [KEY] });
+        throw error;
+      }
+    },
+    'تم اعتماد إغلاق المشروع',
+  );
+}
+
 export function useUpsertProjectStep() {
   return useProjectMutation(
     (input: {
@@ -181,6 +201,16 @@ export function useSetProjectStepStatus() {
   return useProjectMutation(
     (input: { stepId: string; status: string }) => rpc('set_project_step_status', { p_step_id: input.stepId, p_status: input.status }),
     'تم تحديث حالة الخطوة',
+  );
+}
+
+export function useRecordProjectStepBlocker() {
+  return useProjectMutation(
+    (input: { stepId: string; reason: string }) => rpc('record_project_step_blocker', {
+      p_step_id: input.stepId,
+      p_reason: input.reason,
+    }),
+    'تم تسجيل سبب تعطل الخطوة',
   );
 }
 

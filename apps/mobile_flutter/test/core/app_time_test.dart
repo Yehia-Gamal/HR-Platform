@@ -14,19 +14,33 @@ void main() {
     expect(AppTime.dayKey(utcWinter), '2026-11-25');
   });
 
-  test('converts UTC summer DST timestamp accurately to Africa/Cairo (UTC+3)', () {
-    final utcSummer = DateTime.utc(2026, 7, 15, 22, 30);
-    final cairo = AppTime.toCairo(utcSummer);
-    expect(cairo.day, 16);
-    expect(cairo.hour, 1);
-    expect(cairo.minute, 30);
-    expect(AppTime.dayKey(utcSummer), '2026-07-16');
-  });
+  test(
+    'converts UTC summer DST timestamp accurately to Africa/Cairo (UTC+3)',
+    () {
+      final utcSummer = DateTime.utc(2026, 7, 15, 22, 30);
+      final cairo = AppTime.toCairo(utcSummer);
+      expect(cairo.day, 16);
+      expect(cairo.hour, 1);
+      expect(cairo.minute, 30);
+      expect(AppTime.dayKey(utcSummer), '2026-07-16');
+    },
+  );
 
   test('handles nullable dates and invalid strings cleanly', () {
     expect(AppTime.tryToCairo(null), isNull);
     expect(AppTime.tryParse(null), isNull);
     expect(AppTime.tryParse('not-a-timestamp'), isNull);
     expect(AppTime.tryParse('2026-11-25T06:00:00Z')?.hour, 8);
+  });
+
+  test('interprets correction picker time as Cairo in both seasons', () {
+    expect(
+      AppTime.fromCairoClock(DateTime.utc(2026, 7, 16, 1)).toUtc(),
+      DateTime.utc(2026, 7, 15, 22),
+    );
+    expect(
+      AppTime.fromCairoClock(DateTime.utc(2026, 11, 25, 9)).toUtc(),
+      DateTime.utc(2026, 11, 25, 7),
+    );
   });
 }
