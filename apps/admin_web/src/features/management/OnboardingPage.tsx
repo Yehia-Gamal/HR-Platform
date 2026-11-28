@@ -48,7 +48,7 @@ export function OnboardingPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Onboarding وفترة التجربة"
+        title="تهيئة الموظفين وفترة التجربة"
         description="رحلة موحدة من إنشاء الحساب حتى اكتمال اليوم الأول والسياسات ومراجعة فترة التجربة."
         actions={
           <button className="btn-primary" onClick={() => setOpen(true)}>
@@ -152,14 +152,14 @@ export function OnboardingPage() {
                 </article>
               ))
             ) : (
-              <EmptyState title="لا توجد رحلات Onboarding" description="ابدأ رحلة لموظف جديد وحدد مهام اليوم الأول وفترة التجربة." />
+              <EmptyState title="لا توجد رحلات تهيئة" description="ابدأ رحلة لموظف جديد وحدد مهام اليوم الأول وفترة التجربة." />
             )}
           </section>
         </>
       ) : null}
 
       {open && data ? (
-        <DialogOverlay title="بدء رحلة Onboarding" onClose={() => setOpen(false)} maxWidth="max-w-4xl">
+        <DialogOverlay title="بدء رحلة تهيئة" onClose={() => setOpen(false)} maxWidth="max-w-4xl">
           <form className="space-y-5" onSubmit={(event) => void create(event)}>
             <label>
               <span className="mb-1.5 block text-sm font-bold">الموظف</span>

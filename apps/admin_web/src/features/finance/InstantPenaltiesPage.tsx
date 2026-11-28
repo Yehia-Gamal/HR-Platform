@@ -587,7 +587,7 @@ export function InstantPenaltiesPage() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-teal-950 dark:text-teal-200">صندوق ساعات العمل الإضافي — Overtime Hub</span>
+                <span className="font-bold text-teal-950 dark:text-teal-200">صندوق ساعات العمل الإضافي</span>
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30">
                   {overtimeSummary.data?.employeesCount ?? 0} موظفاً قضوا وقتاً إضافياً اليوم
                 </span>

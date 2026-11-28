@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { AlertCircle, Award, Calendar, CheckCircle2, ChevronLeft, ChevronRight, Copy, Printer, Share2, Sparkles, TrendingUp } from 'lucide-react';
 import { shareMonthlyAchievementReport } from '../../core/whatsappShare';
+import { translateStatus } from '../../core/statusLabels';
 import { useEmployees } from '../employees/useEmployees';
 import { useEmployeeDailyReports } from '../employees/useEmployeeDossier';
 import { DialogOverlay } from '../../ui/DialogOverlay';
@@ -353,7 +354,7 @@ export function MonthlyAchievementDigestModal({ isOpen, onClose, initialEmployee
                   {stats.managerNotes.map((note, idx) => (
                     <div key={`mgr-${idx}`} className="rounded-lg bg-[var(--surface)] border border-purple-500/20 p-2 text-xs text-[var(--text-primary)]">
                       <div className="flex items-center justify-between text-[10px] text-[var(--text-muted)] mb-1">
-                        <span>بواسطة: {note.reviewer}</span>
+                        <span>بواسطة: {translateStatus(note.reviewer)}</span>
                         <span>{note.date}</span>
                       </div>
                       <p className="font-medium">{note.text}</p>

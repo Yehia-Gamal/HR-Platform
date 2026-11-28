@@ -66,7 +66,7 @@ describe('OnboardingPage', () => {
         <OnboardingPage />
       </MemoryRouter>,
     );
-    expect(screen.getByText('Onboarding وفترة التجربة')).toBeDefined();
+    expect(screen.getByText('تهيئة الموظفين وفترة التجربة')).toBeDefined();
   });
 
   it('يعرض بطاقات المؤشرات الإحصائية', () => {
@@ -108,6 +108,6 @@ describe('OnboardingPage', () => {
         <OnboardingPage />
       </MemoryRouter>,
     );
-    expect(screen.getByText('لا توجد رحلات Onboarding')).toBeDefined();
+    expect(screen.getByText('لا توجد رحلات تهيئة')).toBeDefined();
   });
 });

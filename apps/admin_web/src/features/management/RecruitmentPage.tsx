@@ -1,5 +1,6 @@
 import { BriefcaseBusiness, CalendarPlus, CheckCircle2, FileClock, FileSignature, Plus, Send, UserCheck, UserPlus, Users } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
+import { translateStatus } from '../../core/statusLabels';
 import { ArabicDateInput } from '../../ui/ArabicDateInput';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { NumberInput, SelectField, TextInput } from '../../ui/FormField';
@@ -131,7 +132,7 @@ export function RecruitmentPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="إدارة الموارد"
-        title="التوظيف وATS"
+        title="التوظيف ومتابعة المرشحين"
         description="إنشاء احتياج وظيفي موثق، حفظه كمسودة أو إرساله للاعتماد، ثم متابعة الإعلانات والمرشحين حتى التعيين."
         actions={
           <div className="flex flex-wrap gap-2">
@@ -231,12 +232,12 @@ export function RecruitmentPage() {
 
             <article className="card p-5">
               <h2 className="font-black">مسار المرشحين</h2>
-              <p className="muted mt-1 text-sm">توزيع الطلبات النشطة على مراحل الـATS.</p>
+              <p className="muted mt-1 text-sm">توزيع الطلبات النشطة على مراحل التوظيف.</p>
               <div className="mt-5 space-y-4">
                 {data.pipeline.map((item) => (
                   <div key={item.stage}>
                     <div className="flex justify-between text-sm">
-                      <span>{item.stage}</span>
+                      <span>{translateStatus(item.stage)}</span>
                       <strong>{item.count}</strong>
                     </div>
                     <div className="mt-2 h-2 rounded-full bg-[var(--surface-muted)]">
@@ -300,7 +301,7 @@ export function RecruitmentPage() {
                           onChange={(event) => {
                             if (event.target.value && event.target.value !== application.stageId)
                               workbenchCommands.moveStage.mutate(
-                                { applicationId: application.id, stageId: event.target.value, reason: 'نقل من لوحة ATS' },
+                                { applicationId: application.id, stageId: event.target.value, reason: 'نقل من لوحة المرشحين' },
                                 {
                                   onSuccess: () => toast({ message: 'تم نقل المرشح إلى المرحلة الجديدة', tone: 'success' }),
                                   onError: () => toast({ message: 'تعذر نقل المرشح', tone: 'error' }),

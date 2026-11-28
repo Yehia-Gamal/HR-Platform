@@ -1,4 +1,5 @@
 import { AlertTriangle, CalendarDays, CircleCheck, CircleMinus, CircleX, Clock3, FileText, Megaphone, Plane } from 'lucide-react';
+import { translateStatus } from '../core/statusLabels';
 
 type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger' | 'violet';
 const map: Record<string, { label: string; tone: Tone; icon: typeof CircleCheck }> = {
@@ -130,12 +131,24 @@ const map: Record<string, { label: string; tone: Tone; icon: typeof CircleCheck 
   paid: { label: 'مدفوعة', tone: 'success', icon: CircleCheck },
   doubled: { label: 'مضاعفة', tone: 'danger', icon: AlertTriangle },
   initial: { label: 'أولية', tone: 'info', icon: Clock3 },
+  posted: { label: 'منشور', tone: 'info', icon: Megaphone },
+  hired: { label: 'تم التعيين', tone: 'success', icon: CircleCheck },
+  shortlisted: { label: 'القائمة المختصرة', tone: 'info', icon: CircleCheck },
+  screening: { label: 'فرز أولي', tone: 'info', icon: Clock3 },
+  completed: { label: 'مكتمل', tone: 'success', icon: CircleCheck },
+  manager_review: { label: 'عند المدير المباشر', tone: 'violet', icon: Clock3 },
+  hr_review: { label: 'مراجعة الموارد البشرية', tone: 'info', icon: Clock3 },
+  parallel_review: { label: 'مراجعة متوازية', tone: 'info', icon: Clock3 },
+  manager_final: { label: 'اعتماد المدير', tone: 'violet', icon: Clock3 },
+  secretary_review: { label: 'مراجعة السكرتارية', tone: 'info', icon: Clock3 },
+  executive_review: { label: 'مراجعة الإدارة التنفيذية', tone: 'warning', icon: AlertTriangle },
   pending_direct_manager: { label: 'بانتظار المدير المباشر', tone: 'warning', icon: Clock3 },
 };
 
 export function StatusBadge({ status, value, label }: { status?: string; value?: string; label?: string }) {
   const key = value ?? status ?? 'unknown';
-  const meta = map[key] ?? { label: key, tone: 'neutral' as const, icon: CircleMinus };
+  const normalizedKey = key.trim().toLowerCase().replace(/[\s-]+/g, '_');
+  const meta = map[key] ?? map[normalizedKey] ?? { label: translateStatus(key), tone: 'neutral' as const, icon: CircleMinus };
   const Icon = meta.icon;
   return (
     <span className={`status-badge status-${meta.tone}`}>

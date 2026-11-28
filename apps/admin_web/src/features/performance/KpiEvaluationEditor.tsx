@@ -17,7 +17,7 @@ type ComplianceDraft = Record<'PRAYER' | 'HALAQA', { required: number; actual: n
 const stageLabel: Record<string, string> = {
   self: 'التقييم الذاتي',
   manager_review: 'مراجعة المدير المباشر',
-  hr_review: 'مراجعة HR',
+  hr_review: 'مراجعة الموارد البشرية',
   finalized: 'مدرج في التقرير الشهري',
   closed: 'مغلق',
   archived: 'مؤرشف',

@@ -105,7 +105,7 @@ describe('RecruitmentPage', () => {
         <RecruitmentPage />
       </Wrapper>,
     );
-    expect(screen.getByText('التوظيف وATS')).toBeDefined();
+    expect(screen.getByText('التوظيف ومتابعة المرشحين')).toBeDefined();
   });
 
   it('يعرض بطاقات المؤشرات الإحصائية', () => {

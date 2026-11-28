@@ -14,17 +14,18 @@ import { KpiEvaluationEditor } from './KpiEvaluationEditor';
 import { usePerformance } from './usePerformance';
 import { useHasSubordinates } from '../employees/useHasSubordinates';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { translateStatus } from '../../core/statusLabels';
 
 type EvaluationStage =
   'self' | 'parallel_review' | 'hr_review' | 'manager_review' | 'manager_final' | 'secretary_review' | 'executive_review' | 'finalized' | 'closed' | 'archived';
 const stageLabel: Record<EvaluationStage, string> = {
   self: 'التقييم الذاتي',
   parallel_review: 'مراجعة متوازية (قديم)',
-  hr_review: 'مراجعة HR (قديم)',
+  hr_review: 'مراجعة الموارد البشرية',
   manager_review: 'عند المدير المباشر',
   manager_final: 'اعتماد المدير (قديم)',
-  secretary_review: 'مراجعة السكرتير (قديم)',
-  executive_review: 'مراجعة المدير التنفيذي (قديم)',
+  secretary_review: 'مراجعة السكرتارية (قديم)',
+  executive_review: 'مراجعة الإدارة التنفيذية (قديم)',
   finalized: 'مدرج في التقرير الشهري',
   closed: 'مغلق',
   archived: 'مؤرشف',
@@ -191,7 +192,7 @@ export function PerformancePage() {
                   <div>
                     <h2 className="text-lg font-black">{item.employeeName}</h2>
                     <p className="muted mt-1 text-sm">
-                      {item.employeeCode || 'بدون كود'} · {stageLabel[item.currentStage]}
+                      {item.employeeCode || 'بدون كود'} · {stageLabel[item.currentStage] ?? translateStatus(item.currentStage)}
                     </p>
                   </div>
                 </div>

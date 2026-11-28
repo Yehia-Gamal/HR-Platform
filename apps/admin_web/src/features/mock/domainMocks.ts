@@ -642,7 +642,7 @@ export const mockSystemOverview = {
   latestBackupAt: iso(-12),
   settingsCount: 24,
   recentErrors: [
-    { id: '55000000-0000-4000-8000-000000000001', level: 'warning', source: 'edge', message: 'تأخر مؤقت في تسليم إشعار Push', occurredAt: iso(-2) },
+    { id: '55000000-0000-4000-8000-000000000001', level: 'warning', source: 'edge', message: 'تأخر مؤقت في تسليم إشعار فوري', occurredAt: iso(-2) },
   ],
   flags: [
     { id: '56000000-0000-4000-8000-000000000001', key: 'official_feed', name: 'القناة الرسمية', enabled: true, rolloutPercent: 100, environment: 'all' },

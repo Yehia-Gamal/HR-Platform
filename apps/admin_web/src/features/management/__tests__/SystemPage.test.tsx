@@ -100,14 +100,14 @@ describe('SystemPage', () => {
     expect(screen.getByText('إعدادات النظام')).toBeDefined();
   });
 
-  it('يعرض قسم Feature Flags', () => {
+  it('يعرض قسم مفاتيح الميزات', () => {
     systemOverviewOverride = () => dataQuery;
     render(
       <MemoryRouter>
         <SystemPage />
       </MemoryRouter>,
     );
-    expect(screen.getByText('Feature Flags')).toBeDefined();
+    expect(screen.getByText('مفاتيح الميزات')).toBeDefined();
     expect(screen.getByText('البصمة البيومترية')).toBeDefined();
   });
 

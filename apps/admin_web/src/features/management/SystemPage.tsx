@@ -6,6 +6,7 @@ import { ErrorState } from '../../ui/ErrorState';
 import { MetricSkeletonRow, ListSkeleton } from '../../ui/Skeletons';
 import { useSystemOverview } from './useManagementOverviews';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { translateStatus, translateSystemMessage } from '../../core/statusLabels';
 
 export function SystemPage() {
   const q = useSystemOverview();
@@ -47,7 +48,7 @@ export function SystemPage() {
             />
             <MetricCard
               label="آخر نسخة احتياطية"
-              value={d.latestBackupStatus ?? 'لا يوجد'}
+              value={d.latestBackupStatus ? translateStatus(d.latestBackupStatus) : 'لا يوجد'}
               icon={DatabaseBackup}
               onClick={() => document.getElementById('system-sections')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
             />
@@ -61,7 +62,7 @@ export function SystemPage() {
 
           <section id="system-sections" className="grid gap-5 xl:grid-cols-2">
             <article className="card p-5">
-              <h2 className="font-black">Feature Flags</h2>
+              <h2 className="font-black">مفاتيح الميزات</h2>
               <p className="muted mt-1 text-sm">حالة الميزات ونسب إطلاقها عبر البيئات.</p>
               <div className="mt-4 space-y-3">
                 {d.flags.length ? (
@@ -71,7 +72,7 @@ export function SystemPage() {
                         <div>
                           <p className="font-black">{f.name ?? f.key}</p>
                           <p className="muted mt-1 font-mono text-xs">
-                            {f.key} · {f.environment}
+                            {f.key} · {translateStatus(f.environment)}
                           </p>
                         </div>
                         <StatusBadge value={f.enabled ? 'active' : 'inactive'} />
@@ -107,9 +108,9 @@ export function SystemPage() {
                     <div key={e.id} className="rounded-xl border border-[var(--border)] p-4">
                       <div className="flex gap-2">
                         <StatusBadge value={e.level} />
-                        <span className="muted text-xs">{e.source}</span>
+                        <span className="muted text-xs">{translateStatus(e.source)}</span>
                       </div>
-                      <p className="mt-3 text-sm font-bold">{e.message}</p>
+                      <p className="mt-3 text-sm font-bold">{translateSystemMessage(e.message)}</p>
                       <p className="muted mt-2 text-xs">
                         {new Intl.DateTimeFormat('ar-EG-u-nu-latn', {
                           dateStyle: 'medium',

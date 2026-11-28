@@ -251,7 +251,7 @@ export function OvertimeSummaryModal({
   if (!open) return null;
 
   return (
-    <DialogOverlay title="بيان ساعات العمل الإضافي لليوم (Overtime Hub)" onClose={onClose} maxWidth="max-w-2xl">
+    <DialogOverlay title="بيان ساعات العمل الإضافي لليوم" onClose={onClose} maxWidth="max-w-2xl">
       <div className="space-y-4 max-h-[75vh] overflow-y-auto p-1">
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div className="rounded-lg bg-[var(--surface-muted)] p-3 border border-[var(--border-subtle)] text-center">
