@@ -1,5 +1,6 @@
 import { BusFront, CalendarClock, CheckCircle2, CircleAlert, ClipboardCheck, ListTodo, Plus, Radio, Search, TimerReset, X } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
+import { ArabicDateInput } from '../../ui/ArabicDateInput';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
@@ -364,9 +365,8 @@ export function OperationsCenterPage() {
               </label>
               <label className="block text-sm font-bold">
                 تاريخ الاستحقاق
-                <input
+                <ArabicDateInput
                   className="input mt-2"
-                  type="date"
                   value={taskDraft.dueDate}
                   onChange={(event) => setTaskDraft({ ...taskDraft, dueDate: event.target.value })}
                 />

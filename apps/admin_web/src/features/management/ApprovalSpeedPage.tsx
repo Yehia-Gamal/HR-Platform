@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { ArabicDateInput } from '../../ui/ArabicDateInput';
 import { Clock, CheckCircle2, AlertTriangle, TrendingUp, Search, Calendar, Download, Flame, ArrowUpDown, RefreshCw, MessageCircle } from 'lucide-react';
 import { downloadCsv, toCsv, type ExportColumn } from '../../core/exportUtils';
 import { shareApproverNudge } from '../../core/whatsappShare';
@@ -193,16 +194,16 @@ export function ApprovalSpeedPage() {
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] px-2.5 py-1.5 text-xs text-[var(--text-muted)]">
             <Calendar className="h-3.5 w-3.5" />
-            <input
-              type="date"
+            <ArabicDateInput
+              hideIcon
               aria-label="من تاريخ"
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
               className="bg-transparent text-[var(--text-primary)] focus:outline-none text-xs"
             />
             <span>إلى</span>
-            <input
-              type="date"
+            <ArabicDateInput
+              hideIcon
               aria-label="إلى تاريخ"
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}

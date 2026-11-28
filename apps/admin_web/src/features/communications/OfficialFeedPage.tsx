@@ -1,6 +1,7 @@
 import { BellRing, CheckCircle2, Eye, FileText, Heart, ImagePlus, ListPlus, Megaphone, Plus, Send, ShieldCheck, Trash2, X } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { getSupabase } from '../../core/supabase';
+import { ArabicDateInput } from '../../ui/ArabicDateInput';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
@@ -565,7 +566,7 @@ export function OfficialFeedPage() {
                     ) : null}
                     <label className="block text-sm font-bold">
                       تاريخ انتهاء التصويت (اختياري)
-                      <input type="datetime-local" className="input mt-2" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
+                      <ArabicDateInput type="datetime-local" className="input mt-2" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
                     </label>
                   </div>
                 ) : null}

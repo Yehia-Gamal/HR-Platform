@@ -1,5 +1,6 @@
 import { CalendarDays, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { ArabicDateInput } from '../../ui/ArabicDateInput';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { safeErrorMessage } from '../../core/errorMapper';
 import { EmptyState } from '../../ui/EmptyState';
@@ -307,11 +308,11 @@ function HolidayFormDialog({ holiday, onClose, onSuccess }: { holiday: Holiday |
             <span className="mb-1.5 block text-sm font-semibold">
               تاريخ البداية <span className="text-[var(--danger)]">*</span>
             </span>
-            <input type="date" className="input w-full" required value={holidayDate} onChange={(e) => setHolidayDate(e.target.value)} disabled={isPending} />
+            <ArabicDateInput className="input w-full" required value={holidayDate} onChange={(e) => setHolidayDate(e.target.value)} disabled={isPending} />
           </label>
           <label className="block">
             <span className="mb-1.5 block text-sm font-semibold">تاريخ النهاية</span>
-            <input type="date" className="input w-full" value={endDate} onChange={(e) => setEndDate(e.target.value)} disabled={isPending} min={holidayDate} />
+            <ArabicDateInput className="input w-full" value={endDate} onChange={(e) => setEndDate(e.target.value)} disabled={isPending} min={holidayDate} />
           </label>
         </div>
 

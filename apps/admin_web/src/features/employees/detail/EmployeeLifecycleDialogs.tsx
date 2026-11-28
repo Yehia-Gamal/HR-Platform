@@ -2,6 +2,7 @@ import { AlertTriangle } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { cairoTodayIso } from '../../../core/cairoTime';
 import { safeErrorMessage } from '../../../core/errorMapper';
+import { ArabicDateInput } from '../../../ui/ArabicDateInput';
 import { DialogOverlay } from '../../../ui/DialogOverlay';
 import { ErrorBanner } from '../../../ui/ErrorState';
 import {
@@ -101,7 +102,7 @@ export function GrantRestCompDialog({
 
         <label className="block">
           <span className="mb-1.5 block text-sm font-semibold">تاريخ بداية العمل (الجمعة)</span>
-          <input type="date" className="input w-full" value={workDate} onChange={(e) => setWorkDate(e.target.value)} required disabled={grant.isPending} />
+          <ArabicDateInput className="input w-full" value={workDate} onChange={(e) => setWorkDate(e.target.value)} required disabled={grant.isPending} />
         </label>
 
         <label className="block">

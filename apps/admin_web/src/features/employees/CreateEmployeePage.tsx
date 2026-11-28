@@ -7,6 +7,7 @@ import { useForm } from 'react-hook-form';
 import { Link } from 'react-router';
 import { getSupabase } from '../../core/supabase';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { ArabicDateInput } from '../../ui/ArabicDateInput';
 import { PageHeader } from '../../ui/PageHeader';
 import { FormField } from '../../ui/FormField';
 import { UserAvatar } from '../../ui/UserAvatar';
@@ -338,7 +339,7 @@ export function CreateEmployeePage() {
                   hint="أدوار الوصول الكامل (admin) تُمنح لاحقاً يدوياً عبر صفحة الأدوار والصلاحيات — لا تُحدد عند الإنشاء."
                 />
                 <Field label="تاريخ التعيين" error={form.formState.errors.hireDate?.message}>
-                  <input type="date" className="input" {...form.register('hireDate', { setValueAs: (v: string) => v || undefined })} />
+                  <ArabicDateInput className="input" {...form.register('hireDate', { setValueAs: (v: string) => v || undefined })} />
                 </Field>
                 <label className="flex items-center gap-3 self-end rounded-xl bg-[var(--surface-muted)] p-3 text-sm font-semibold">
                   <input type="checkbox" className="size-4" {...form.register('sendInvite')} />

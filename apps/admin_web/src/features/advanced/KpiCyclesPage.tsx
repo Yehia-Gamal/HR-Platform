@@ -1,3 +1,4 @@
+import { ArabicDateInput } from '../../ui/ArabicDateInput';
 import {
   Archive,
   Bell,
@@ -424,7 +425,7 @@ export function KpiCyclesPage() {
                           </button>
                         </div>
                         <div className="grid gap-2 md:grid-cols-[1fr_auto]">
-                          <input
+                          <ArabicDateInput
                             className="input"
                             type="datetime-local"
                             value={extension[cycle.id] ?? ''}
@@ -439,14 +440,14 @@ export function KpiCyclesPage() {
                           </button>
                         </div>
                         <div className="grid gap-2 md:grid-cols-[1fr_1fr_auto]">
-                          <input
+                          <ArabicDateInput
                             className="input"
                             type="datetime-local"
                             aria-label="موعد الفتح الجديد"
                             value={openAt[cycle.id] ?? ''}
                             onChange={(event) => setOpenAt((old) => ({ ...old, [cycle.id]: event.target.value }))}
                           />
-                          <input
+                          <ArabicDateInput
                             className="input"
                             type="datetime-local"
                             aria-label="موعد الإغلاق الجديد"

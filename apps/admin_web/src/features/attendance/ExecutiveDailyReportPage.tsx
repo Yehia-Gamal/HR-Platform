@@ -1,3 +1,4 @@
+import { ArabicDateInput } from '../../ui/ArabicDateInput';
 import { AlertTriangle, ArrowRight, CalendarDays, Copy, Download, ExternalLink, Printer, ShieldCheck, Sparkles, TrendingUp, Users } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
@@ -248,8 +249,7 @@ export function ExecutiveDailyReportPage() {
       <div className="card p-4 flex flex-wrap items-center gap-4">
         <label className="flex items-center gap-2">
           <CalendarDays className="size-5 text-[var(--brand-primary)]" aria-hidden="true" />
-          <input
-            type="date"
+          <ArabicDateInput
             className="input w-auto"
             value={dateIso}
             onChange={(e) => setParams({ date: e.target.value }, { replace: true })}

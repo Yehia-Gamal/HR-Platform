@@ -1,3 +1,4 @@
+import { ArabicDateInput } from '../../ui/ArabicDateInput';
 import {
   ArrowRight,
   Calendar,
@@ -452,8 +453,7 @@ export function AttendanceDrilldownPage() {
               </div>
 
               {/* محدد تاريخ مخصص وزر اليوم */}
-              <input
-                type="date"
+              <ArabicDateInput
                 value={dateIso}
                 onChange={(e) => e.target.value && updateParams({ date: e.target.value })}
                 className="input !h-7 !py-0 !px-2 text-xs font-bold rounded-lg border border-[var(--border)] !w-auto"

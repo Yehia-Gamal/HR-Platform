@@ -2,6 +2,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 import type { OnboardingAdminCatalog } from '@ahla/shared-contracts';
 import { Award, CheckCircle2, ClipboardCheck, Eye, Loader2, PackageCheck, Plus, RefreshCw, UsersRound, X } from 'lucide-react';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { ArabicDateInput } from '../../ui/ArabicDateInput';
 import { DataTable, type DataTableColumn } from '../../ui/DataTable';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { EmptyState } from '../../ui/EmptyState';
@@ -296,7 +297,7 @@ function CreateJourneyDialog({ employees, onClose }: { employees: EligibleEmploy
           </label>
           <label className="block space-y-1.5">
             <span className="text-sm font-bold">نهاية فترة التجربة (اختياري)</span>
-            <input className="input" type="date" value={probationEnd} onChange={(e) => setProbationEnd(e.target.value)} />
+            <ArabicDateInput className="input" value={probationEnd} onChange={(e) => setProbationEnd(e.target.value)} />
           </label>
         </div>
 

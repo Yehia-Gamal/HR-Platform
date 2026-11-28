@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { ArabicDateInput } from '../../ui/ArabicDateInput';
 import { Printer, FileText, CheckCircle, Building2, ShieldCheck, Compass, Award, Share2 } from 'lucide-react';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { SignaturePad } from '../../ui/SignaturePad';
@@ -248,8 +249,7 @@ export function OfficialDocumentGeneratorModal({ isOpen, onClose, employee, init
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text)] mb-1">من تاريخ</label>
-                  <input
-                    type="date"
+                  <ArabicDateInput
                     value={missionStartDate}
                     onChange={(e) => setMissionStartDate(e.target.value)}
                     className="w-full text-xs p-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]"
@@ -257,8 +257,7 @@ export function OfficialDocumentGeneratorModal({ isOpen, onClose, employee, init
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[var(--text)] mb-1">إلى تاريخ</label>
-                  <input
-                    type="date"
+                  <ArabicDateInput
                     value={missionEndDate}
                     onChange={(e) => setMissionEndDate(e.target.value)}
                     className="w-full text-xs p-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]"

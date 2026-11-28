@@ -1,4 +1,5 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
+import { ArabicDateInput } from '../../../ui/ArabicDateInput';
 import { CalendarPlus } from 'lucide-react';
 import { formatDate } from './DisputeTypes';
 import type { DisputeCase, RunFn } from './DisputeTypes';
@@ -24,14 +25,14 @@ export function DisputeSessionsSection({ selected, commands, run }: Props) {
           <option value="follow_up">متابعة</option>
           <option value="decision">قرار</option>
         </select>
-        <input
+        <ArabicDateInput
           className="input"
           type="datetime-local"
           aria-label="بداية الجلسة"
           value={session.at}
           onChange={(event) => setSession({ ...session, at: event.target.value })}
         />
-        <input
+        <ArabicDateInput
           className="input"
           type="datetime-local"
           aria-label="نهاية الجلسة"

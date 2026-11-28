@@ -1,4 +1,5 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
+import { ArabicDateInput } from '../../../ui/ArabicDateInput';
 import { Gavel } from 'lucide-react';
 import type { DisputeCase, Person, RunFn } from './DisputeTypes';
 import type { DisputeCommands } from '../useAdvancedOperations';
@@ -72,7 +73,7 @@ export function DisputeDecisionForm({ selected, people, commands, run }: Props) 
               </option>
             ))}
           </select>
-          <input
+          <ArabicDateInput
             className="input"
             type="datetime-local"
             aria-label="موعد التنفيذ"

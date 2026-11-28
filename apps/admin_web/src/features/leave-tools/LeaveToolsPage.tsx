@@ -1,6 +1,7 @@
 import { cairoTodayIso } from '../../core/cairoTime';
 import { BriefcaseBusiness, CalendarDays, ChevronDown, Search, SlidersHorizontal, Users, WalletCards } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { ArabicDateInput } from '../../ui/ArabicDateInput';
 import { ErrorBanner } from '../../ui/ErrorState';
 import { PageHeader } from '../../ui/PageHeader';
 import { UserAvatar } from '../../ui/UserAvatar';
@@ -168,8 +169,7 @@ function BulkRestCreditSection() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <label className="block">
           <span className="mb-1.5 block text-xs font-semibold text-[var(--text-muted)]">تاريخ بداية العمل (الجمعة)</span>
-          <input
-            type="date"
+          <ArabicDateInput
             className="input w-full text-sm"
             value={workDate}
             onChange={(e) => setWorkDate(e.target.value)}
@@ -420,8 +420,7 @@ function CreateLeaveForEmployeeSection() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <label className="block">
           <span className="mb-1.5 block text-xs font-semibold text-[var(--text-muted)]">من تاريخ</span>
-          <input
-            type="date"
+          <ArabicDateInput
             className="input w-full text-sm"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
@@ -431,8 +430,7 @@ function CreateLeaveForEmployeeSection() {
         </label>
         <label className="block">
           <span className="mb-1.5 block text-xs font-semibold text-[var(--text-muted)]">إلى تاريخ</span>
-          <input
-            type="date"
+          <ArabicDateInput
             className="input w-full text-sm"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
@@ -590,7 +588,7 @@ function BulkAssignmentSection() {
           <>
             <label className="block">
               <span className="mb-1.5 block text-xs font-semibold text-[var(--text-muted)]">من</span>
-              <input
+              <ArabicDateInput
                 type="datetime-local"
                 className="input w-full text-sm"
                 value={startAt}
@@ -601,7 +599,7 @@ function BulkAssignmentSection() {
             </label>
             <label className="block">
               <span className="mb-1.5 block text-xs font-semibold text-[var(--text-muted)]">إلى</span>
-              <input
+              <ArabicDateInput
                 type="datetime-local"
                 className="input w-full text-sm"
                 value={endAt}

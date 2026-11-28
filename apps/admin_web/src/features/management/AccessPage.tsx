@@ -1,3 +1,4 @@
+import { ArabicDateInput } from '../../ui/ArabicDateInput';
 import {
   Briefcase,
   ChevronDown,
@@ -377,9 +378,8 @@ export function AccessPage() {
               })()}
               <label>
                 <span className="mb-1.5 block text-sm font-bold">تاريخ الانتهاء</span>
-                <input
+                <ArabicDateInput
                   className="input"
-                  type="date"
                   value={assignment.effectiveTo}
                   onChange={(e) => setAssignment({ ...assignment, effectiveTo: e.target.value })}
                 />

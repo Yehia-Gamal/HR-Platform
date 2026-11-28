@@ -1,6 +1,7 @@
 import type { KpiEvaluationForm } from '@ahla/shared-contracts';
 import { AlertTriangle, CalendarCheck, CheckCircle2, Link2, Save, ShieldCheck, Target } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { ArabicDateInput } from '../../ui/ArabicDateInput';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { SkeletonCard } from '../../ui/Skeletons';
 import { StatusBadge } from '../../ui/StatusBadge';
@@ -418,9 +419,8 @@ export function KpiEvaluationEditor({ evaluationId, onDone }: { evaluationId: st
                         value={newGoal.unit}
                         onChange={(event) => setNewGoal({ ...newGoal, unit: event.target.value })}
                       />
-                      <input
+                      <ArabicDateInput
                         className="input"
-                        type="date"
                         value={newGoal.dueDate}
                         onChange={(event) => setNewGoal({ ...newGoal, dueDate: event.target.value })}
                       />
@@ -615,7 +615,7 @@ export function KpiEvaluationEditor({ evaluationId, onDone }: { evaluationId: st
               <div className="mt-3 grid gap-3 md:grid-cols-2">
                 <label className="text-xs font-bold">
                   وقت الجلسة
-                  <input
+                  <ArabicDateInput
                     className="input mt-1"
                     type="datetime-local"
                     value={session.heldAt}

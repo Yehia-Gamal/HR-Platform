@@ -1,5 +1,6 @@
 import { BriefcaseBusiness, CalendarPlus, CheckCircle2, FileClock, FileSignature, Plus, Send, UserCheck, UserPlus, Users } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
+import { ArabicDateInput } from '../../ui/ArabicDateInput';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { NumberInput, SelectField, TextInput } from '../../ui/FormField';
 import { EmptyState } from '../../ui/EmptyState';
@@ -611,7 +612,7 @@ export function RecruitmentPage() {
               </SelectField>
               <label>
                 <span className="mb-1.5 block text-sm font-bold">الموعد</span>
-                <input
+                <ArabicDateInput
                   className="input"
                   type="datetime-local"
                   required
@@ -671,16 +672,15 @@ export function RecruitmentPage() {
               </label>
               <label>
                 <span className="mb-1.5 block text-sm font-bold">تاريخ المباشرة</span>
-                <input
+                <ArabicDateInput
                   className="input"
-                  type="date"
                   value={offerDraft.startDate}
                   onChange={(event) => setOfferDraft({ ...offerDraft, startDate: event.target.value })}
                 />
               </label>
               <label>
                 <span className="mb-1.5 block text-sm font-bold">تنتهي صلاحية العرض</span>
-                <input
+                <ArabicDateInput
                   className="input"
                   type="datetime-local"
                   value={offerDraft.expiresAt}

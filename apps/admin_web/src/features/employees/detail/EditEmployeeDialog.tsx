@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent 
 import { safeErrorMessage } from '../../../core/errorMapper';
 import { getSupabase } from '../../../core/supabase';
 import { prepareAvatarFile } from '../../../ui/avatarImage';
+import { ArabicDateInput } from '../../../ui/ArabicDateInput';
 import { DialogOverlay } from '../../../ui/DialogOverlay';
 import { ErrorBanner } from '../../../ui/ErrorState';
 import { fixIntlPhoneOrder } from '../../../ui/phoneDisplay';
@@ -313,7 +314,7 @@ export function EditEmployeeDialog({ item, onClose, onSuccess }: { item: Employe
               <JobTitleInput label="المسمى الوظيفي" value={jobTitleText} options={jobTitleOptions} onChange={setJobTitleText} disabled={update.isPending} />
               <label className="block">
                 <span className="mb-1.5 block text-sm font-semibold">تاريخ التعيين</span>
-                <input type="date" className="input w-full" value={hireDate} onChange={(e) => setHireDate(e.target.value)} disabled={update.isPending} />
+                <ArabicDateInput className="input w-full" value={hireDate} onChange={(e) => setHireDate(e.target.value)} disabled={update.isPending} />
               </label>
             </div>
           </fieldset>

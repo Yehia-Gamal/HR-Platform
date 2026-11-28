@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { AssociationProjectListItem, AssociationProjectPermissions } from '@ahla/shared-contracts';
 import { Loader2 } from 'lucide-react';
+import { ArabicDateInput } from '../../ui/ArabicDateInput';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { ErrorBanner } from '../../ui/ErrorState';
 import { safeErrorMessage } from '../../core/errorMapper';
@@ -117,11 +118,11 @@ export function ProjectFormDialog({ project, permissions, isFullAccess, myDepart
             </label>
             <label className="block">
               <span className="text-sm font-bold">تاريخ البدء</span>
-              <input type="date" className="input mt-1" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              <ArabicDateInput className="input mt-1" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
             </label>
             <label className="block">
               <span className="text-sm font-bold">الموعد المستهدف للانتهاء</span>
-              <input type="date" className="input mt-1" value={targetEndDate} onChange={(e) => setTargetEndDate(e.target.value)} />
+              <ArabicDateInput className="input mt-1" value={targetEndDate} onChange={(e) => setTargetEndDate(e.target.value)} />
             </label>
           </div>
           {datesInvalid && <p className="text-sm font-bold text-[var(--danger)]">الموعد المستهدف يجب أن يكون بعد تاريخ البدء.</p>}

@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { ArabicDateInput } from '../../ui/ArabicDateInput';
 import { AlertTriangle, CalendarCheck, CheckCircle2, Sparkles, Users, Send } from 'lucide-react';
 import { cairoTodayIso } from '../../core/cairoTime';
 import { safeErrorMessage } from '../../core/errorMapper';
@@ -210,8 +211,7 @@ export function LeaveSimulatorSection() {
         {/* من تاريخ */}
         <label className="block">
           <span className="mb-1.5 block text-xs font-bold text-[var(--text-muted)]">من تاريخ</span>
-          <input
-            type="date"
+          <ArabicDateInput
             value={startDate}
             onChange={(e) => {
               setStartDate(e.target.value);
@@ -227,8 +227,7 @@ export function LeaveSimulatorSection() {
         {/* إلى تاريخ */}
         <label className="block">
           <span className="mb-1.5 block text-xs font-bold text-[var(--text-muted)]">إلى تاريخ</span>
-          <input
-            type="date"
+          <ArabicDateInput
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
             min={startDate}

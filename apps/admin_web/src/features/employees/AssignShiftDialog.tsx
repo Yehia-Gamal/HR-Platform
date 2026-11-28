@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Clock, CheckCircle2, Info } from 'lucide-react';
 import { cairoTodayIso } from '../../core/cairoTime';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { ArabicDateInput } from '../../ui/ArabicDateInput';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { ErrorBanner } from '../../ui/ErrorState';
 import { useToast } from '../../ui/Toast';
@@ -131,8 +132,7 @@ export function AssignShiftDialog({ employeeId, employeeName, employeeCode, onCl
               تاريخ سريان الوردية <span className="text-[var(--danger)]">*</span>
             </span>
             <div className="relative">
-              <input
-                type="date"
+              <ArabicDateInput
                 required
                 className="input w-full"
                 value={effectiveFrom}

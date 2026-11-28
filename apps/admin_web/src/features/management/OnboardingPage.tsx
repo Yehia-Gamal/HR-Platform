@@ -1,5 +1,6 @@
 import { CheckCircle2, CircleDashed, ClipboardCheck, Plus, Rocket, Save, X } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
+import { ArabicDateInput } from '../../ui/ArabicDateInput';
 import { DialogOverlay } from '../../ui/DialogOverlay';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
@@ -173,7 +174,7 @@ export function OnboardingPage() {
             </label>
             <label>
               <span className="mb-1.5 block text-sm font-bold">نهاية فترة التجربة</span>
-              <input className="input" type="date" value={probationEnd} onChange={(event) => setProbationEnd(event.target.value)} />
+              <ArabicDateInput className="input" value={probationEnd} onChange={(event) => setProbationEnd(event.target.value)} />
             </label>
             <div>
               <div className="mb-3 flex items-center justify-between">

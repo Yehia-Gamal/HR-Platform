@@ -1,3 +1,4 @@
+import { ArabicDateInput } from '../../ui/ArabicDateInput';
 import { cairoTodayIso } from '../../core/cairoTime';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useLocation } from 'react-router';
@@ -305,11 +306,11 @@ export function InstantPenaltiesPage() {
 
     return q
       ? items.filter(
-          (p) =>
-            (p.employeeName ?? '').toLowerCase().includes(q) ||
-            (p.employeeCode ?? '').toLowerCase().includes(q) ||
-            (p.departmentName ?? '').toLowerCase().includes(q),
-        )
+        (p) =>
+          (p.employeeName ?? '').toLowerCase().includes(q) ||
+          (p.employeeCode ?? '').toLowerCase().includes(q) ||
+          (p.departmentName ?? '').toLowerCase().includes(q),
+      )
       : items;
   }, [penalties.data, search, dateFilterMode, specificDate, statusFilter, selectedTier]);
 
@@ -484,11 +485,10 @@ export function InstantPenaltiesPage() {
             <button
               type="button"
               onClick={() => setSelectedTier((prev) => (prev === 'pending' ? 'all' : 'pending'))}
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-bold transition-all cursor-pointer ${
-                selectedTier === 'pending'
-                  ? 'border-amber-500 bg-amber-500/15 text-amber-600 dark:text-amber-400 ring-2 ring-amber-500/30'
-                  : 'border-amber-500/30 bg-amber-500/5 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10'
-              }`}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-bold transition-all cursor-pointer ${selectedTier === 'pending'
+                ? 'border-amber-500 bg-amber-500/15 text-amber-600 dark:text-amber-400 ring-2 ring-amber-500/30'
+                : 'border-amber-500/30 bg-amber-500/5 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10'
+                }`}
             >
               <AlertTriangle className="size-3.5" />
               <span>{stats.pendingCount} موظف مطالب بالدفع</span>
@@ -499,11 +499,10 @@ export function InstantPenaltiesPage() {
             <button
               type="button"
               onClick={() => setSelectedTier((prev) => (prev === 'suspended' ? 'all' : 'suspended'))}
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-bold transition-all cursor-pointer ${
-                selectedTier === 'suspended'
-                  ? 'border-red-500 bg-red-500/15 text-red-600 dark:text-red-400 ring-2 ring-red-500/30'
-                  : 'border-red-500/30 bg-red-500/5 text-red-700 dark:text-red-300 hover:bg-red-500/10'
-              }`}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-bold transition-all cursor-pointer ${selectedTier === 'suspended'
+                ? 'border-red-500 bg-red-500/15 text-red-600 dark:text-red-400 ring-2 ring-red-500/30'
+                : 'border-red-500/30 bg-red-500/5 text-red-700 dark:text-red-300 hover:bg-red-500/10'
+                }`}
             >
               <Ban className="size-3.5" />
               <span>{stats.suspendedCount} معلّق عن العمل</span>
@@ -529,13 +528,12 @@ export function InstantPenaltiesPage() {
           )}
           {collectionStats.totalCount > 0 && (
             <span
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-bold ${
-                collectionStats.rate >= 80
-                  ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-700 dark:text-emerald-300'
-                  : collectionStats.rate >= 50
-                    ? 'border-amber-500/30 bg-amber-500/5 text-amber-700 dark:text-amber-300'
-                    : 'border-red-500/30 bg-red-500/5 text-red-700 dark:text-red-300'
-              }`}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-bold ${collectionStats.rate >= 80
+                ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-700 dark:text-emerald-300'
+                : collectionStats.rate >= 50
+                  ? 'border-amber-500/30 bg-amber-500/5 text-amber-700 dark:text-amber-300'
+                  : 'border-red-500/30 bg-red-500/5 text-red-700 dark:text-red-300'
+                }`}
             >
               <CheckCircle2 className="size-3.5" />
               <span>
@@ -759,7 +757,7 @@ export function InstantPenaltiesPage() {
             </label>
             <label className="block">
               <span className="muted text-xs">تاريخ التأخير *</span>
-              <input className="input mt-1" type="date" value={workDate} onChange={(ev) => setWorkDate(ev.target.value)} required />
+              <ArabicDateInput className="input mt-1" value={workDate} onChange={(ev) => setWorkDate(ev.target.value)} required />
             </label>
             <label className="block">
               <span className="muted text-xs">دقائق التأخير *</span>
@@ -832,42 +830,38 @@ export function InstantPenaltiesPage() {
             <button
               type="button"
               onClick={() => setDateFilterMode('today')}
-              className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
-                dateFilterMode === 'today'
-                  ? 'bg-[var(--brand-primary)] text-white shadow-xs font-black'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)]'
-              }`}
+              className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${dateFilterMode === 'today'
+                ? 'bg-[var(--brand-primary)] text-white shadow-xs font-black'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)]'
+                }`}
             >
               اليوم
             </button>
             <button
               type="button"
               onClick={() => setDateFilterMode('yesterday')}
-              className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
-                dateFilterMode === 'yesterday'
-                  ? 'bg-[var(--brand-primary)] text-white shadow-xs font-black'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)]'
-              }`}
+              className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${dateFilterMode === 'yesterday'
+                ? 'bg-[var(--brand-primary)] text-white shadow-xs font-black'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)]'
+                }`}
             >
               أمس
             </button>
             <button
               type="button"
               onClick={() => setDateFilterMode('all')}
-              className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
-                dateFilterMode === 'all'
-                  ? 'bg-[var(--brand-primary)] text-white shadow-xs font-black'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)]'
-              }`}
+              className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${dateFilterMode === 'all'
+                ? 'bg-[var(--brand-primary)] text-white shadow-xs font-black'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)]'
+                }`}
             >
               الأرشيف
             </button>
           </div>
 
           {dateFilterMode === 'specific' && (
-            <input
-              type="date"
-              className="input text-xs font-mono py-1 px-2 border-primary/50 shadow-xs"
+            <ArabicDateInput
+              className="input text-xs font-mono py-1 px-2 border-primary/50 shadow-xs !w-auto"
               value={specificDate}
               onChange={(ev) => setSpecificDate(ev.target.value)}
               aria-label="اختر التاريخ المحدد"

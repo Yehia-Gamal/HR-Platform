@@ -1,3 +1,4 @@
+import { ArabicDateInput } from '../../ui/ArabicDateInput';
 import {
   AlertTriangle,
   ArrowUpRight,
@@ -200,8 +201,7 @@ export function AttendancePage() {
             >
               <ChevronRight className="size-4" />
             </button>
-            <input
-              type="date"
+            <ArabicDateInput
               aria-label="تاريخ الحضور"
               value={dateIso}
               onChange={(e) => setDateIso(e.target.value || cairoTodayIso())}
