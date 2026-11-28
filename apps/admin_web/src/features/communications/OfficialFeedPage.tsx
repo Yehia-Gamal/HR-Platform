@@ -376,7 +376,7 @@ export function OfficialFeedPage() {
                   <div className="p-5">
                     <div className="flex justify-between text-sm">
                       <span>نسبة الاطلاع والإقرار</span>
-                      <strong>
+                      <strong dir="ltr" style={{ unicodeBidi: 'isolate' }} className="tabular-nums">
                         {item.acknowledgedCount}
                         {item.targetCount ? ` / ${item.targetCount}` : ''}
                       </strong>
