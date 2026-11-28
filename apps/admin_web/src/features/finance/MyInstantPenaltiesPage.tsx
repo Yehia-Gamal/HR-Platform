@@ -95,12 +95,13 @@ export function MyInstantPenaltiesPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow="حسابي"
-        title="غرامات الحضور والانصراف"
-        description="عرض غراماتك الفورية وحالتها. عند السداد للـ HR ستُزال الغرامة تلقائياً وفتح حسابك إن كنت معلّقاً."
-      />
+    <main className="mx-auto min-h-screen w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <div className="space-y-6">
+        <PageHeader
+          eyebrow="حسابي"
+          title="غرامات الحضور والانصراف"
+          description="عرض غراماتك الفورية وحالتها. عند السداد للـ HR ستُزال الغرامة تلقائياً وفتح حسابك إن كنت معلّقاً."
+        />
 
       {/* ─── بطاقة ملخص الموظف ────────────────────────────────────── */}
       <div className="relative overflow-hidden rounded-3xl border-2 border-amber-500/20 bg-gradient-to-br from-gray-900 via-amber-950/30 to-gray-950 p-6 md:p-8 text-white shadow-[0_0_40px_rgba(245,158,11,0.1)]">
@@ -334,6 +335,7 @@ export function MyInstantPenaltiesPage() {
           </div>
         </DialogOverlay>
       )}
-    </div>
+      </div>
+    </main>
   );
 }
