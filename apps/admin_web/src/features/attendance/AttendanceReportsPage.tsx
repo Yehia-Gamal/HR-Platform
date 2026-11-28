@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { cairoTodayIso, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from '../../core/cairoTime';
 import { safeErrorMessage } from '../../core/errorMapper';
+import { ArabicDateInput } from '../../ui/ArabicDateInput';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { MetricCard } from '../../ui/MetricCard';
@@ -174,7 +175,7 @@ export function AttendanceReportsPage() {
 
           <div className="flex items-center gap-2">
             <label className="text-sm font-semibold">{period === 'month' ? 'الشهر:' : period === 'week' ? 'الأسبوع:' : 'اليوم:'}</label>
-            <input
+            <ArabicDateInput
               type={period === 'month' ? 'month' : 'date'}
               className="input w-auto"
               value={period === 'month' ? dateIso.slice(0, 7) : dateIso}

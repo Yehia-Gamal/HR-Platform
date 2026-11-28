@@ -198,7 +198,7 @@ export function KpiCyclesPage() {
         actions={
           <label className="text-sm font-bold">
             الشهر
-            <input className="input mt-1" type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
+            <ArabicDateInput className="input mt-1" type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
           </label>
         }
       />

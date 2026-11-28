@@ -1,5 +1,6 @@
 import { CalendarClock, CheckCircle2, Clock3, Save, UsersRound } from 'lucide-react';
 import { useState } from 'react';
+import { ArabicDateInput } from '../../ui/ArabicDateInput';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorBanner, ErrorState } from '../../ui/ErrorState';
 import { InputDialog } from '../../ui/InputDialog';
@@ -56,7 +57,7 @@ export function AttendanceOperationsPage() {
         actions={
           <label className="text-sm font-bold">
             <span className="block">الشهر</span>
-            <input type="month" aria-label="الشهر" className="input mt-1" value={month} onChange={(e) => setMonth(e.target.value)} />
+            <ArabicDateInput type="month" aria-label="الشهر" className="input mt-1" value={month} onChange={(e) => setMonth(e.target.value)} />
           </label>
         }
       />

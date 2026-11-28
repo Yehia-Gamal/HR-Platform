@@ -17,8 +17,22 @@ export function formatArabicDateDisplay(isoDate: string | number | readonly stri
   return `${match[1]}/${match[2]}/${match[3]}`;
 }
 
+/**
+ * يحوّل قيمة الشهر ISO (`YYYY-MM`) إلى اسم الشهر بالعربية مع السنة بأرقام غربية (`نوفمبر 2026`).
+ */
+export function formatArabicMonthDisplay(isoMonth: string | number | readonly string[] | undefined): string {
+  const raw = typeof isoMonth === 'string' ? isoMonth.trim() : '';
+  if (!raw) return '';
+  const match = /^(\d{4})-(\d{2})/.exec(raw);
+  if (!match) return raw;
+  const year = Number(match[1]);
+  const monthIdx = Number(match[2]) - 1;
+  if (!Number.isFinite(year) || monthIdx < 0 || monthIdx > 11) return raw;
+  return new Intl.DateTimeFormat('ar-EG-u-nu-latn', { month: 'long', year: 'numeric' }).format(new Date(year, monthIdx, 1));
+}
+
 export interface ArabicDateInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {
-  type?: 'date' | 'datetime-local';
+  type?: 'date' | 'datetime-local' | 'month';
   /** إخفاء أيقونة التقويم عند وضع الحقل داخل شريط يمتلك أيقونة مسبقة. */
   hideIcon?: boolean;
   /** نص بديل يظهر عند خلوّ الحقل. */
@@ -26,15 +40,15 @@ export interface ArabicDateInputProps extends Omit<InputHTMLAttributes<HTMLInput
 }
 
 /**
- * مكوّن تاريخ موحد يعتمد على `<input type="date" | "datetime-local">` داخلياً للحفاظ على التكامل
- * مع النماذج ومحدِّد النظام وقارئات الشاشة، مع طبقة عرض `yyyy/mm/dd` ثابتة
- * بدلاً من تنسيق النظام الأمريكي `mm/dd/yyyy`.
+ * مكوّن تاريخ موحد يعتمد على `<input type="date" | "datetime-local" | "month">` داخلياً
+ * للحفاظ على التكامل مع النماذج ومحدِّد النظام وقارئات الشاشة، مع طبقة عرض عربية ثابتة
+ * (`yyyy/mm/dd` للتاريخ، و`نوفمبر 2026` للشهر) بدلاً من تنسيق النظام الإنجليزي.
  */
 export const ArabicDateInput = forwardRef<HTMLInputElement, ArabicDateInputProps>(function ArabicDateInput(
   { type = 'date', className = 'input', value, defaultValue, onChange, onClick, disabled, hideIcon = false, emptyLabel, style, ...rest },
   forwardedRef,
 ) {
-  const resolvedEmptyLabel = emptyLabel ?? (type === 'datetime-local' ? 'yyyy/mm/dd --:--' : 'yyyy/mm/dd');
+  const resolvedEmptyLabel = emptyLabel ?? (type === 'month' ? 'اختر الشهر' : type === 'datetime-local' ? 'yyyy/mm/dd --:--' : 'yyyy/mm/dd');
   const innerRef = useRef<HTMLInputElement | null>(null);
   const isControlled = value !== undefined;
   const [uncontrolledValue, setUncontrolledValue] = useState(() => (typeof defaultValue === 'string' ? defaultValue : ''));
@@ -59,7 +73,7 @@ export const ArabicDateInput = forwardRef<HTMLInputElement, ArabicDateInputProps
   });
 
   const currentValue = isControlled ? (typeof value === 'string' ? value : '') : uncontrolledValue;
-  const formatted = formatArabicDateDisplay(currentValue);
+  const formatted = type === 'month' ? formatArabicMonthDisplay(currentValue) : formatArabicDateDisplay(currentValue);
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (!isControlled) {
@@ -89,7 +103,7 @@ export const ArabicDateInput = forwardRef<HTMLInputElement, ArabicDateInputProps
       } ${className}`}
     >
       <span
-        dir="ltr"
+        dir={type === 'month' ? 'rtl' : 'ltr'}
         style={{ unicodeBidi: 'isolate' }}
         className={`tabular-nums truncate ${formatted ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}
       >

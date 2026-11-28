@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { ArabicDateInput, formatArabicDateDisplay } from './ArabicDateInput';
+import { ArabicDateInput, formatArabicDateDisplay, formatArabicMonthDisplay } from './ArabicDateInput';
 
 describe('ArabicDateInput', () => {
   it('ينسق تاريخ ISO إلى yyyy/mm/dd بالأرقام الغربية', () => {
@@ -30,5 +30,13 @@ describe('ArabicDateInput', () => {
     const input = screen.getByLabelText('تاريخ البداية') as HTMLInputElement;
     fireEvent.change(input, { target: { value: '2026-05-03' } });
     expect(screen.getByText('2026/05/03')).toBeInTheDocument();
+  });
+
+  it('ينسق منتقي الشهر إلى اسم الشهر العربي والسنة بأرقام غربية', () => {
+    expect(formatArabicMonthDisplay('2026-11')).toBe('نوفمبر 2026');
+    render(<ArabicDateInput type="month" aria-label="الشهر" value="2026-11" onChange={() => {}} />);
+    expect(screen.getByText('نوفمبر 2026')).toBeInTheDocument();
+    const input = screen.getByLabelText('الشهر') as HTMLInputElement;
+    expect(input.type).toBe('month');
   });
 });
